@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/alunos")({
   component: AlunosPage,
@@ -38,8 +38,9 @@ type Aluno = {
   ativo: boolean;
 };
 
-type Turma = { id: string; nome: string; horario: string | null };
+type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[] | null };
 type Matricula = { id: string; aluno_id: string; turma_id: string; plano: string; valor_mensal: number; status: string };
+
 
 const vazio = {
   nome: "",
@@ -54,6 +55,8 @@ function AlunosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Aluno | null>(null);
@@ -64,19 +67,32 @@ function AlunosPage() {
   const [qrAluno, setQrAluno] = useState<Aluno | null>(null);
 
   async function carregar() {
-    const [a, t, m] = await Promise.all([
-      supabase.from("alunos").select("*").order("nome"),
-      supabase.from("turmas").select("id,nome,horario").order("nome"),
-      supabase.from("matriculas").select("*"),
-    ]);
-    if (a.data) setAlunos(a.data as Aluno[]);
-    if (t.data) setTurmas(t.data as Turma[]);
-    if (m.data) setMatriculas(m.data as Matricula[]);
+    setCarregando(true);
+    setErro(null);
+    try {
+      const [a, t, m] = await Promise.all([
+        supabase.from("alunos").select("*").order("nome"),
+        supabase.from("turmas").select("id,nome,horario,dias_semana").order("nome"),
+        supabase.from("matriculas").select("*"),
+      ]);
+      if (a.error) throw a.error;
+      if (t.error) throw t.error;
+      if (m.error) throw m.error;
+      setAlunos(a.data as Aluno[]);
+      setTurmas(t.data as Turma[]);
+      setMatriculas(m.data as Matricula[]);
+    } catch (err: any) {
+      setErro(err?.message ?? "Erro ao carregar dados");
+      toast.error(err?.message ?? "Erro ao carregar dados");
+    } finally {
+      setCarregando(false);
+    }
   }
 
   useEffect(() => {
     void carregar();
   }, []);
+
 
   function abrirNovo() {
     setEditando(null);
@@ -186,13 +202,34 @@ function AlunosPage() {
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2 sm:col-span-3">
                   <Label>Turma</Label>
-                  <Select value={turmaId} onValueChange={setTurmaId}>
-                    <SelectTrigger><SelectValue placeholder="Selecione a turma" /></SelectTrigger>
-                    <SelectContent className="max-h-72">
-                      {turmas.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                      ))}
+                  <Select value={turmaId} onValueChange={setTurmaId} required={!editando}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={carregando ? "Carregando turmas..." : turmas.length ? "Selecione a turma" : "Nenhuma turma disponível"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-80">
+                      {erro ? (
+                        <div className="px-3 py-2 text-sm text-destructive">Erro ao carregar turmas</div>
+                      ) : turmas.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">Nenhuma turma cadastrada</div>
+                      ) : (
+                        <>
+                          <SelectItem value="none" disabled>Selecione uma turma</SelectItem>
+                          <SelectGroup>
+                            <SelectLabel>Terça e Quinta</SelectLabel>
+                            {turmas.filter((t) => t.nome.toLowerCase().startsWith("terça e quinta") || t.nome.toLowerCase().startsWith("terca e quinta")).map((t) => (
+                              <SelectItem key={t.id} value={t.id}>{t.nome.replace("Terça e Quinta - ", "")}</SelectItem>
+                            ))}
+                          </SelectGroup>
+                          <SelectGroup>
+                            <SelectLabel>Quarta e Sexta</SelectLabel>
+                            {turmas.filter((t) => t.nome.toLowerCase().startsWith("quarta e sexta")).map((t) => (
+                              <SelectItem key={t.id} value={t.id}>{t.nome.replace("Quarta e Sexta - ", "")}</SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </>
+                      )}
                     </SelectContent>
+
                   </Select>
                 </div>
                 <div className="space-y-2">
@@ -216,7 +253,10 @@ function AlunosPage() {
                 <Label>Observações</Label>
                 <Textarea rows={2} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
               </div>
-              <Button type="submit" className="w-full">Salvar</Button>
+              <Button type="submit" className="w-full" disabled={carregando || (!editando && !turmaId)}>
+                Salvar
+              </Button>
+
             </form>
           </DialogContent>
         </Dialog>

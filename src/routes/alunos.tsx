@@ -38,8 +38,9 @@ type Aluno = {
   ativo: boolean;
 };
 
-type Turma = { id: string; nome: string; horario: string | null };
+type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[] | null };
 type Matricula = { id: string; aluno_id: string; turma_id: string; plano: string; valor_mensal: number; status: string };
+
 
 const vazio = {
   nome: "",

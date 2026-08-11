@@ -14,7 +14,198 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alunos: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          data_nascimento: string | null
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          responsavel: string | null
+          telefone: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          responsavel?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          responsavel?: string | null
+          telefone?: string | null
+        }
+        Relationships: []
+      }
+      matriculas: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          data_inicio: string
+          id: string
+          plano: string
+          status: string
+          turma_id: string
+          valor_mensal: number
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          data_inicio?: string
+          id?: string
+          plano?: string
+          status?: string
+          turma_id: string
+          valor_mensal?: number
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          data_inicio?: string
+          id?: string
+          plano?: string
+          status?: string
+          turma_id?: string
+          valor_mensal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matriculas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matriculas_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      presencas: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          data: string
+          horario: string
+          id: string
+          metodo: string
+          registrado_por: string | null
+          turma_id: string | null
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          data?: string
+          horario?: string
+          id?: string
+          metodo?: string
+          registrado_por?: string | null
+          turma_id?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          data?: string
+          horario?: string
+          id?: string
+          metodo?: string
+          registrado_por?: string | null
+          turma_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presencas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presencas_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+        }
+        Relationships: []
+      }
+      turmas: {
+        Row: {
+          ativa: boolean
+          capacidade: number
+          created_at: string
+          dias_semana: string[]
+          horario: string | null
+          id: string
+          modalidade: string
+          nome: string
+          professor: string | null
+        }
+        Insert: {
+          ativa?: boolean
+          capacidade?: number
+          created_at?: string
+          dias_semana?: string[]
+          horario?: string | null
+          id?: string
+          modalidade?: string
+          nome: string
+          professor?: string | null
+        }
+        Update: {
+          ativa?: boolean
+          capacidade?: number
+          created_at?: string
+          dias_semana?: string[]
+          horario?: string | null
+          id?: string
+          modalidade?: string
+          nome?: string
+          professor?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

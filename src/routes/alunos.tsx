@@ -188,9 +188,9 @@ function AlunosPage() {
                   <Label>Turma</Label>
                   <Select value={turmaId} onValueChange={setTurmaId}>
                     <SelectTrigger><SelectValue placeholder="Selecione a turma" /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-72">
                       {turmas.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>{t.nome}{t.horario ? ` · ${t.horario}` : ""}</SelectItem>
+                        <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

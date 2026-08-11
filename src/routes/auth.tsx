@@ -40,8 +40,11 @@ function AuthPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
     setBusy(false);
-    if (error) toast.error(error.message);
-    else navigate({ to: "/" });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    navigate({ to: "/" });
   }
 
   async function cadastrar(e: React.FormEvent) {
@@ -53,14 +56,23 @@ function AuthPage() {
       options: { emailRedirectTo: window.location.origin, data: { nome } },
     });
     setBusy(false);
-    if (error) return toast.error(error.message);
-    if (!data.session) toast.success("Conta criada! Confirme o e-mail para acessar.");
-    else navigate({ to: "/" });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    if (!data.session) {
+      toast.success("Conta criada! Confirme o e-mail para acessar.");
+      return;
+    }
+    navigate({ to: "/" });
   }
 
   async function google() {
     const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (result.error) return toast.error("Não foi possível entrar com o Google.");
+    if (result.error) {
+      toast.error("Não foi possível entrar com o Google.");
+      return;
+    }
     if (result.redirected) return;
     navigate({ to: "/" });
   }

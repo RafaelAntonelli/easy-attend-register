@@ -54,6 +54,8 @@ function AlunosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Aluno | null>(null);
@@ -64,19 +66,32 @@ function AlunosPage() {
   const [qrAluno, setQrAluno] = useState<Aluno | null>(null);
 
   async function carregar() {
-    const [a, t, m] = await Promise.all([
-      supabase.from("alunos").select("*").order("nome"),
-      supabase.from("turmas").select("id,nome,horario").order("nome"),
-      supabase.from("matriculas").select("*"),
-    ]);
-    if (a.data) setAlunos(a.data as Aluno[]);
-    if (t.data) setTurmas(t.data as Turma[]);
-    if (m.data) setMatriculas(m.data as Matricula[]);
+    setCarregando(true);
+    setErro(null);
+    try {
+      const [a, t, m] = await Promise.all([
+        supabase.from("alunos").select("*").order("nome"),
+        supabase.from("turmas").select("id,nome,horario,dias_semana").order("nome"),
+        supabase.from("matriculas").select("*"),
+      ]);
+      if (a.error) throw a.error;
+      if (t.error) throw t.error;
+      if (m.error) throw m.error;
+      setAlunos(a.data as Aluno[]);
+      setTurmas(t.data as Turma[]);
+      setMatriculas(m.data as Matricula[]);
+    } catch (err: any) {
+      setErro(err?.message ?? "Erro ao carregar dados");
+      toast.error(err?.message ?? "Erro ao carregar dados");
+    } finally {
+      setCarregando(false);
+    }
   }
 
   useEffect(() => {
     void carregar();
   }, []);
+
 
   function abrirNovo() {
     setEditando(null);

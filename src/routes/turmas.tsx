@@ -1,0 +1,188 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Plus, Users } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { AppShell } from "@/components/AppShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Toggle } from "@/components/ui/toggle";
+
+export const Route = createFileRoute("/turmas")({
+  component: TurmasPage,
+  head: () => ({
+    meta: [
+      { title: "Turmas | Arena Aquática" },
+      { name: "description", content: "Organize turmas de natação, hidroginástica e outras modalidades com horários e professores." },
+      { property: "og:title", content: "Turmas | Arena Aquática" },
+      { property: "og:description", content: "Gestão de turmas e horários da Arena Aquática." },
+    ],
+  }),
+});
+
+type Turma = {
+  id: string;
+  nome: string;
+  modalidade: string;
+  professor: string | null;
+  dias_semana: string[];
+  horario: string | null;
+  capacidade: number;
+  ativa: boolean;
+};
+
+const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function TurmasPage() {
+  const [turmas, setTurmas] = useState<Turma[]>([]);
+  const [contagem, setContagem] = useState<Record<string, number>>({});
+  const [aberto, setAberto] = useState(false);
+  const [nome, setNome] = useState("");
+  const [modalidade, setModalidade] = useState("Natação");
+  const [professor, setProfessor] = useState("");
+  const [dias, setDias] = useState<string[]>([]);
+  const [horario, setHorario] = useState("");
+  const [capacidade, setCapacidade] = useState("20");
+
+  async function carregar() {
+    const [t, m] = await Promise.all([
+      supabase.from("turmas").select("*").order("nome"),
+      supabase.from("matriculas").select("turma_id"),
+    ]);
+    if (t.data) setTurmas(t.data as Turma[]);
+    if (m.data) {
+      const c: Record<string, number> = {};
+      for (const row of m.data as { turma_id: string }[]) c[row.turma_id] = (c[row.turma_id] ?? 0) + 1;
+      setContagem(c);
+    }
+  }
+
+  useEffect(() => {
+    void carregar();
+  }, []);
+
+  async function salvar(e: React.FormEvent) {
+    e.preventDefault();
+    const { error } = await supabase.from("turmas").insert({
+      nome,
+      modalidade,
+      professor: professor || null,
+      dias_semana: dias,
+      horario: horario || null,
+      capacidade: Number(capacidade) || 20,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Turma criada");
+    setAberto(false);
+    setNome("");
+    setProfessor("");
+    setDias([]);
+    setHorario("");
+    void carregar();
+  }
+
+  return (
+    <AppShell title="Turmas" subtitle="Modalidades, horários e professores">
+      <div className="mb-6 flex justify-end">
+        <Dialog open={aberto} onOpenChange={setAberto}>
+          <DialogTrigger asChild>
+            <Button><Plus className="size-4" /> Nova turma</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader><DialogTitle className="font-display">Nova turma</DialogTitle></DialogHeader>
+            <form onSubmit={salvar} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome da turma</Label>
+                <Input required value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Natação Infantil A" />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Modalidade</Label>
+                  <Select value={modalidade} onValueChange={setModalidade}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Natação">Natação</SelectItem>
+                      <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
+                      <SelectItem value="Natação Bebê">Natação Bebê</SelectItem>
+                      <SelectItem value="Polo Aquático">Polo Aquático</SelectItem>
+                      <SelectItem value="Treinamento">Treinamento</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Professor(a)</Label>
+                  <Input value={professor} onChange={(e) => setProfessor(e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Dias da semana</Label>
+                <div className="flex flex-wrap gap-2">
+                  {DIAS.map((d) => (
+                    <Toggle
+                      key={d}
+                      pressed={dias.includes(d)}
+                      onPressedChange={(p) => setDias(p ? [...dias, d] : dias.filter((x) => x !== d))}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {d}
+                    </Toggle>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Horário</Label>
+                  <Input value={horario} onChange={(e) => setHorario(e.target.value)} placeholder="08:00 - 09:00" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Capacidade</Label>
+                  <Input type="number" value={capacidade} onChange={(e) => setCapacidade(e.target.value)} />
+                </div>
+              </div>
+              <Button type="submit" className="w-full">Criar turma</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {turmas.map((t) => (
+          <Card key={t.id} className="overflow-hidden border-border/70">
+            <div className="h-1.5 bg-pool" />
+            <CardContent className="space-y-3 pt-5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-display text-lg font-semibold">{t.nome}</h3>
+                  <p className="text-sm text-muted-foreground">{t.modalidade}{t.professor ? ` · ${t.professor}` : ""}</p>
+                </div>
+                <Badge variant="secondary">{t.horario ?? "s/ horário"}</Badge>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {t.dias_semana.map((d) => (
+                  <span key={d} className="rounded-md bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{d}</span>
+                ))}
+              </div>
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="size-4" /> {contagem[t.id] ?? 0} de {t.capacidade} vagas
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+        {!turmas.length && (
+          <p className="rounded-xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
+            Crie a primeira turma para começar a matricular alunos.
+          </p>
+        )}
+      </div>
+    </AppShell>
+  );
+}

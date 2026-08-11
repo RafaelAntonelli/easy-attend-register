@@ -1,24 +1,118 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Users, CalendarDays, QrCode, TrendingUp } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { AppShell } from "@/components/AppShell";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: Painel,
+  head: () => ({
+    meta: [
+      { title: "Arena Aquática | Matrículas e presença" },
+      {
+        name: "description",
+        content: "Sistema da Arena Aquática para matricular alunos, organizar turmas e registrar presença por QR Code.",
+      },
+      { property: "og:title", content: "Arena Aquática | Matrículas e presença" },
+      { property: "og:description", content: "Matrículas, turmas e presença por QR Code em um só painel." },
+    ],
+  }),
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Painel() {
+  const [stats, setStats] = useState({ alunos: 0, turmas: 0, hoje: 0, mes: 0 });
+  const [ultimas, setUltimas] = useState<{ nome: string; hora: string }[]>([]);
+
+  useEffect(() => {
+    void (async () => {
+      const hoje = new Date().toISOString().slice(0, 10);
+      const inicioMes = new Date();
+      inicioMes.setDate(1);
+      const [alunos, turmas, presHoje, presMes, recentes] = await Promise.all([
+        supabase.from("alunos").select("id", { count: "exact", head: true }).eq("ativo", true),
+        supabase.from("turmas").select("id", { count: "exact", head: true }).eq("ativa", true),
+        supabase.from("presencas").select("id", { count: "exact", head: true }).eq("data", hoje),
+        supabase.from("presencas").select("id", { count: "exact", head: true }).gte("data", inicioMes.toISOString().slice(0, 10)),
+        supabase.from("presencas").select("horario,alunos(nome)").order("horario", { ascending: false }).limit(6),
+      ]);
+      setStats({
+        alunos: alunos.count ?? 0,
+        turmas: turmas.count ?? 0,
+        hoje: presHoje.count ?? 0,
+        mes: presMes.count ?? 0,
+      });
+      setUltimas(
+        (recentes.data ?? []).map((r) => ({
+          nome: (r.alunos as { nome: string } | null)?.nome ?? "Aluno",
+          hora: new Date(r.horario as string).toLocaleString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        })),
+      );
+    })();
+  }, []);
+
+  const cards = [
+    { label: "Alunos ativos", value: stats.alunos, icon: Users },
+    { label: "Turmas abertas", value: stats.turmas, icon: CalendarDays },
+    { label: "Presenças hoje", value: stats.hoje, icon: QrCode },
+    { label: "Presenças no mês", value: stats.mes, icon: TrendingUp },
+  ];
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <AppShell title="Painel" subtitle="Visão geral da Arena Aquática">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((c) => (
+          <Card key={c.label} className="border-border/70">
+            <CardContent className="flex items-center gap-4 py-6">
+              <span className="grid size-11 place-items-center rounded-xl bg-secondary text-primary">
+                <c.icon className="size-5" />
+              </span>
+              <div>
+                <p className="font-display text-2xl font-semibold">{c.value}</p>
+                <p className="text-sm text-muted-foreground">{c.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+        <Card className="overflow-hidden border-none bg-pool text-primary-foreground shadow-pool">
+          <CardContent className="space-y-4 py-8">
+            <h2 className="font-display text-2xl font-semibold">Comece a aula</h2>
+            <p className="text-sm text-primary-foreground/80">
+              Abra o leitor de QR Code e registre a entrada dos alunos na borda da piscina, pelo celular ou pelo computador.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild variant="secondary">
+                <Link to="/presenca">Registrar presença</Link>
+              </Button>
+              <Button asChild variant="outline" className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10">
+                <Link to="/alunos">Nova matrícula</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/70">
+          <CardHeader><CardTitle className="font-display text-lg">Últimas presenças</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {ultimas.map((u, i) => (
+              <div key={i} className="flex items-center justify-between rounded-lg bg-secondary/60 px-3 py-2 text-sm">
+                <span>{u.nome}</span>
+                <span className="text-muted-foreground">{u.hora}</span>
+              </div>
+            ))}
+            {!ultimas.length && <p className="py-8 text-center text-sm text-muted-foreground">Ainda não há registros de presença.</p>}
+          </CardContent>
+        </Card>
+      </div>
+    </AppShell>
   );
 }

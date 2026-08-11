@@ -1,0 +1,154 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Waves } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+export const Route = createFileRoute("/auth")({
+  component: AuthPage,
+  head: () => ({
+    meta: [
+      { title: "Entrar | Arena Aquática" },
+      { name: "description", content: "Acesso da equipe da Arena Aquática ao sistema de matrículas e presença." },
+      { property: "og:title", content: "Entrar | Arena Aquática" },
+      { property: "og:description", content: "Acesso da equipe ao sistema de matrículas e presença." },
+    ],
+  }),
+});
+
+function AuthPage() {
+  const { session, loading } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [nome, setNome] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!loading && session) navigate({ to: "/" });
+  }, [loading, session, navigate]);
+
+  async function entrar(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    navigate({ to: "/" });
+  }
+
+  async function cadastrar(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: senha,
+      options: { emailRedirectTo: window.location.origin, data: { nome } },
+    });
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    if (!data.session) {
+      toast.success("Conta criada! Confirme o e-mail para acessar.");
+      return;
+    }
+    navigate({ to: "/" });
+  }
+
+  async function google() {
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    if (result.error) {
+      toast.error("Não foi possível entrar com o Google.");
+      return;
+    }
+    if (result.redirected) return;
+    navigate({ to: "/" });
+  }
+
+  return (
+    <div className="grid min-h-screen lg:grid-cols-2">
+      <div className="relative hidden flex-col justify-between bg-pool p-12 text-primary-foreground lg:flex">
+        <div className="flex items-center gap-3">
+          <Waves className="size-7" />
+          <span className="font-display text-xl font-semibold">Arena Aquática</span>
+        </div>
+        <div>
+          <h2 className="font-display text-4xl font-semibold leading-tight">
+            Matrículas e presença
+            <br />em um só lugar.
+          </h2>
+          <p className="mt-4 max-w-sm text-primary-foreground/80">
+            Cadastre alunos, organize turmas e registre a presença por QR Code direto da borda da piscina.
+          </p>
+        </div>
+        <p className="text-sm text-primary-foreground/60">Acesso exclusivo da equipe</p>
+      </div>
+
+      <div className="flex items-center justify-center p-6">
+        <Card className="w-full max-w-md border-border/70 shadow-pool">
+          <CardHeader>
+            <CardTitle className="font-display text-2xl">Acesso da equipe</CardTitle>
+            <CardDescription>Entre para gerenciar alunos, turmas e presenças.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="entrar">
+              <TabsList className="w-full">
+                <TabsTrigger value="entrar" className="flex-1">Entrar</TabsTrigger>
+                <TabsTrigger value="criar" className="flex-1">Criar conta</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="entrar">
+                <form onSubmit={entrar} className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">E-mail</Label>
+                    <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="senha">Senha</Label>
+                    <Input id="senha" type="password" required value={senha} onChange={(e) => setSenha(e.target.value)} />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={busy}>Entrar</Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="criar">
+                <form onSubmit={cadastrar} className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nome">Nome</Label>
+                    <Input id="nome" required value={nome} onChange={(e) => setNome(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email2">E-mail</Label>
+                    <Input id="email2" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="senha2">Senha</Label>
+                    <Input id="senha2" type="password" required minLength={6} value={senha} onChange={(e) => setSenha(e.target.value)} />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={busy}>Criar conta</Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+
+            <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
+            </div>
+            <Button variant="outline" className="w-full" onClick={google}>Continuar com Google</Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

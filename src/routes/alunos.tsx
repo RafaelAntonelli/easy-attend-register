@@ -206,7 +206,7 @@ function AlunosPage() {
                     <SelectTrigger>
                       <SelectValue placeholder={carregando ? "Carregando turmas..." : turmas.length ? "Selecione a turma" : "Nenhuma turma disponível"} />
                     </SelectTrigger>
-                    <SelectContent className="max-h-72">
+                    <SelectContent className="max-h-80">
                       {erro ? (
                         <div className="px-3 py-2 text-sm text-destructive">Erro ao carregar turmas</div>
                       ) : turmas.length === 0 ? (
@@ -214,12 +214,22 @@ function AlunosPage() {
                       ) : (
                         <>
                           <SelectItem value="none" disabled>Selecione uma turma</SelectItem>
-                          {turmas.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                          ))}
+                          <SelectGroup>
+                            <SelectLabel>Terça e Quinta</SelectLabel>
+                            {turmas.filter((t) => t.nome.toLowerCase().startsWith("terça e quinta") || t.nome.toLowerCase().startsWith("terca e quinta")).map((t) => (
+                              <SelectItem key={t.id} value={t.id}>{t.nome.replace("Terça e Quinta - ", "")}</SelectItem>
+                            ))}
+                          </SelectGroup>
+                          <SelectGroup>
+                            <SelectLabel>Quarta e Sexta</SelectLabel>
+                            {turmas.filter((t) => t.nome.toLowerCase().startsWith("quarta e sexta")).map((t) => (
+                              <SelectItem key={t.id} value={t.id}>{t.nome.replace("Quarta e Sexta - ", "")}</SelectItem>
+                            ))}
+                          </SelectGroup>
                         </>
                       )}
                     </SelectContent>
+
                   </Select>
                 </div>
                 <div className="space-y-2">

@@ -202,12 +202,23 @@ function AlunosPage() {
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2 sm:col-span-3">
                   <Label>Turma</Label>
-                  <Select value={turmaId} onValueChange={setTurmaId}>
-                    <SelectTrigger><SelectValue placeholder="Selecione a turma" /></SelectTrigger>
+                  <Select value={turmaId} onValueChange={setTurmaId} required={!editando}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={carregando ? "Carregando turmas..." : turmas.length ? "Selecione a turma" : "Nenhuma turma disponível"} />
+                    </SelectTrigger>
                     <SelectContent className="max-h-72">
-                      {turmas.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                      ))}
+                      {erro ? (
+                        <div className="px-3 py-2 text-sm text-destructive">Erro ao carregar turmas</div>
+                      ) : turmas.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">Nenhuma turma cadastrada</div>
+                      ) : (
+                        <>
+                          <SelectItem value="none" disabled>Selecione uma turma</SelectItem>
+                          {turmas.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                          ))}
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -232,7 +243,10 @@ function AlunosPage() {
                 <Label>Observações</Label>
                 <Textarea rows={2} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
               </div>
-              <Button type="submit" className="w-full">Salvar</Button>
+              <Button type="submit" className="w-full" disabled={carregando || (!editando && !turmaId)}>
+                Salvar
+              </Button>
+
             </form>
           </DialogContent>
         </Dialog>

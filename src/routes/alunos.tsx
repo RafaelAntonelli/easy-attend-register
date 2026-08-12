@@ -62,8 +62,6 @@ function AlunosPage() {
   const [editando, setEditando] = useState<Aluno | null>(null);
   const [form, setForm] = useState(vazio);
   const [turmaId, setTurmaId] = useState<string>("");
-  const [plano, setPlano] = useState("Mensal");
-  const [valor, setValor] = useState("0");
   const [qrAluno, setQrAluno] = useState<Aluno | null>(null);
 
   async function carregar() {
@@ -98,8 +96,6 @@ function AlunosPage() {
     setEditando(null);
     setForm(vazio);
     setTurmaId("");
-    setPlano("Mensal");
-    setValor("0");
     setAberto(true);
   }
 
@@ -115,8 +111,6 @@ function AlunosPage() {
     });
     const m = matriculas.find((x) => x.aluno_id === aluno.id);
     setTurmaId(m?.turma_id ?? "");
-    setPlano(m?.plano ?? "Mensal");
-    setValor(String(m?.valor_mensal ?? 0));
     setAberto(true);
   }
 
@@ -143,7 +137,7 @@ function AlunosPage() {
 
     if (turmaId && alunoId) {
       const { error } = await supabase.from("matriculas").upsert(
-        { aluno_id: alunoId, turma_id: turmaId, plano, valor_mensal: Number(valor) || 0, status: "ativa" },
+        { aluno_id: alunoId, turma_id: turmaId, status: "ativa" },
         { onConflict: "aluno_id,turma_id" },
       );
       if (error) return toast.error(error.message);
@@ -199,55 +193,36 @@ function AlunosPage() {
                   <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-2 sm:col-span-3">
-                  <Label>Turma</Label>
-                  <Select value={turmaId} onValueChange={setTurmaId} required={!editando}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={carregando ? "Carregando turmas..." : turmas.length ? "Selecione a turma" : "Nenhuma turma disponível"} />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-80">
-                      {erro ? (
-                        <div className="px-3 py-2 text-sm text-destructive">Erro ao carregar turmas</div>
-                      ) : turmas.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-muted-foreground">Nenhuma turma cadastrada</div>
-                      ) : (
-                        <>
-                          <SelectItem value="none" disabled>Selecione uma turma</SelectItem>
-                          <SelectGroup>
-                            <SelectLabel>Terça e Quinta</SelectLabel>
-                            {turmas.filter((t) => t.nome.toLowerCase().startsWith("terça e quinta") || t.nome.toLowerCase().startsWith("terca e quinta")).map((t) => (
-                              <SelectItem key={t.id} value={t.id}>{t.nome.replace("Terça e Quinta - ", "")}</SelectItem>
-                            ))}
-                          </SelectGroup>
-                          <SelectGroup>
-                            <SelectLabel>Quarta e Sexta</SelectLabel>
-                            {turmas.filter((t) => t.nome.toLowerCase().startsWith("quarta e sexta")).map((t) => (
-                              <SelectItem key={t.id} value={t.id}>{t.nome.replace("Quarta e Sexta - ", "")}</SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </>
-                      )}
-                    </SelectContent>
-
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Plano</Label>
-                  <Select value={plano} onValueChange={setPlano}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Mensal">Mensal</SelectItem>
-                      <SelectItem value="Trimestral">Trimestral</SelectItem>
-                      <SelectItem value="Semestral">Semestral</SelectItem>
-                      <SelectItem value="Anual">Anual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>Valor mensal (R$)</Label>
-                  <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
-                </div>
+              <div className="space-y-2">
+                <Label>Turma</Label>
+                <Select value={turmaId} onValueChange={setTurmaId} required={!editando}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={carregando ? "Carregando turmas..." : turmas.length ? "Selecione a turma" : "Nenhuma turma disponível"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-80">
+                    {erro ? (
+                      <div className="px-3 py-2 text-sm text-destructive">Erro ao carregar turmas</div>
+                    ) : turmas.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">Nenhuma turma cadastrada</div>
+                    ) : (
+                      <>
+                        <SelectItem value="none" disabled>Selecione uma turma</SelectItem>
+                        <SelectGroup>
+                          <SelectLabel>Terça e Quinta</SelectLabel>
+                          {turmas.filter((t) => t.nome.toLowerCase().startsWith("terça e quinta") || t.nome.toLowerCase().startsWith("terca e quinta")).map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome.replace("Terça e Quinta - ", "")}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>Quarta e Sexta</SelectLabel>
+                          {turmas.filter((t) => t.nome.toLowerCase().startsWith("quarta e sexta")).map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome.replace("Quarta e Sexta - ", "")}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Observações</Label>

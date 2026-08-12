@@ -62,8 +62,6 @@ function AlunosPage() {
   const [editando, setEditando] = useState<Aluno | null>(null);
   const [form, setForm] = useState(vazio);
   const [turmaId, setTurmaId] = useState<string>("");
-  const [plano, setPlano] = useState("Mensal");
-  const [valor, setValor] = useState("0");
   const [qrAluno, setQrAluno] = useState<Aluno | null>(null);
 
   async function carregar() {

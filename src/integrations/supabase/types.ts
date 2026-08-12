@@ -21,9 +21,12 @@ export type Database = {
           created_at: string
           data_nascimento: string | null
           email: string | null
+          foto_path: string | null
           id: string
           nome: string
           observacoes: string | null
+          pcd: boolean
+          pcd_descricao: string | null
           responsavel: string | null
           telefone: string | null
         }
@@ -33,9 +36,12 @@ export type Database = {
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
+          foto_path?: string | null
           id?: string
           nome: string
           observacoes?: string | null
+          pcd?: boolean
+          pcd_descricao?: string | null
           responsavel?: string | null
           telefone?: string | null
         }
@@ -45,9 +51,12 @@ export type Database = {
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
+          foto_path?: string | null
           id?: string
           nome?: string
           observacoes?: string | null
+          pcd?: boolean
+          pcd_descricao?: string | null
           responsavel?: string | null
           telefone?: string | null
         }
@@ -110,6 +119,7 @@ export type Database = {
           id: string
           metodo: string
           registrado_por: string | null
+          status: string
           turma_id: string | null
         }
         Insert: {
@@ -120,6 +130,7 @@ export type Database = {
           id?: string
           metodo?: string
           registrado_por?: string | null
+          status?: string
           turma_id?: string | null
         }
         Update: {
@@ -130,6 +141,7 @@ export type Database = {
           id?: string
           metodo?: string
           registrado_por?: string | null
+          status?: string
           turma_id?: string | null
         }
         Relationships: [

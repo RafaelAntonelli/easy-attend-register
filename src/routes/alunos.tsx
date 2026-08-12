@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, QrCode, Search, Pencil } from "lucide-react";
+import { Plus, QrCode, Search, Pencil, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/alunos")({
   component: AlunosPage,
@@ -36,7 +37,12 @@ type Aluno = {
   observacoes: string | null;
   codigo: string;
   ativo: boolean;
+  pcd: boolean;
+  pcd_descricao: string | null;
+  foto_path: string | null;
 };
+
+const CAPACIDADE_TURMA = 40;
 
 type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[] | null };
 type Matricula = { id: string; aluno_id: string; turma_id: string; plano: string; valor_mensal: number; status: string };
@@ -49,6 +55,8 @@ const vazio = {
   responsavel: "",
   email: "",
   observacoes: "",
+  pcd: false,
+  pcd_descricao: "",
 };
 
 function AlunosPage() {
@@ -63,6 +71,10 @@ function AlunosPage() {
   const [form, setForm] = useState(vazio);
   const [turmaId, setTurmaId] = useState<string>("");
   const [qrAluno, setQrAluno] = useState<Aluno | null>(null);
+  const [foto, setFoto] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const [fotos, setFotos] = useState<Record<string, string>>({});
+  const [salvando, setSalvando] = useState(false);
 
   async function carregar() {
     setCarregando(true);
@@ -79,6 +91,18 @@ function AlunosPage() {
       setAlunos(a.data as Aluno[]);
       setTurmas(t.data as Turma[]);
       setMatriculas(m.data as Matricula[]);
+      const comFoto = (a.data as Aluno[]).filter((x) => x.foto_path);
+      if (comFoto.length) {
+        const { data: signed } = await supabase.storage
+          .from("fotos-alunos")
+          .createSignedUrls(comFoto.map((x) => x.foto_path as string), 3600);
+        const mapa: Record<string, string> = {};
+        signed?.forEach((s, i) => {
+          const aluno = comFoto[i];
+          if (s.signedUrl && aluno) mapa[aluno.id] = s.signedUrl;
+        });
+        setFotos(mapa);
+      }
     } catch (err: any) {
       setErro(err?.message ?? "Erro ao carregar dados");
       toast.error(err?.message ?? "Erro ao carregar dados");
@@ -96,6 +120,8 @@ function AlunosPage() {
     setEditando(null);
     setForm(vazio);
     setTurmaId("");
+    setFoto(null);
+    setFotoPreview(null);
     setAberto(true);
   }
 
@@ -108,7 +134,11 @@ function AlunosPage() {
       responsavel: aluno.responsavel ?? "",
       email: aluno.email ?? "",
       observacoes: aluno.observacoes ?? "",
+      pcd: aluno.pcd ?? false,
+      pcd_descricao: aluno.pcd_descricao ?? "",
     });
+    setFoto(null);
+    setFotoPreview(fotos[aluno.id] ?? null);
     const m = matriculas.find((x) => x.aluno_id === aluno.id);
     setTurmaId(m?.turma_id ?? "");
     setAberto(true);
@@ -123,16 +153,43 @@ function AlunosPage() {
       responsavel: form.responsavel || null,
       email: form.email || null,
       observacoes: form.observacoes || null,
+      pcd: form.pcd,
+      pcd_descricao: form.pcd ? form.pcd_descricao || null : null,
     };
 
+    if (turmaId) {
+      const jaMatriculado = matriculas.some((m) => m.aluno_id === editando?.id && m.turma_id === turmaId);
+      const ocupadas = matriculas.filter((m) => m.turma_id === turmaId && m.status === "ativa").length;
+      if (!jaMatriculado && ocupadas >= CAPACIDADE_TURMA) {
+        toast.error(`Turma lotada (${CAPACIDADE_TURMA} vagas por horário).`);
+        return;
+      }
+    }
+    setSalvando(true);
+
     let alunoId = editando?.id;
-    if (editando) {
-      const { error } = await supabase.from("alunos").update(payload).eq("id", editando.id);
-      if (error) return toast.error(error.message);
-    } else {
-      const { data, error } = await supabase.from("alunos").insert(payload).select("id").single();
-      if (error) return toast.error(error.message);
-      alunoId = data.id;
+    try {
+      if (editando) {
+        const { error } = await supabase.from("alunos").update(payload).eq("id", editando.id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from("alunos").insert(payload).select("id").single();
+        if (error) throw error;
+        alunoId = data.id;
+      }
+
+      if (foto && alunoId) {
+        const ext = foto.name.split(".").pop() ?? "jpg";
+        const caminho = `${alunoId}/${Date.now()}.${ext}`;
+        const up = await supabase.storage.from("fotos-alunos").upload(caminho, foto, { upsert: true });
+        if (up.error) throw up.error;
+        const { error } = await supabase.from("alunos").update({ foto_path: caminho }).eq("id", alunoId);
+        if (error) throw error;
+      }
+    } catch (err: any) {
+      setSalvando(false);
+      toast.error(err?.message ?? "Erro ao salvar");
+      return;
     }
 
     if (turmaId && alunoId) {
@@ -140,13 +197,21 @@ function AlunosPage() {
         { aluno_id: alunoId, turma_id: turmaId, status: "ativa" },
         { onConflict: "aluno_id,turma_id" },
       );
-      if (error) return toast.error(error.message);
+      if (error) {
+        setSalvando(false);
+        return toast.error(error.message);
+      }
     }
 
+    setSalvando(false);
     toast.success(editando ? "Aluno atualizado" : "Aluno matriculado com sucesso");
     setAberto(false);
     void carregar();
     return;
+  }
+
+  function vagasUsadas(id: string) {
+    return matriculas.filter((m) => m.turma_id === id && m.status === "ativa").length;
   }
 
   const filtrados = alunos.filter((a) => a.nome.toLowerCase().includes(busca.toLowerCase()));
@@ -210,13 +275,17 @@ function AlunosPage() {
                         <SelectGroup>
                           <SelectLabel>Terça e Quinta</SelectLabel>
                           {turmas.filter((t) => t.nome.toLowerCase().startsWith("terça e quinta") || t.nome.toLowerCase().startsWith("terca e quinta")).map((t) => (
-                            <SelectItem key={t.id} value={t.id}>{t.nome.replace("Terça e Quinta - ", "")}</SelectItem>
+                            <SelectItem key={t.id} value={t.id} disabled={vagasUsadas(t.id) >= CAPACIDADE_TURMA}>
+                              {t.nome.replace("Terça e Quinta - ", "")} · {vagasUsadas(t.id)}/{CAPACIDADE_TURMA}
+                            </SelectItem>
                           ))}
                         </SelectGroup>
                         <SelectGroup>
                           <SelectLabel>Quarta e Sexta</SelectLabel>
                           {turmas.filter((t) => t.nome.toLowerCase().startsWith("quarta e sexta")).map((t) => (
-                            <SelectItem key={t.id} value={t.id}>{t.nome.replace("Quarta e Sexta - ", "")}</SelectItem>
+                            <SelectItem key={t.id} value={t.id} disabled={vagasUsadas(t.id) >= CAPACIDADE_TURMA}>
+                              {t.nome.replace("Quarta e Sexta - ", "")} · {vagasUsadas(t.id)}/{CAPACIDADE_TURMA}
+                            </SelectItem>
                           ))}
                         </SelectGroup>
                       </>
@@ -224,12 +293,46 @@ function AlunosPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-3 rounded-lg border border-border/70 p-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="pcd">Pessoa com deficiência (PCD)</Label>
+                  <Switch id="pcd" checked={form.pcd} onCheckedChange={(v) => setForm({ ...form, pcd: v })} />
+                </div>
+                {form.pcd ? (
+                  <Input
+                    placeholder="Descreva a deficiência / necessidades de apoio"
+                    value={form.pcd_descricao}
+                    onChange={(e) => setForm({ ...form, pcd_descricao: e.target.value })}
+                  />
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <Label>Foto do aluno</Label>
+                <div className="flex items-center gap-3">
+                  {fotoPreview ? (
+                    <img src={fotoPreview} alt="Foto do aluno" className="size-16 rounded-full object-cover" />
+                  ) : (
+                    <div className="grid size-16 place-items-center rounded-full bg-secondary text-muted-foreground">
+                      <ImageIcon className="size-5" />
+                    </div>
+                  )}
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      setFoto(f);
+                      setFotoPreview(f ? URL.createObjectURL(f) : null);
+                    }}
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label>Observações</Label>
                 <Textarea rows={2} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
               </div>
-              <Button type="submit" className="w-full" disabled={carregando || (!editando && !turmaId)}>
-                Salvar
+              <Button type="submit" className="w-full" disabled={salvando || carregando || (!editando && !turmaId)}>
+                {salvando ? "Salvando..." : "Salvar"}
               </Button>
 
             </form>
@@ -246,9 +349,13 @@ function AlunosPage() {
           return (
             <Card key={aluno.id} className="border-border/70">
               <CardContent className="flex flex-wrap items-center gap-4 py-4">
-                <div className="grid size-11 shrink-0 place-items-center rounded-full bg-pool font-display text-sm font-semibold text-primary-foreground">
-                  {aluno.nome.slice(0, 2).toUpperCase()}
-                </div>
+                {fotos[aluno.id] ? (
+                  <img src={fotos[aluno.id]} alt={`Foto de ${aluno.nome}`} className="size-11 shrink-0 rounded-full object-cover" />
+                ) : (
+                  <div className="grid size-11 shrink-0 place-items-center rounded-full bg-pool font-display text-sm font-semibold text-primary-foreground">
+                    {aluno.nome.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
                 <div className="min-w-40 flex-1">
                   <p className="font-medium text-foreground">{aluno.nome}</p>
                   <p className="text-sm text-muted-foreground">
@@ -256,6 +363,7 @@ function AlunosPage() {
                     {aluno.telefone ? ` · ${aluno.telefone}` : ""}
                   </p>
                 </div>
+                {aluno.pcd ? <Badge variant="outline">PCD</Badge> : null}
                 <Badge variant={aluno.ativo ? "default" : "secondary"}>{aluno.ativo ? "Ativo" : "Inativo"}</Badge>
                 <Button variant="ghost" size="icon" onClick={() => abrirEdicao(aluno)}><Pencil className="size-4" /></Button>
                 <Button variant="outline" size="icon" onClick={() => setQrAluno(aluno)}><QrCode className="size-4" /></Button>

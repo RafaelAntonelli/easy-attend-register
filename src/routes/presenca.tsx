@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Check, Search } from "lucide-react";
+import { Camera, CameraOff, Check, Search, X, FileCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -25,6 +25,13 @@ export const Route = createFileRoute("/presenca")({
 
 type Turma = { id: string; nome: string; horario: string | null };
 type Aluno = { id: string; nome: string; codigo: string };
+type StatusPresenca = "presente" | "falta" | "falta_justificada";
+
+const rotuloStatus: Record<StatusPresenca, string> = {
+  presente: "Presente",
+  falta: "Falta",
+  falta_justificada: "Falta justificada",
+};
 
 function PresencaPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -32,8 +39,8 @@ function PresencaPage() {
   const [turmaId, setTurmaId] = useState("");
   const [scanning, setScanning] = useState(false);
   const [busca, setBusca] = useState("");
-  const [presentes, setPresentes] = useState<Set<string>>(new Set());
-  const [registros, setRegistros] = useState<{ nome: string; hora: string }[]>([]);
+  const [statusPorAluno, setStatusPorAluno] = useState<Record<string, StatusPresenca>>({});
+  const [registros, setRegistros] = useState<{ nome: string; hora: string; status: StatusPresenca }[]>([]);
   const scannerRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
   const lastRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
 
@@ -53,15 +60,20 @@ function PresencaPage() {
   async function carregarPresencasDoDia() {
     const { data } = await supabase
       .from("presencas")
-      .select("aluno_id,horario,alunos(nome)")
+      .select("aluno_id,horario,status,alunos(nome)")
       .eq("data", hoje)
       .order("horario", { ascending: false });
     if (!data) return;
-    setPresentes(new Set(data.map((r) => r.aluno_id as string)));
+    const mapa: Record<string, StatusPresenca> = {};
+    data.forEach((r) => {
+      mapa[r.aluno_id as string] = (r.status as StatusPresenca) ?? "presente";
+    });
+    setStatusPorAluno(mapa);
     setRegistros(
       data.map((r) => ({
         nome: (r.alunos as { nome: string } | null)?.nome ?? "Aluno",
         hora: new Date(r.horario as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        status: (r.status as StatusPresenca) ?? "presente",
       })),
     );
   }
@@ -71,19 +83,31 @@ function PresencaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function registrar(aluno: Aluno, metodo: "qrcode" | "manual") {
-    const { error } = await supabase.from("presencas").insert({
-      aluno_id: aluno.id,
-      turma_id: turmaId || null,
-      data: hoje,
-      metodo,
-    });
-    if (error) {
-      if (error.code === "23505") toast.info(`${aluno.nome} já teve presença registrada hoje.`);
-      else toast.error(error.message);
-      return;
+  async function registrar(aluno: Aluno, metodo: "qrcode" | "manual", status: StatusPresenca = "presente") {
+    const existente = await supabase
+      .from("presencas")
+      .select("id")
+      .eq("aluno_id", aluno.id)
+      .eq("data", hoje)
+      .maybeSingle();
+
+    if (existente.data) {
+      const { error } = await supabase
+        .from("presencas")
+        .update({ status, metodo, turma_id: turmaId || null, horario: new Date().toISOString() })
+        .eq("id", existente.data.id);
+      if (error) return toast.error(error.message);
+    } else {
+      const { error } = await supabase.from("presencas").insert({
+        aluno_id: aluno.id,
+        turma_id: turmaId || null,
+        data: hoje,
+        metodo,
+        status,
+      });
+      if (error) return toast.error(error.message);
     }
-    toast.success(`Presença registrada: ${aluno.nome}`);
+    toast.success(`${rotuloStatus[status]}: ${aluno.nome}`);
     void carregarPresencasDoDia();
   }
 
@@ -186,16 +210,28 @@ function PresencaPage() {
                   <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
                 </div>
                 <div className="max-h-96 space-y-2 overflow-y-auto">
-                  {filtrados.map((a) => (
-                    <div key={a.id} className="flex items-center justify-between rounded-lg border border-border/70 px-3 py-2">
-                      <span className="text-sm">{a.nome}</span>
-                      {presentes.has(a.id) ? (
-                        <span className="flex items-center gap-1 text-xs font-medium text-primary"><Check className="size-4" /> Presente</span>
-                      ) : (
-                        <Button size="sm" variant="secondary" onClick={() => void registrar(a, "manual")}>Marcar</Button>
-                      )}
-                    </div>
-                  ))}
+                  {filtrados.map((a) => {
+                    const atual = statusPorAluno[a.id];
+                    return (
+                      <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 px-3 py-2">
+                        <div className="min-w-32 flex-1">
+                          <span className="text-sm">{a.nome}</span>
+                          {atual ? <p className="text-xs text-muted-foreground">{rotuloStatus[atual]}</p> : null}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant={atual === "presente" ? "default" : "outline"} onClick={() => void registrar(a, "manual", "presente")}>
+                            <Check className="size-4" /> Presença
+                          </Button>
+                          <Button size="sm" variant={atual === "falta" ? "destructive" : "outline"} onClick={() => void registrar(a, "manual", "falta")}>
+                            <X className="size-4" /> Falta
+                          </Button>
+                          <Button size="sm" variant={atual === "falta_justificada" ? "secondary" : "outline"} onClick={() => void registrar(a, "manual", "falta_justificada")}>
+                            <FileCheck className="size-4" /> Justificada
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                   {!filtrados.length && <p className="py-6 text-center text-sm text-muted-foreground">Nenhum aluno encontrado.</p>}
                 </div>
               </CardContent>
@@ -204,15 +240,15 @@ function PresencaPage() {
         </Tabs>
 
         <Card className="border-border/70">
-          <CardHeader><CardTitle className="font-display text-lg">Presenças de hoje ({registros.length})</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="font-display text-lg">Registros de hoje ({registros.length})</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {registros.map((r, i) => (
               <div key={i} className="flex items-center justify-between rounded-lg bg-secondary/60 px-3 py-2 text-sm">
                 <span>{r.nome}</span>
-                <span className="text-muted-foreground">{r.hora}</span>
+                <span className="text-muted-foreground">{rotuloStatus[r.status]} · {r.hora}</span>
               </div>
             ))}
-            {!registros.length && <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma presença registrada hoje.</p>}
+            {!registros.length && <p className="py-8 text-center text-sm text-muted-foreground">Nenhum registro hoje.</p>}
           </CardContent>
         </Card>
       </div>

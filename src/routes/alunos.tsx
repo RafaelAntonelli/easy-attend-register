@@ -193,55 +193,36 @@ function AlunosPage() {
                   <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-2 sm:col-span-3">
-                  <Label>Turma</Label>
-                  <Select value={turmaId} onValueChange={setTurmaId} required={!editando}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={carregando ? "Carregando turmas..." : turmas.length ? "Selecione a turma" : "Nenhuma turma disponível"} />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-80">
-                      {erro ? (
-                        <div className="px-3 py-2 text-sm text-destructive">Erro ao carregar turmas</div>
-                      ) : turmas.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-muted-foreground">Nenhuma turma cadastrada</div>
-                      ) : (
-                        <>
-                          <SelectItem value="none" disabled>Selecione uma turma</SelectItem>
-                          <SelectGroup>
-                            <SelectLabel>Terça e Quinta</SelectLabel>
-                            {turmas.filter((t) => t.nome.toLowerCase().startsWith("terça e quinta") || t.nome.toLowerCase().startsWith("terca e quinta")).map((t) => (
-                              <SelectItem key={t.id} value={t.id}>{t.nome.replace("Terça e Quinta - ", "")}</SelectItem>
-                            ))}
-                          </SelectGroup>
-                          <SelectGroup>
-                            <SelectLabel>Quarta e Sexta</SelectLabel>
-                            {turmas.filter((t) => t.nome.toLowerCase().startsWith("quarta e sexta")).map((t) => (
-                              <SelectItem key={t.id} value={t.id}>{t.nome.replace("Quarta e Sexta - ", "")}</SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </>
-                      )}
-                    </SelectContent>
-
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Plano</Label>
-                  <Select value={plano} onValueChange={setPlano}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Mensal">Mensal</SelectItem>
-                      <SelectItem value="Trimestral">Trimestral</SelectItem>
-                      <SelectItem value="Semestral">Semestral</SelectItem>
-                      <SelectItem value="Anual">Anual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>Valor mensal (R$)</Label>
-                  <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
-                </div>
+              <div className="space-y-2">
+                <Label>Turma</Label>
+                <Select value={turmaId} onValueChange={setTurmaId} required={!editando}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={carregando ? "Carregando turmas..." : turmas.length ? "Selecione a turma" : "Nenhuma turma disponível"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-80">
+                    {erro ? (
+                      <div className="px-3 py-2 text-sm text-destructive">Erro ao carregar turmas</div>
+                    ) : turmas.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">Nenhuma turma cadastrada</div>
+                    ) : (
+                      <>
+                        <SelectItem value="none" disabled>Selecione uma turma</SelectItem>
+                        <SelectGroup>
+                          <SelectLabel>Terça e Quinta</SelectLabel>
+                          {turmas.filter((t) => t.nome.toLowerCase().startsWith("terça e quinta") || t.nome.toLowerCase().startsWith("terca e quinta")).map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome.replace("Terça e Quinta - ", "")}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>Quarta e Sexta</SelectLabel>
+                          {turmas.filter((t) => t.nome.toLowerCase().startsWith("quarta e sexta")).map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome.replace("Quarta e Sexta - ", "")}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Observações</Label>

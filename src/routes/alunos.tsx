@@ -96,8 +96,6 @@ function AlunosPage() {
     setEditando(null);
     setForm(vazio);
     setTurmaId("");
-    setPlano("Mensal");
-    setValor("0");
     setAberto(true);
   }
 
@@ -113,8 +111,6 @@ function AlunosPage() {
     });
     const m = matriculas.find((x) => x.aluno_id === aluno.id);
     setTurmaId(m?.turma_id ?? "");
-    setPlano(m?.plano ?? "Mensal");
-    setValor(String(m?.valor_mensal ?? 0));
     setAberto(true);
   }
 
@@ -141,7 +137,7 @@ function AlunosPage() {
 
     if (turmaId && alunoId) {
       const { error } = await supabase.from("matriculas").upsert(
-        { aluno_id: alunoId, turma_id: turmaId, plano, valor_mensal: Number(valor) || 0, status: "ativa" },
+        { aluno_id: alunoId, turma_id: turmaId, status: "ativa" },
         { onConflict: "aluno_id,turma_id" },
       );
       if (error) return toast.error(error.message);

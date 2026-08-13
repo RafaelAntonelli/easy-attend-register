@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/presenca")({
@@ -32,6 +32,12 @@ const rotuloStatus: Record<StatusPresenca, string> = {
   falta: "Falta",
   falta_justificada: "Falta justificada",
 };
+
+const GRUPOS_DIAS = [
+  { rotulo: "Terça e Quinta", prefixo: "terça e quinta", remover: "Terça e Quinta - " },
+  { rotulo: "Terça e Quinta", prefixo: "terca e quinta", remover: "Terca e Quinta - " },
+  { rotulo: "Quarta e Sexta", prefixo: "quarta e sexta", remover: "Quarta e Sexta - " },
+];
 
 function PresencaPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -96,7 +102,10 @@ function PresencaPage() {
         .from("presencas")
         .update({ status, metodo, turma_id: turmaId || null, horario: new Date().toISOString() })
         .eq("id", existente.data.id);
-      if (error) return toast.error(error.message);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
     } else {
       const { error } = await supabase.from("presencas").insert({
         aluno_id: aluno.id,
@@ -105,7 +114,10 @@ function PresencaPage() {
         metodo,
         status,
       });
-      if (error) return toast.error(error.message);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
     }
     toast.success(`${rotuloStatus[status]}: ${aluno.nome}`);
     void carregarPresencasDoDia();
@@ -165,8 +177,22 @@ function PresencaPage() {
         <Label>Turma da aula</Label>
         <Select value={turmaId} onValueChange={setTurmaId}>
           <SelectTrigger><SelectValue placeholder="Selecione a turma (opcional)" /></SelectTrigger>
-          <SelectContent>
-            {turmas.map((t) => (
+          <SelectContent className="max-h-80">
+            {GRUPOS_DIAS.map((g) => {
+              const doGrupo = turmas.filter((t) => t.nome.toLowerCase().startsWith(g.prefixo));
+              if (!doGrupo.length) return null;
+              return (
+                <SelectGroup key={g.rotulo}>
+                  <SelectLabel>{g.rotulo}</SelectLabel>
+                  {doGrupo.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.nome.replace(g.remover, "")}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              );
+            })}
+            {turmas.filter((t) => !GRUPOS_DIAS.some((g) => t.nome.toLowerCase().startsWith(g.prefixo))).map((t) => (
               <SelectItem key={t.id} value={t.id}>{t.nome}{t.horario ? ` · ${t.horario}` : ""}</SelectItem>
             ))}
           </SelectContent>

@@ -38,6 +38,8 @@ type Turma = {
 
 const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean };
+
 function TurmasPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [contagem, setContagem] = useState<Record<string, number>>({});
@@ -47,7 +49,9 @@ function TurmasPage() {
   const [professor, setProfessor] = useState("");
   const [dias, setDias] = useState<string[]>([]);
   const [horario, setHorario] = useState("");
-  const [capacidade, setCapacidade] = useState("20");
+  const [capacidade, setCapacidade] = useState("40");
+  const [turmaAberta, setTurmaAberta] = useState<Turma | null>(null);
+  const [alunosTurma, setAlunosTurma] = useState<AlunoTurma[] | null>(null);
 
   async function carregar() {
     const [t, m] = await Promise.all([
@@ -74,7 +78,7 @@ function TurmasPage() {
       professor: professor || null,
       dias_semana: dias,
       horario: horario || null,
-      capacidade: Number(capacidade) || 20,
+      capacidade: Number(capacidade) || 40,
     });
     if (error) {
       toast.error(error.message);
@@ -87,6 +91,30 @@ function TurmasPage() {
     setDias([]);
     setHorario("");
     void carregar();
+  }
+
+  async function abrirTurma(t: Turma) {
+    setTurmaAberta(t);
+    setAlunosTurma(null);
+    const { data, error } = await supabase
+      .from("matriculas")
+      .select("id,status,modalidade,alunos(id,nome,pcd)")
+      .eq("turma_id", t.id);
+    if (error) {
+      toast.error(error.message);
+      setAlunosTurma([]);
+      return;
+    }
+    const lista = (data ?? [])
+      .map((m) => {
+        const a = m.alunos as { id: string; nome: string; pcd: boolean } | null;
+        return a
+          ? { id: a.id, nome: a.nome, pcd: a.pcd, modalidade: m.modalidade as string, status: m.status as string }
+          : null;
+      })
+      .filter(Boolean) as AlunoTurma[];
+    lista.sort((x, y) => x.nome.localeCompare(y.nome));
+    setAlunosTurma(lista);
   }
 
   return (
@@ -156,7 +184,14 @@ function TurmasPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {turmas.map((t) => (
-          <Card key={t.id} className="overflow-hidden border-border/70">
+          <Card
+            key={t.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => void abrirTurma(t)}
+            onKeyDown={(e) => { if (e.key === "Enter") void abrirTurma(t); }}
+            className="cursor-pointer overflow-hidden border-border/70 transition hover:border-primary/60 hover:shadow-pool"
+          >
             <div className="h-1.5 bg-pool" />
             <CardContent className="space-y-3 pt-5">
               <div className="flex items-start justify-between gap-2">
@@ -183,6 +218,37 @@ function TurmasPage() {
           </p>
         )}
       </div>
+
+      <Dialog open={!!turmaAberta} onOpenChange={(o) => !o && setTurmaAberta(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display">{turmaAberta?.nome}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {turmaAberta?.horario ?? "Sem horário"} · {alunosTurma?.length ?? 0} de {turmaAberta?.capacidade ?? 40} vagas
+          </p>
+          <div className="space-y-2">
+            {alunosTurma === null ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">Carregando alunos...</p>
+            ) : alunosTurma.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">Nenhum aluno matriculado nesta turma.</p>
+            ) : (
+              alunosTurma.map((a) => (
+                <div key={a.id} className="flex items-center justify-between gap-2 rounded-lg border border-border/70 px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium">{a.nome}</p>
+                    <p className="text-xs text-muted-foreground">{a.modalidade}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {a.pcd ? <Badge variant="outline">PCD</Badge> : null}
+                    <Badge variant={a.status === "ativa" ? "default" : "secondary"}>{a.status}</Badge>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

@@ -68,6 +68,7 @@ export type Database = {
           created_at: string
           data_inicio: string
           id: string
+          modalidade: string
           plano: string
           status: string
           turma_id: string
@@ -78,6 +79,7 @@ export type Database = {
           created_at?: string
           data_inicio?: string
           id?: string
+          modalidade?: string
           plano?: string
           status?: string
           turma_id: string
@@ -88,6 +90,7 @@ export type Database = {
           created_at?: string
           data_inicio?: string
           id?: string
+          modalidade?: string
           plano?: string
           status?: string
           turma_id?: string

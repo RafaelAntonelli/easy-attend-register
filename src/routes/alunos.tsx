@@ -44,8 +44,15 @@ type Aluno = {
 
 const CAPACIDADE_TURMA = 40;
 
+const ROTULO_STATUS = {
+  presente: "Presenças",
+  falta: "Faltas",
+  falta_justificada: "Faltas justificadas",
+} as const;
+
 type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[] | null };
-type Matricula = { id: string; aluno_id: string; turma_id: string; plano: string; valor_mensal: number; status: string };
+type Matricula = { id: string; aluno_id: string; turma_id: string; status: string; modalidade: string; data_inicio: string | null };
+type Presenca = { id: string; data: string; status: string; turma_id: string | null };
 
 
 const vazio = {
@@ -55,6 +62,7 @@ const vazio = {
   responsavel: "",
   email: "",
   observacoes: "",
+  modalidade: "Natação",
   pcd: false,
   pcd_descricao: "",
 };
@@ -75,6 +83,8 @@ function AlunosPage() {
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
+  const [detalhe, setDetalhe] = useState<Aluno | null>(null);
+  const [historico, setHistorico] = useState<Presenca[] | null>(null);
 
   async function carregar() {
     setCarregando(true);
@@ -141,6 +151,7 @@ function AlunosPage() {
     setFotoPreview(fotos[aluno.id] ?? null);
     const m = matriculas.find((x) => x.aluno_id === aluno.id);
     setTurmaId(m?.turma_id ?? "");
+    setForm((f) => ({ ...f, modalidade: m?.modalidade ?? "Natação" }));
     setAberto(true);
   }
 
@@ -194,7 +205,7 @@ function AlunosPage() {
 
     if (turmaId && alunoId) {
       const { error } = await supabase.from("matriculas").upsert(
-        { aluno_id: alunoId, turma_id: turmaId, status: "ativa" },
+        { aluno_id: alunoId, turma_id: turmaId, status: "ativa", modalidade: form.modalidade },
         { onConflict: "aluno_id,turma_id" },
       );
       if (error) {
@@ -208,6 +219,22 @@ function AlunosPage() {
     setAberto(false);
     void carregar();
     return;
+  }
+
+  async function abrirDetalhe(aluno: Aluno) {
+    setDetalhe(aluno);
+    setHistorico(null);
+    const { data, error } = await supabase
+      .from("presencas")
+      .select("id,data,status,turma_id")
+      .eq("aluno_id", aluno.id)
+      .order("data", { ascending: false });
+    if (error) {
+      toast.error(error.message);
+      setHistorico([]);
+      return;
+    }
+    setHistorico((data ?? []) as Presenca[]);
   }
 
   function vagasUsadas(id: string) {
@@ -257,6 +284,16 @@ function AlunosPage() {
                   <Label>E-mail</Label>
                   <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Modalidade</Label>
+                <Select value={form.modalidade} onValueChange={(v) => setForm({ ...form, modalidade: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a modalidade" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Natação">Natação</SelectItem>
+                    <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Turma</Label>
@@ -357,7 +394,9 @@ function AlunosPage() {
                   </div>
                 )}
                 <div className="min-w-40 flex-1">
-                  <p className="font-medium text-foreground">{aluno.nome}</p>
+                  <button type="button" onClick={() => void abrirDetalhe(aluno)} className="text-left font-medium text-foreground hover:text-primary hover:underline">
+                    {aluno.nome}
+                  </button>
                   <p className="text-sm text-muted-foreground">
                     {turmasDoAluno.length ? turmasDoAluno.join(", ") : "Sem turma"}
                     {aluno.telefone ? ` · ${aluno.telefone}` : ""}
@@ -377,6 +416,86 @@ function AlunosPage() {
           </p>
         )}
       </div>
+
+      <Dialog open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display">{detalhe?.nome}</DialogTitle>
+          </DialogHeader>
+          {detalhe ? (
+            <div className="space-y-5">
+              <div className="flex items-center gap-4">
+                {fotos[detalhe.id] ? (
+                  <img src={fotos[detalhe.id]} alt={`Foto de ${detalhe.nome}`} className="size-16 rounded-full object-cover" />
+                ) : (
+                  <div className="grid size-16 place-items-center rounded-full bg-pool font-display text-primary-foreground">
+                    {detalhe.nome.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div className="text-sm text-muted-foreground">
+                  <p>{detalhe.telefone ?? "Sem telefone"}</p>
+                  <p>{detalhe.email ?? "Sem e-mail"}</p>
+                  <p>{detalhe.responsavel ? `Responsável: ${detalhe.responsavel}` : "Sem responsável"}</p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border/70 p-3 text-sm">
+                <p className="mb-1 font-medium">PCD</p>
+                <p className="text-muted-foreground">
+                  {detalhe.pcd ? detalhe.pcd_descricao || "Sim (sem descrição)" : "Não"}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Matrículas</p>
+                {matriculas.filter((m) => m.aluno_id === detalhe.id).length ? (
+                  matriculas
+                    .filter((m) => m.aluno_id === detalhe.id)
+                    .map((m) => (
+                      <div key={m.id} className="rounded-lg bg-secondary/60 px-3 py-2 text-sm">
+                        <p className="font-medium">{turmas.find((t) => t.id === m.turma_id)?.nome ?? "Turma"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {m.modalidade} · {m.status}
+                          {m.data_inicio ? ` · início ${new Date(`${m.data_inicio}T00:00:00`).toLocaleDateString("pt-BR")}` : ""}
+                        </p>
+                      </div>
+                    ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Sem matrícula ativa.</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Histórico de frequência</p>
+                {historico === null ? (
+                  <p className="text-sm text-muted-foreground">Carregando...</p>
+                ) : historico.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum registro de frequência.</p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      {(["presente", "falta", "falta_justificada"] as const).map((st) => (
+                        <div key={st} className="rounded-lg border border-border/70 py-2">
+                          <p className="font-display text-lg">{historico.filter((h) => h.status === st).length}</p>
+                          <p className="text-xs text-muted-foreground">{ROTULO_STATUS[st]}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="max-h-56 space-y-1 overflow-y-auto">
+                      {historico.map((h) => (
+                        <div key={h.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-1.5 text-sm">
+                          <span>{new Date(`${h.data}T00:00:00`).toLocaleDateString("pt-BR")}</span>
+                          <span className="text-muted-foreground">{ROTULO_STATUS[h.status as keyof typeof ROTULO_STATUS] ?? h.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!qrAluno} onOpenChange={(o) => !o && setQrAluno(null)}>
         <DialogContent className="sm:max-w-sm">

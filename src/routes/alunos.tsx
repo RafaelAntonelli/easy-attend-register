@@ -192,6 +192,12 @@ function AlunosPage() {
       observacoes: form.observacoes || null,
       pcd: form.pcd,
       pcd_descricao: form.pcd ? form.pcd_descricao || null : null,
+      atestado_entregue: form.atestado_entregue,
+      atestado_data: form.atestado_entregue ? form.atestado_data || null : null,
+      telefone2: form.telefone2 || null,
+      rede_ensino: form.rede_ensino || null,
+      escola: form.escola || null,
+      idade: form.idade ? Number(form.idade) : null,
     };
 
     if (turmaId) {

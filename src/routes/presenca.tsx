@@ -96,7 +96,10 @@ function PresencaPage() {
         .from("presencas")
         .update({ status, metodo, turma_id: turmaId || null, horario: new Date().toISOString() })
         .eq("id", existente.data.id);
-      if (error) return toast.error(error.message);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
     } else {
       const { error } = await supabase.from("presencas").insert({
         aluno_id: aluno.id,
@@ -105,7 +108,10 @@ function PresencaPage() {
         metodo,
         status,
       });
-      if (error) return toast.error(error.message);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
     }
     toast.success(`${rotuloStatus[status]}: ${aluno.nome}`);
     void carregarPresencasDoDia();

@@ -16,49 +16,67 @@ export type Database = {
     Tables: {
       alunos: {
         Row: {
+          atestado_data: string | null
+          atestado_entregue: boolean
           ativo: boolean
           codigo: string
           created_at: string
           data_nascimento: string | null
           email: string | null
+          escola: string | null
           foto_path: string | null
           id: string
+          idade: number | null
           nome: string
           observacoes: string | null
           pcd: boolean
           pcd_descricao: string | null
+          rede_ensino: string | null
           responsavel: string | null
           telefone: string | null
+          telefone2: string | null
         }
         Insert: {
+          atestado_data?: string | null
+          atestado_entregue?: boolean
           ativo?: boolean
           codigo?: string
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
+          escola?: string | null
           foto_path?: string | null
           id?: string
+          idade?: number | null
           nome: string
           observacoes?: string | null
           pcd?: boolean
           pcd_descricao?: string | null
+          rede_ensino?: string | null
           responsavel?: string | null
           telefone?: string | null
+          telefone2?: string | null
         }
         Update: {
+          atestado_data?: string | null
+          atestado_entregue?: boolean
           ativo?: boolean
           codigo?: string
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
+          escola?: string | null
           foto_path?: string | null
           id?: string
+          idade?: number | null
           nome?: string
           observacoes?: string | null
           pcd?: boolean
           pcd_descricao?: string | null
+          rede_ensino?: string | null
           responsavel?: string | null
           telefone?: string | null
+          telefone2?: string | null
         }
         Relationships: []
       }

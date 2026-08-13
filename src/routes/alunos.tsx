@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, QrCode, Search, Pencil, Image as ImageIcon } from "lucide-react";
+import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -40,7 +40,20 @@ type Aluno = {
   pcd: boolean;
   pcd_descricao: string | null;
   foto_path: string | null;
+  atestado_entregue: boolean;
+  atestado_data: string | null;
+  telefone2: string | null;
+  rede_ensino: string | null;
+  escola: string | null;
+  idade: number | null;
 };
+
+function atestadoVencido(data: string | null | undefined) {
+  if (!data) return false;
+  const limite = new Date(`${data}T00:00:00`);
+  limite.setFullYear(limite.getFullYear() + 1);
+  return limite < new Date();
+}
 
 const CAPACIDADE_TURMA = 40;
 
@@ -65,6 +78,12 @@ const vazio = {
   modalidade: "Natação",
   pcd: false,
   pcd_descricao: "",
+  atestado_entregue: false,
+  atestado_data: "",
+  telefone2: "",
+  rede_ensino: "",
+  escola: "",
+  idade: "",
 };
 
 function AlunosPage() {
@@ -147,6 +166,12 @@ function AlunosPage() {
       modalidade: "Natação",
       pcd: aluno.pcd ?? false,
       pcd_descricao: aluno.pcd_descricao ?? "",
+      atestado_entregue: aluno.atestado_entregue ?? false,
+      atestado_data: aluno.atestado_data ?? "",
+      telefone2: aluno.telefone2 ?? "",
+      rede_ensino: aluno.rede_ensino ?? "",
+      escola: aluno.escola ?? "",
+      idade: aluno.idade != null ? String(aluno.idade) : "",
     });
     setFoto(null);
     setFotoPreview(fotos[aluno.id] ?? null);
@@ -167,6 +192,12 @@ function AlunosPage() {
       observacoes: form.observacoes || null,
       pcd: form.pcd,
       pcd_descricao: form.pcd ? form.pcd_descricao || null : null,
+      atestado_entregue: form.atestado_entregue,
+      atestado_data: form.atestado_entregue ? form.atestado_data || null : null,
+      telefone2: form.telefone2 || null,
+      rede_ensino: form.rede_ensino || null,
+      escola: form.escola || null,
+      idade: form.idade ? Number(form.idade) : null,
     };
 
     if (turmaId) {
@@ -243,9 +274,34 @@ function AlunosPage() {
   }
 
   const filtrados = alunos.filter((a) => a.nome.toLowerCase().includes(busca.toLowerCase()));
+  const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
 
   return (
     <AppShell title="Alunos" subtitle="Cadastro e matrículas da Arena Aquática">
+      {vencidos.length ? (
+        <Card className="mb-6 border-destructive/40 bg-destructive/5">
+          <CardContent className="space-y-2 py-4">
+            <p className="flex items-center gap-2 font-medium text-destructive">
+              <Bell className="size-4" /> Notificações · {vencidos.length} atestado(s) vencido(s)
+            </p>
+            <div className="space-y-1">
+              {vencidos.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => abrirEdicao(a)}
+                  className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                >
+                  <span>{a.nome}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Atestado de {a.atestado_data ? new Date(`${a.atestado_data}T00:00:00`).toLocaleDateString("pt-BR") : "-"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -275,6 +331,53 @@ function AlunosPage() {
                   <Label>Telefone</Label>
                   <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
                 </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Telefone 2</Label>
+                  <Input value={form.telefone2} onChange={(e) => setForm({ ...form, telefone2: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Idade</Label>
+                  <Input type="number" min={0} max={120} value={form.idade} onChange={(e) => setForm({ ...form, idade: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Estuda na rede</Label>
+                  <Select value={form.rede_ensino} onValueChange={(v) => setForm({ ...form, rede_ensino: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Pública">Pública</SelectItem>
+                      <SelectItem value="Privada">Privada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Nome da escola</Label>
+                  <Input value={form.escola} onChange={(e) => setForm({ ...form, escola: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-3 rounded-lg border border-border/70 p-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="atestado">Entregou atestado?</Label>
+                  <Switch
+                    id="atestado"
+                    checked={form.atestado_entregue}
+                    onCheckedChange={(v) => setForm({ ...form, atestado_entregue: v })}
+                  />
+                </div>
+                {form.atestado_entregue ? (
+                  <div className="space-y-2">
+                    <Label>Data do atestado</Label>
+                    <Input type="date" value={form.atestado_data} onChange={(e) => setForm({ ...form, atestado_data: e.target.value })} />
+                    {atestadoVencido(form.atestado_data) ? (
+                      <p className="flex items-center gap-1 text-sm font-medium text-destructive">
+                        <AlertTriangle className="size-4" /> Atestado vencido!
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">

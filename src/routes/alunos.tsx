@@ -274,9 +274,34 @@ function AlunosPage() {
   }
 
   const filtrados = alunos.filter((a) => a.nome.toLowerCase().includes(busca.toLowerCase()));
+  const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
 
   return (
     <AppShell title="Alunos" subtitle="Cadastro e matrículas da Arena Aquática">
+      {vencidos.length ? (
+        <Card className="mb-6 border-destructive/40 bg-destructive/5">
+          <CardContent className="space-y-2 py-4">
+            <p className="flex items-center gap-2 font-medium text-destructive">
+              <Bell className="size-4" /> Notificações · {vencidos.length} atestado(s) vencido(s)
+            </p>
+            <div className="space-y-1">
+              {vencidos.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => abrirEdicao(a)}
+                  className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                >
+                  <span>{a.nome}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Atestado de {a.atestado_data ? new Date(`${a.atestado_data}T00:00:00`).toLocaleDateString("pt-BR") : "-"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

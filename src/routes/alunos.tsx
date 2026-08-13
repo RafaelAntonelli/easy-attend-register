@@ -40,7 +40,20 @@ type Aluno = {
   pcd: boolean;
   pcd_descricao: string | null;
   foto_path: string | null;
+  atestado_entregue: boolean;
+  atestado_data: string | null;
+  telefone2: string | null;
+  rede_ensino: string | null;
+  escola: string | null;
+  idade: number | null;
 };
+
+function atestadoVencido(data: string | null | undefined) {
+  if (!data) return false;
+  const limite = new Date(`${data}T00:00:00`);
+  limite.setFullYear(limite.getFullYear() + 1);
+  return limite < new Date();
+}
 
 const CAPACIDADE_TURMA = 40;
 

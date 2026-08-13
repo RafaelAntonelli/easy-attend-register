@@ -144,6 +144,7 @@ function AlunosPage() {
       responsavel: aluno.responsavel ?? "",
       email: aluno.email ?? "",
       observacoes: aluno.observacoes ?? "",
+      modalidade: "Natação",
       pcd: aluno.pcd ?? false,
       pcd_descricao: aluno.pcd_descricao ?? "",
     });

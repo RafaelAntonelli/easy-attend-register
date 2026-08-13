@@ -78,6 +78,12 @@ const vazio = {
   modalidade: "Natação",
   pcd: false,
   pcd_descricao: "",
+  atestado_entregue: false,
+  atestado_data: "",
+  telefone2: "",
+  rede_ensino: "",
+  escola: "",
+  idade: "",
 };
 
 function AlunosPage() {

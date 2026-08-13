@@ -309,6 +309,53 @@ function AlunosPage() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
+                  <Label>Telefone 2</Label>
+                  <Input value={form.telefone2} onChange={(e) => setForm({ ...form, telefone2: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Idade</Label>
+                  <Input type="number" min={0} max={120} value={form.idade} onChange={(e) => setForm({ ...form, idade: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Estuda na rede</Label>
+                  <Select value={form.rede_ensino} onValueChange={(v) => setForm({ ...form, rede_ensino: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Pública">Pública</SelectItem>
+                      <SelectItem value="Privada">Privada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Nome da escola</Label>
+                  <Input value={form.escola} onChange={(e) => setForm({ ...form, escola: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-3 rounded-lg border border-border/70 p-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="atestado">Entregou atestado?</Label>
+                  <Switch
+                    id="atestado"
+                    checked={form.atestado_entregue}
+                    onCheckedChange={(v) => setForm({ ...form, atestado_entregue: v })}
+                  />
+                </div>
+                {form.atestado_entregue ? (
+                  <div className="space-y-2">
+                    <Label>Data do atestado</Label>
+                    <Input type="date" value={form.atestado_data} onChange={(e) => setForm({ ...form, atestado_data: e.target.value })} />
+                    {atestadoVencido(form.atestado_data) ? (
+                      <p className="flex items-center gap-1 text-sm font-medium text-destructive">
+                        <AlertTriangle className="size-4" /> Atestado vencido!
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
                   <Label>Responsável</Label>
                   <Input value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })} />
                 </div>

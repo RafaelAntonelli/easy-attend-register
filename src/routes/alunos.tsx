@@ -166,6 +166,12 @@ function AlunosPage() {
       modalidade: "Natação",
       pcd: aluno.pcd ?? false,
       pcd_descricao: aluno.pcd_descricao ?? "",
+      atestado_entregue: aluno.atestado_entregue ?? false,
+      atestado_data: aluno.atestado_data ?? "",
+      telefone2: aluno.telefone2 ?? "",
+      rede_ensino: aluno.rede_ensino ?? "",
+      escola: aluno.escola ?? "",
+      idade: aluno.idade != null ? String(aluno.idade) : "",
     });
     setFoto(null);
     setFotoPreview(fotos[aluno.id] ?? null);

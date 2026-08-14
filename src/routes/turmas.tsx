@@ -282,6 +282,20 @@ function TurmasPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={!!confirmarExclusao} onOpenChange={(o) => !o && setConfirmarExclusao(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir turma?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmarExclusao?.nome} e as matrículas vinculadas serão removidas. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmarExclusao && void excluirTurma(confirmarExclusao)}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

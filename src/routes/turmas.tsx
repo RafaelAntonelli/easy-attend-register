@@ -104,6 +104,17 @@ function TurmasPage() {
     void carregar();
   }
 
+  async function excluirTurma(t: Turma) {
+    const { error: e1 } = await supabase.from("matriculas").delete().eq("turma_id", t.id);
+    if (e1) return toast.error(e1.message);
+    const { error } = await supabase.from("turmas").delete().eq("id", t.id);
+    if (error) return toast.error(error.message);
+    toast.success("Turma excluída");
+    setConfirmarExclusao(null);
+    void carregar();
+    return;
+  }
+
   async function abrirTurma(t: Turma) {
     setTurmaAberta(t);
     setAlunosTurma(null);
@@ -217,9 +228,20 @@ function TurmasPage() {
                   <span key={d} className="rounded-md bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{d}</span>
                 ))}
               </div>
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="size-4" /> {contagem[t.id] ?? 0} de {t.capacidade} vagas
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Users className="size-4" /> {contagem[t.id] ?? 0} de {t.capacidade} vagas
+                </p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive"
+                  title="Excluir turma"
+                  onClick={(e) => { e.stopPropagation(); setConfirmarExclusao(t); }}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}

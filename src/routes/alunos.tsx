@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell } from "lucide-react";
+import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -14,6 +14,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/alunos")({
   component: AlunosPage,
@@ -104,6 +115,9 @@ function AlunosPage() {
   const [salvando, setSalvando] = useState(false);
   const [detalhe, setDetalhe] = useState<Aluno | null>(null);
   const [historico, setHistorico] = useState<Presenca[] | null>(null);
+  const [faltasPorAluno, setFaltasPorAluno] = useState<Record<string, number>>({});
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [confirmarExclusao, setConfirmarExclusao] = useState<Aluno[] | null>(null);
 
   async function carregar() {
     setCarregando(true);
@@ -120,6 +134,14 @@ function AlunosPage() {
       setAlunos(a.data as Aluno[]);
       setTurmas(t.data as Turma[]);
       setMatriculas(m.data as Matricula[]);
+      const f = await supabase.from("presencas").select("aluno_id").eq("status", "falta");
+      if (f.data) {
+        const contagem: Record<string, number> = {};
+        for (const row of f.data as { aluno_id: string }[]) {
+          contagem[row.aluno_id] = (contagem[row.aluno_id] ?? 0) + 1;
+        }
+        setFaltasPorAluno(contagem);
+      }
       const comFoto = (a.data as Aluno[]).filter((x) => x.foto_path);
       if (comFoto.length) {
         const { data: signed } = await supabase.storage
@@ -273,8 +295,38 @@ function AlunosPage() {
     return matriculas.filter((m) => m.turma_id === id && m.status === "ativa").length;
   }
 
+  async function excluirAlunos(lista: Aluno[]) {
+    const ids = lista.map((a) => a.id);
+    const caminhos = lista.map((a) => a.foto_path).filter(Boolean) as string[];
+    const { error: e1 } = await supabase.from("presencas").delete().in("aluno_id", ids);
+    if (e1) return toast.error(e1.message);
+    const { error: e2 } = await supabase.from("matriculas").delete().in("aluno_id", ids);
+    if (e2) return toast.error(e2.message);
+    const { error } = await supabase.from("alunos").delete().in("id", ids);
+    if (error) return toast.error(error.message);
+    if (caminhos.length) await supabase.storage.from("fotos-alunos").remove(caminhos);
+    toast.success(ids.length > 1 ? `${ids.length} alunos excluídos` : "Aluno excluído");
+    setSelecionados([]);
+    setConfirmarExclusao(null);
+    void carregar();
+    return;
+  }
+
+  async function alternarAtivo(lista: Aluno[], ativo: boolean) {
+    const ids = lista.map((a) => a.id);
+    const { error } = await supabase.from("alunos").update({ ativo }).in("id", ids);
+    if (error) return toast.error(error.message);
+    toast.success(ativo ? "Aluno(s) reativado(s)" : "Aluno(s) inativado(s)");
+    setSelecionados([]);
+    void carregar();
+    return;
+  }
+
   const filtrados = alunos.filter((a) => a.nome.toLowerCase().includes(busca.toLowerCase()));
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
+  const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
+  const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
+  const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
 
   return (
     <AppShell title="Alunos" subtitle="Cadastro e matrículas da Arena Aquática">

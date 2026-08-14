@@ -730,6 +730,23 @@ function AlunosPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={!!confirmarExclusao} onOpenChange={(o) => !o && setConfirmarExclusao(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir aluno(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmarExclusao?.length === 1
+                ? `${confirmarExclusao[0]?.nome} será removido junto com matrículas e histórico de presença.`
+                : `${confirmarExclusao?.length ?? 0} alunos serão removidos junto com matrículas e histórico de presença.`}
+              {" "}Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void excluirAlunos(confirmarExclusao ?? [])}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

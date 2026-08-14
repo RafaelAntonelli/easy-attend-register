@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell } from "lucide-react";
+import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -14,6 +14,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/alunos")({
   component: AlunosPage,
@@ -104,6 +115,9 @@ function AlunosPage() {
   const [salvando, setSalvando] = useState(false);
   const [detalhe, setDetalhe] = useState<Aluno | null>(null);
   const [historico, setHistorico] = useState<Presenca[] | null>(null);
+  const [faltasPorAluno, setFaltasPorAluno] = useState<Record<string, number>>({});
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [confirmarExclusao, setConfirmarExclusao] = useState<Aluno[] | null>(null);
 
   async function carregar() {
     setCarregando(true);
@@ -120,6 +134,14 @@ function AlunosPage() {
       setAlunos(a.data as Aluno[]);
       setTurmas(t.data as Turma[]);
       setMatriculas(m.data as Matricula[]);
+      const f = await supabase.from("presencas").select("aluno_id").eq("status", "falta");
+      if (f.data) {
+        const contagem: Record<string, number> = {};
+        for (const row of f.data as { aluno_id: string }[]) {
+          contagem[row.aluno_id] = (contagem[row.aluno_id] ?? 0) + 1;
+        }
+        setFaltasPorAluno(contagem);
+      }
       const comFoto = (a.data as Aluno[]).filter((x) => x.foto_path);
       if (comFoto.length) {
         const { data: signed } = await supabase.storage
@@ -273,8 +295,38 @@ function AlunosPage() {
     return matriculas.filter((m) => m.turma_id === id && m.status === "ativa").length;
   }
 
+  async function excluirAlunos(lista: Aluno[]) {
+    const ids = lista.map((a) => a.id);
+    const caminhos = lista.map((a) => a.foto_path).filter(Boolean) as string[];
+    const { error: e1 } = await supabase.from("presencas").delete().in("aluno_id", ids);
+    if (e1) return toast.error(e1.message);
+    const { error: e2 } = await supabase.from("matriculas").delete().in("aluno_id", ids);
+    if (e2) return toast.error(e2.message);
+    const { error } = await supabase.from("alunos").delete().in("id", ids);
+    if (error) return toast.error(error.message);
+    if (caminhos.length) await supabase.storage.from("fotos-alunos").remove(caminhos);
+    toast.success(ids.length > 1 ? `${ids.length} alunos excluídos` : "Aluno excluído");
+    setSelecionados([]);
+    setConfirmarExclusao(null);
+    void carregar();
+    return;
+  }
+
+  async function alternarAtivo(lista: Aluno[], ativo: boolean) {
+    const ids = lista.map((a) => a.id);
+    const { error } = await supabase.from("alunos").update({ ativo }).in("id", ids);
+    if (error) return toast.error(error.message);
+    toast.success(ativo ? "Aluno(s) reativado(s)" : "Aluno(s) inativado(s)");
+    setSelecionados([]);
+    void carregar();
+    return;
+  }
+
   const filtrados = alunos.filter((a) => a.nome.toLowerCase().includes(busca.toLowerCase()));
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
+  const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
+  const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
+  const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
 
   return (
     <AppShell title="Alunos" subtitle="Cadastro e matrículas da Arena Aquática">
@@ -296,6 +348,28 @@ function AlunosPage() {
                   <span className="text-xs text-muted-foreground">
                     Atestado de {a.atestado_data ? new Date(`${a.atestado_data}T00:00:00`).toLocaleDateString("pt-BR") : "-"}
                   </span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+      {excessoFaltas.length ? (
+        <Card className="mb-6 border-amber-500/40 bg-amber-500/5">
+          <CardContent className="space-y-2 py-4">
+            <p className="flex items-center gap-2 font-medium text-amber-600">
+              <AlertTriangle className="size-4" /> Notificações · {excessoFaltas.length} aluno(s) com 5 faltas ou mais
+            </p>
+            <div className="space-y-1">
+              {excessoFaltas.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => void abrirDetalhe(a)}
+                  className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                >
+                  <span>{a.nome}</span>
+                  <span className="text-xs text-muted-foreground">{faltasPorAluno[a.id]} faltas</span>
                 </button>
               ))}
             </div>
@@ -481,6 +555,30 @@ function AlunosPage() {
         </Dialog>
       </div>
 
+      {filtrados.length ? (
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-border/70 px-4 py-3">
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={todosSelecionados}
+              onCheckedChange={(v) => setSelecionados(v ? filtrados.map((a) => a.id) : [])}
+            />
+            Selecionar todos
+          </label>
+          <span className="text-sm text-muted-foreground">{selecionados.length} selecionado(s)</span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" disabled={!selecionados.length} onClick={() => void alternarAtivo(selecionadosAlunos, false)}>
+              <UserX className="size-4" /> Inativar
+            </Button>
+            <Button variant="outline" size="sm" disabled={!selecionados.length} onClick={() => void alternarAtivo(selecionadosAlunos, true)}>
+              <UserCheck className="size-4" /> Reativar
+            </Button>
+            <Button variant="destructive" size="sm" disabled={!selecionados.length} onClick={() => setConfirmarExclusao(selecionadosAlunos)}>
+              <Trash2 className="size-4" /> Excluir
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid gap-3">
         {filtrados.map((aluno) => {
           const turmasDoAluno = matriculas
@@ -490,6 +588,13 @@ function AlunosPage() {
           return (
             <Card key={aluno.id} className="border-border/70">
               <CardContent className="flex flex-wrap items-center gap-4 py-4">
+                <Checkbox
+                  checked={selecionados.includes(aluno.id)}
+                  onCheckedChange={(v) =>
+                    setSelecionados((s) => (v ? [...s, aluno.id] : s.filter((x) => x !== aluno.id)))
+                  }
+                  aria-label={`Selecionar ${aluno.nome}`}
+                />
                 {fotos[aluno.id] ? (
                   <img src={fotos[aluno.id]} alt={`Foto de ${aluno.nome}`} className="size-11 shrink-0 rounded-full object-cover" />
                 ) : (
@@ -510,6 +615,13 @@ function AlunosPage() {
                 <Badge variant={aluno.ativo ? "default" : "secondary"}>{aluno.ativo ? "Ativo" : "Inativo"}</Badge>
                 <Button variant="ghost" size="icon" onClick={() => abrirEdicao(aluno)}><Pencil className="size-4" /></Button>
                 <Button variant="outline" size="icon" onClick={() => setQrAluno(aluno)}><QrCode className="size-4" /></Button>
+                <Button variant="ghost" size="icon" title={aluno.ativo ? "Inativar" : "Reativar"} onClick={() => void alternarAtivo([aluno], !aluno.ativo)}>
+                  {aluno.ativo ? <UserX className="size-4" /> : <UserCheck className="size-4" />}
+                </Button>
+                <Button variant="ghost" size="icon" className="text-destructive" title="Excluir" onClick={() => setConfirmarExclusao([aluno])}>
+                  <Trash2 className="size-4" />
+                </Button>
+
               </CardContent>
             </Card>
           );
@@ -618,6 +730,23 @@ function AlunosPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={!!confirmarExclusao} onOpenChange={(o) => !o && setConfirmarExclusao(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir aluno(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmarExclusao?.length === 1
+                ? `${confirmarExclusao[0]?.nome} será removido junto com matrículas e histórico de presença.`
+                : `${confirmarExclusao?.length ?? 0} alunos serão removidos junto com matrículas e histórico de presença.`}
+              {" "}Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void excluirAlunos(confirmarExclusao ?? [])}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

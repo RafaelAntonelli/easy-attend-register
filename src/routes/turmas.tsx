@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -12,6 +12,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/turmas")({
   component: TurmasPage,
@@ -52,6 +62,7 @@ function TurmasPage() {
   const [capacidade, setCapacidade] = useState("40");
   const [turmaAberta, setTurmaAberta] = useState<Turma | null>(null);
   const [alunosTurma, setAlunosTurma] = useState<AlunoTurma[] | null>(null);
+  const [confirmarExclusao, setConfirmarExclusao] = useState<Turma | null>(null);
 
   async function carregar() {
     const [t, m] = await Promise.all([
@@ -91,6 +102,17 @@ function TurmasPage() {
     setDias([]);
     setHorario("");
     void carregar();
+  }
+
+  async function excluirTurma(t: Turma) {
+    const { error: e1 } = await supabase.from("matriculas").delete().eq("turma_id", t.id);
+    if (e1) return toast.error(e1.message);
+    const { error } = await supabase.from("turmas").delete().eq("id", t.id);
+    if (error) return toast.error(error.message);
+    toast.success("Turma excluída");
+    setConfirmarExclusao(null);
+    void carregar();
+    return;
   }
 
   async function abrirTurma(t: Turma) {
@@ -206,9 +228,20 @@ function TurmasPage() {
                   <span key={d} className="rounded-md bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{d}</span>
                 ))}
               </div>
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="size-4" /> {contagem[t.id] ?? 0} de {t.capacidade} vagas
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Users className="size-4" /> {contagem[t.id] ?? 0} de {t.capacidade} vagas
+                </p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive"
+                  title="Excluir turma"
+                  onClick={(e) => { e.stopPropagation(); setConfirmarExclusao(t); }}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -249,6 +282,20 @@ function TurmasPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={!!confirmarExclusao} onOpenChange={(o) => !o && setConfirmarExclusao(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir turma?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmarExclusao?.nome} e as matrículas vinculadas serão removidas. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmarExclusao && void excluirTurma(confirmarExclusao)}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

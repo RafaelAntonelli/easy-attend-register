@@ -80,6 +80,39 @@ export type Database = {
         }
         Relationships: []
       }
+      fila_espera: {
+        Row: {
+          created_at: string
+          id: string
+          modalidade: string
+          nome: string
+          observacoes: string | null
+          preferencia_horario: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          modalidade?: string
+          nome: string
+          observacoes?: string | null
+          preferencia_horario?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          modalidade?: string
+          nome?: string
+          observacoes?: string | null
+          preferencia_horario?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       matriculas: {
         Row: {
           aluno_id: string

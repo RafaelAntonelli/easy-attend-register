@@ -1,10 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Users, CalendarDays, QrCode, TrendingUp } from "lucide-react";
+import { Users, CalendarDays, QrCode, TrendingUp, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type Fila = {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  modalidade: string;
+  preferencia_horario: string | null;
+  created_at: string;
+};
 
 export const Route = createFileRoute("/")({
   component: Painel,

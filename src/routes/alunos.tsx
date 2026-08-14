@@ -555,6 +555,30 @@ function AlunosPage() {
         </Dialog>
       </div>
 
+      {filtrados.length ? (
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-border/70 px-4 py-3">
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={todosSelecionados}
+              onCheckedChange={(v) => setSelecionados(v ? filtrados.map((a) => a.id) : [])}
+            />
+            Selecionar todos
+          </label>
+          <span className="text-sm text-muted-foreground">{selecionados.length} selecionado(s)</span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" disabled={!selecionados.length} onClick={() => void alternarAtivo(selecionadosAlunos, false)}>
+              <UserX className="size-4" /> Inativar
+            </Button>
+            <Button variant="outline" size="sm" disabled={!selecionados.length} onClick={() => void alternarAtivo(selecionadosAlunos, true)}>
+              <UserCheck className="size-4" /> Reativar
+            </Button>
+            <Button variant="destructive" size="sm" disabled={!selecionados.length} onClick={() => setConfirmarExclusao(selecionadosAlunos)}>
+              <Trash2 className="size-4" /> Excluir
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid gap-3">
         {filtrados.map((aluno) => {
           const turmasDoAluno = matriculas
@@ -564,6 +588,13 @@ function AlunosPage() {
           return (
             <Card key={aluno.id} className="border-border/70">
               <CardContent className="flex flex-wrap items-center gap-4 py-4">
+                <Checkbox
+                  checked={selecionados.includes(aluno.id)}
+                  onCheckedChange={(v) =>
+                    setSelecionados((s) => (v ? [...s, aluno.id] : s.filter((x) => x !== aluno.id)))
+                  }
+                  aria-label={`Selecionar ${aluno.nome}`}
+                />
                 {fotos[aluno.id] ? (
                   <img src={fotos[aluno.id]} alt={`Foto de ${aluno.nome}`} className="size-11 shrink-0 rounded-full object-cover" />
                 ) : (
@@ -584,6 +615,13 @@ function AlunosPage() {
                 <Badge variant={aluno.ativo ? "default" : "secondary"}>{aluno.ativo ? "Ativo" : "Inativo"}</Badge>
                 <Button variant="ghost" size="icon" onClick={() => abrirEdicao(aluno)}><Pencil className="size-4" /></Button>
                 <Button variant="outline" size="icon" onClick={() => setQrAluno(aluno)}><QrCode className="size-4" /></Button>
+                <Button variant="ghost" size="icon" title={aluno.ativo ? "Inativar" : "Reativar"} onClick={() => void alternarAtivo([aluno], !aluno.ativo)}>
+                  {aluno.ativo ? <UserX className="size-4" /> : <UserCheck className="size-4" />}
+                </Button>
+                <Button variant="ghost" size="icon" className="text-destructive" title="Excluir" onClick={() => setConfirmarExclusao([aluno])}>
+                  <Trash2 className="size-4" />
+                </Button>
+
               </CardContent>
             </Card>
           );

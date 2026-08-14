@@ -354,6 +354,28 @@ function AlunosPage() {
           </CardContent>
         </Card>
       ) : null}
+      {excessoFaltas.length ? (
+        <Card className="mb-6 border-amber-500/40 bg-amber-500/5">
+          <CardContent className="space-y-2 py-4">
+            <p className="flex items-center gap-2 font-medium text-amber-600">
+              <AlertTriangle className="size-4" /> Notificações · {excessoFaltas.length} aluno(s) com 5 faltas ou mais
+            </p>
+            <div className="space-y-1">
+              {excessoFaltas.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => void abrirDetalhe(a)}
+                  className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                >
+                  <span>{a.nome}</span>
+                  <span className="text-xs text-muted-foreground">{faltasPorAluno[a.id]} faltas</span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

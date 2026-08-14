@@ -36,6 +36,44 @@ export const Route = createFileRoute("/")({
 function Painel() {
   const [stats, setStats] = useState({ alunos: 0, turmas: 0, hoje: 0, mes: 0 });
   const [ultimas, setUltimas] = useState<{ nome: string; hora: string }[]>([]);
+  const [fila, setFila] = useState<Fila[]>([]);
+  const [novo, setNovo] = useState({ nome: "", telefone: "", modalidade: "Natação", preferencia_horario: "" });
+
+  async function carregarFila() {
+    const { data, error } = await supabase
+      .from("fila_espera")
+      .select("id,nome,telefone,modalidade,preferencia_horario,created_at")
+      .order("created_at");
+    if (error) return toast.error(error.message);
+    setFila((data ?? []) as Fila[]);
+    return;
+  }
+
+  useEffect(() => {
+    void carregarFila();
+  }, []);
+
+  async function adicionarFila(e: React.FormEvent) {
+    e.preventDefault();
+    const { error } = await supabase.from("fila_espera").insert({
+      nome: novo.nome,
+      telefone: novo.telefone || null,
+      modalidade: novo.modalidade,
+      preferencia_horario: novo.preferencia_horario || null,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Adicionado à fila de espera");
+    setNovo({ nome: "", telefone: "", modalidade: "Natação", preferencia_horario: "" });
+    void carregarFila();
+    return;
+  }
+
+  async function removerFila(id: string) {
+    const { error } = await supabase.from("fila_espera").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    void carregarFila();
+    return;
+  }
 
   useEffect(() => {
     void (async () => {

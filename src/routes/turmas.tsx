@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -12,6 +12,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/turmas")({
   component: TurmasPage,
@@ -52,6 +62,7 @@ function TurmasPage() {
   const [capacidade, setCapacidade] = useState("40");
   const [turmaAberta, setTurmaAberta] = useState<Turma | null>(null);
   const [alunosTurma, setAlunosTurma] = useState<AlunoTurma[] | null>(null);
+  const [confirmarExclusao, setConfirmarExclusao] = useState<Turma | null>(null);
 
   async function carregar() {
     const [t, m] = await Promise.all([

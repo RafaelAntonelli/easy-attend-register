@@ -4,6 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { CONDICOES_PCD } from "@/lib/pcd";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,9 @@ type Aluno = {
   ativo: boolean;
   pcd: boolean;
   pcd_descricao: string | null;
+  pcd_condicoes: string[] | null;
+  rg: string | null;
+  cpf: string | null;
   foto_path: string | null;
   atestado_entregue: boolean;
   atestado_data: string | null;
@@ -89,6 +93,9 @@ const vazio = {
   modalidade: "Natação",
   pcd: false,
   pcd_descricao: "",
+  pcd_condicoes: [] as string[],
+  rg: "",
+  cpf: "",
   atestado_entregue: false,
   atestado_data: "",
   telefone2: "",
@@ -97,6 +104,7 @@ const vazio = {
   idade: "",
 };
 
+
 function AlunosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -104,6 +112,7 @@ function AlunosPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
+  const [filtroPcd, setFiltroPcd] = useState("todos");
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Aluno | null>(null);
   const [form, setForm] = useState(vazio);
@@ -188,6 +197,9 @@ function AlunosPage() {
       modalidade: "Natação",
       pcd: aluno.pcd ?? false,
       pcd_descricao: aluno.pcd_descricao ?? "",
+      pcd_condicoes: aluno.pcd_condicoes ?? [],
+      rg: aluno.rg ?? "",
+      cpf: aluno.cpf ?? "",
       atestado_entregue: aluno.atestado_entregue ?? false,
       atestado_data: aluno.atestado_data ?? "",
       telefone2: aluno.telefone2 ?? "",
@@ -214,6 +226,9 @@ function AlunosPage() {
       observacoes: form.observacoes || null,
       pcd: form.pcd,
       pcd_descricao: form.pcd ? form.pcd_descricao || null : null,
+      pcd_condicoes: form.pcd ? form.pcd_condicoes : [],
+      rg: form.rg || null,
+      cpf: form.cpf || null,
       atestado_entregue: form.atestado_entregue,
       atestado_data: form.atestado_entregue ? form.atestado_data || null : null,
       telefone2: form.telefone2 || null,
@@ -258,6 +273,16 @@ function AlunosPage() {
     }
 
     if (turmaId && alunoId) {
+      // Um aluno só pode estar em uma turma
+      const { error: eDel } = await supabase
+        .from("matriculas")
+        .delete()
+        .eq("aluno_id", alunoId)
+        .neq("turma_id", turmaId);
+      if (eDel) {
+        setSalvando(false);
+        return toast.error(eDel.message);
+      }
       const { error } = await supabase.from("matriculas").upsert(
         { aluno_id: alunoId, turma_id: turmaId, status: "ativa", modalidade: form.modalidade },
         { onConflict: "aluno_id,turma_id" },
@@ -267,6 +292,7 @@ function AlunosPage() {
         return toast.error(error.message);
       }
     }
+
 
     setSalvando(false);
     toast.success(editando ? "Aluno atualizado" : "Aluno matriculado com sucesso");
@@ -322,7 +348,13 @@ function AlunosPage() {
     return;
   }
 
-  const filtrados = alunos.filter((a) => a.nome.toLowerCase().includes(busca.toLowerCase()));
+  const filtrados = alunos.filter((a) => {
+    if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+    if (filtroPcd === "todos") return true;
+    if (filtroPcd === "sem") return !a.pcd;
+    if (filtroPcd === "com") return a.pcd;
+    return (a.pcd_condicoes ?? []).includes(filtroPcd);
+  });
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
   const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
@@ -377,7 +409,22 @@ function AlunosPage() {
         </Card>
       ) : null}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Select value={filtroPcd} onValueChange={setFiltroPcd}>
+          <SelectTrigger className="sm:w-72"><SelectValue placeholder="Filtrar PCD" /></SelectTrigger>
+          <SelectContent className="max-h-80">
+            <SelectItem value="todos">Todos os alunos</SelectItem>
+            <SelectItem value="com">Somente PCD</SelectItem>
+            <SelectItem value="sem">Sem PCD</SelectItem>
+            <SelectGroup>
+              <SelectLabel>Categoria PCD</SelectLabel>
+              {CONDICOES_PCD.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
         <div className="relative flex-1">
+
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
@@ -395,6 +442,16 @@ function AlunosPage() {
               <div className="space-y-2">
                 <Label>Nome completo</Label>
                 <Input required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>RG</Label>
+                  <Input value={form.rg} onChange={(e) => setForm({ ...form, rg: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>CPF</Label>
+                  <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} />
+                </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -514,12 +571,34 @@ function AlunosPage() {
                   <Switch id="pcd" checked={form.pcd} onCheckedChange={(v) => setForm({ ...form, pcd: v })} />
                 </div>
                 {form.pcd ? (
-                  <Input
-                    placeholder="Descreva a deficiência / necessidades de apoio"
-                    value={form.pcd_descricao}
-                    onChange={(e) => setForm({ ...form, pcd_descricao: e.target.value })}
-                  />
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Condições</Label>
+                      {CONDICOES_PCD.map((c) => (
+                        <label key={c} className="flex items-start gap-2 text-sm">
+                          <Checkbox
+                            checked={form.pcd_condicoes.includes(c)}
+                            onCheckedChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                pcd_condicoes: v
+                                  ? [...f.pcd_condicoes, c]
+                                  : f.pcd_condicoes.filter((x) => x !== c),
+                              }))
+                            }
+                          />
+                          <span>{c}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <Input
+                      placeholder="Outras observações sobre a deficiência / apoio"
+                      value={form.pcd_descricao}
+                      onChange={(e) => setForm({ ...form, pcd_descricao: e.target.value })}
+                    />
+                  </div>
                 ) : null}
+
               </div>
               <div className="space-y-2">
                 <Label>Foto do aluno</Label>
@@ -656,11 +735,21 @@ function AlunosPage() {
               </div>
 
               <div className="rounded-lg border border-border/70 p-3 text-sm">
+                <p className="mb-1 font-medium">Documentos</p>
+                <p className="mb-3 text-muted-foreground">
+                  RG: {detalhe.rg ?? "-"} · CPF: {detalhe.cpf ?? "-"}
+                </p>
                 <p className="mb-1 font-medium">PCD</p>
                 <p className="text-muted-foreground">
-                  {detalhe.pcd ? detalhe.pcd_descricao || "Sim (sem descrição)" : "Não"}
+                  {detalhe.pcd ? detalhe.pcd_descricao || "Sim" : "Não"}
                 </p>
+                {detalhe.pcd && (detalhe.pcd_condicoes ?? []).length ? (
+                  <ul className="mt-2 list-disc space-y-0.5 pl-5 text-muted-foreground">
+                    {(detalhe.pcd_condicoes ?? []).map((c) => <li key={c}>{c}</li>)}
+                  </ul>
+                ) : null}
               </div>
+
 
               <div className="space-y-2">
                 <p className="text-sm font-medium">Matrículas</p>

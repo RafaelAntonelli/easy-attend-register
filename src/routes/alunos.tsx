@@ -50,6 +50,9 @@ type Aluno = {
   ativo: boolean;
   pcd: boolean;
   pcd_descricao: string | null;
+  pcd_condicoes: string[] | null;
+  rg: string | null;
+  cpf: string | null;
   foto_path: string | null;
   atestado_entregue: boolean;
   atestado_data: string | null;

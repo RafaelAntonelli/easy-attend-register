@@ -561,12 +561,34 @@ function AlunosPage() {
                   <Switch id="pcd" checked={form.pcd} onCheckedChange={(v) => setForm({ ...form, pcd: v })} />
                 </div>
                 {form.pcd ? (
-                  <Input
-                    placeholder="Descreva a deficiência / necessidades de apoio"
-                    value={form.pcd_descricao}
-                    onChange={(e) => setForm({ ...form, pcd_descricao: e.target.value })}
-                  />
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Condições</Label>
+                      {CONDICOES_PCD.map((c) => (
+                        <label key={c} className="flex items-start gap-2 text-sm">
+                          <Checkbox
+                            checked={form.pcd_condicoes.includes(c)}
+                            onCheckedChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                pcd_condicoes: v
+                                  ? [...f.pcd_condicoes, c]
+                                  : f.pcd_condicoes.filter((x) => x !== c),
+                              }))
+                            }
+                          />
+                          <span>{c}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <Input
+                      placeholder="Outras observações sobre a deficiência / apoio"
+                      value={form.pcd_descricao}
+                      onChange={(e) => setForm({ ...form, pcd_descricao: e.target.value })}
+                    />
+                  </div>
                 ) : null}
+
               </div>
               <div className="space-y-2">
                 <Label>Foto do aluno</Label>

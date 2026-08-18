@@ -163,6 +163,41 @@ function Painel() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mt-6 border-border/70">
+        <CardHeader><CardTitle className="font-display text-lg">Fila de espera</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <form onSubmit={adicionarFila} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <Input required placeholder="Nome" value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: e.target.value })} />
+            <Input placeholder="Telefone" value={novo.telefone} onChange={(e) => setNovo({ ...novo, telefone: e.target.value })} />
+            <Select value={novo.modalidade} onValueChange={(v) => setNovo({ ...novo, modalidade: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Natação">Natação</SelectItem>
+                <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input placeholder="Horário preferido" value={novo.preferencia_horario} onChange={(e) => setNovo({ ...novo, preferencia_horario: e.target.value })} />
+            <Button type="submit"><Plus className="size-4" /> Adicionar</Button>
+          </form>
+
+          <div className="space-y-2">
+            {fila.map((f, i) => (
+              <div key={f.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border/70 px-3 py-2 text-sm">
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-secondary text-xs">{i + 1}</span>
+                <span className="font-medium">{f.nome}</span>
+                <span className="text-muted-foreground">{f.modalidade}</span>
+                {f.preferencia_horario ? <span className="text-muted-foreground">· {f.preferencia_horario}</span> : null}
+                {f.telefone ? <span className="text-muted-foreground">· {f.telefone}</span> : null}
+                <Button variant="ghost" size="icon" className="ml-auto text-destructive" title="Remover" onClick={() => void removerFila(f.id)}>
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            ))}
+            {!fila.length && <p className="py-6 text-center text-sm text-muted-foreground">Nenhum aluno na fila de espera.</p>}
+          </div>
+        </CardContent>
+      </Card>
     </AppShell>
   );
 }

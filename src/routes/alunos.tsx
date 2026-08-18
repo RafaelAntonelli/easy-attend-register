@@ -271,6 +271,16 @@ function AlunosPage() {
     }
 
     if (turmaId && alunoId) {
+      // Um aluno só pode estar em uma turma
+      const { error: eDel } = await supabase
+        .from("matriculas")
+        .delete()
+        .eq("aluno_id", alunoId)
+        .neq("turma_id", turmaId);
+      if (eDel) {
+        setSalvando(false);
+        return toast.error(eDel.message);
+      }
       const { error } = await supabase.from("matriculas").upsert(
         { aluno_id: alunoId, turma_id: turmaId, status: "ativa", modalidade: form.modalidade },
         { onConflict: "aluno_id,turma_id" },
@@ -280,6 +290,7 @@ function AlunosPage() {
         return toast.error(error.message);
       }
     }
+
 
     setSalvando(false);
     toast.success(editando ? "Aluno atualizado" : "Aluno matriculado com sucesso");

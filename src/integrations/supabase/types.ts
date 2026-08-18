@@ -20,6 +20,7 @@ export type Database = {
           atestado_entregue: boolean
           ativo: boolean
           codigo: string
+          cpf: string | null
           created_at: string
           data_nascimento: string | null
           email: string | null
@@ -30,9 +31,11 @@ export type Database = {
           nome: string
           observacoes: string | null
           pcd: boolean
+          pcd_condicoes: string[]
           pcd_descricao: string | null
           rede_ensino: string | null
           responsavel: string | null
+          rg: string | null
           telefone: string | null
           telefone2: string | null
         }
@@ -41,6 +44,7 @@ export type Database = {
           atestado_entregue?: boolean
           ativo?: boolean
           codigo?: string
+          cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
@@ -51,9 +55,11 @@ export type Database = {
           nome: string
           observacoes?: string | null
           pcd?: boolean
+          pcd_condicoes?: string[]
           pcd_descricao?: string | null
           rede_ensino?: string | null
           responsavel?: string | null
+          rg?: string | null
           telefone?: string | null
           telefone2?: string | null
         }
@@ -62,6 +68,7 @@ export type Database = {
           atestado_entregue?: boolean
           ativo?: boolean
           codigo?: string
+          cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
@@ -72,9 +79,11 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           pcd?: boolean
+          pcd_condicoes?: string[]
           pcd_descricao?: string | null
           rede_ensino?: string | null
           responsavel?: string | null
+          rg?: string | null
           telefone?: string | null
           telefone2?: string | null
         }

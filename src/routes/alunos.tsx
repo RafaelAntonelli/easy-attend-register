@@ -408,7 +408,22 @@ function AlunosPage() {
         </Card>
       ) : null}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Select value={filtroPcd} onValueChange={setFiltroPcd}>
+          <SelectTrigger className="sm:w-72"><SelectValue placeholder="Filtrar PCD" /></SelectTrigger>
+          <SelectContent className="max-h-80">
+            <SelectItem value="todos">Todos os alunos</SelectItem>
+            <SelectItem value="com">Somente PCD</SelectItem>
+            <SelectItem value="sem">Sem PCD</SelectItem>
+            <SelectGroup>
+              <SelectLabel>Categoria PCD</SelectLabel>
+              {CONDICOES_PCD.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
         <div className="relative flex-1">
+
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>

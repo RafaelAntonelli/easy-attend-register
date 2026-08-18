@@ -92,6 +92,9 @@ const vazio = {
   modalidade: "Natação",
   pcd: false,
   pcd_descricao: "",
+  pcd_condicoes: [] as string[],
+  rg: "",
+  cpf: "",
   atestado_entregue: false,
   atestado_data: "",
   telefone2: "",
@@ -99,6 +102,7 @@ const vazio = {
   escola: "",
   idade: "",
 };
+
 
 function AlunosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);

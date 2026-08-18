@@ -735,11 +735,21 @@ function AlunosPage() {
               </div>
 
               <div className="rounded-lg border border-border/70 p-3 text-sm">
+                <p className="mb-1 font-medium">Documentos</p>
+                <p className="mb-3 text-muted-foreground">
+                  RG: {detalhe.rg ?? "-"} · CPF: {detalhe.cpf ?? "-"}
+                </p>
                 <p className="mb-1 font-medium">PCD</p>
                 <p className="text-muted-foreground">
-                  {detalhe.pcd ? detalhe.pcd_descricao || "Sim (sem descrição)" : "Não"}
+                  {detalhe.pcd ? detalhe.pcd_descricao || "Sim" : "Não"}
                 </p>
+                {detalhe.pcd && (detalhe.pcd_condicoes ?? []).length ? (
+                  <ul className="mt-2 list-disc space-y-0.5 pl-5 text-muted-foreground">
+                    {(detalhe.pcd_condicoes ?? []).map((c) => <li key={c}>{c}</li>)}
+                  </ul>
+                ) : null}
               </div>
+
 
               <div className="space-y-2">
                 <p className="text-sm font-medium">Matrículas</p>

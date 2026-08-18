@@ -111,6 +111,7 @@ function AlunosPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
+  const [filtroPcd, setFiltroPcd] = useState("todos");
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Aluno | null>(null);
   const [form, setForm] = useState(vazio);

@@ -346,7 +346,13 @@ function AlunosPage() {
     return;
   }
 
-  const filtrados = alunos.filter((a) => a.nome.toLowerCase().includes(busca.toLowerCase()));
+  const filtrados = alunos.filter((a) => {
+    if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+    if (filtroPcd === "todos") return true;
+    if (filtroPcd === "sem") return !a.pcd;
+    if (filtroPcd === "com") return a.pcd;
+    return (a.pcd_condicoes ?? []).includes(filtroPcd);
+  });
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
   const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));

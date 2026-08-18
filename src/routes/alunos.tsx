@@ -445,6 +445,16 @@ function AlunosPage() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
+                  <Label>RG</Label>
+                  <Input value={form.rg} onChange={(e) => setForm({ ...form, rg: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>CPF</Label>
+                  <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
                   <Label>Nascimento</Label>
                   <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} />
                 </div>

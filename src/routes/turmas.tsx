@@ -151,9 +151,10 @@ function TurmasPage() {
   async function abrirTurma(t: Turma) {
     setTurmaAberta(t);
     setAlunosTurma(null);
+    setStatusPresenca({});
     const { data, error } = await supabase
       .from("matriculas")
-      .select("id,status,modalidade,alunos(id,nome,pcd)")
+      .select("id,status,modalidade,alunos(id,nome,pcd,foto_path)")
       .eq("turma_id", t.id);
     if (error) {
       toast.error(error.message);
@@ -162,31 +163,108 @@ function TurmasPage() {
     }
     const lista = (data ?? [])
       .map((m) => {
-        const a = m.alunos as { id: string; nome: string; pcd: boolean } | null;
+        const a = m.alunos as { id: string; nome: string; pcd: boolean; foto_path: string | null } | null;
         return a
-          ? { id: a.id, nome: a.nome, pcd: a.pcd, modalidade: m.modalidade as string, status: m.status as string }
+          ? {
+              id: a.id,
+              nome: a.nome,
+              pcd: a.pcd,
+              foto_path: a.foto_path,
+              modalidade: m.modalidade as string,
+              status: m.status as string,
+            }
           : null;
       })
       .filter(Boolean) as AlunoTurma[];
     lista.sort((x, y) => x.nome.localeCompare(y.nome));
     setAlunosTurma(lista);
+
+    const caminhos = lista.map((a) => a.foto_path).filter(Boolean) as string[];
+    if (caminhos.length) {
+      const { data: signed } = await supabase.storage.from("fotos-alunos").createSignedUrls(caminhos, 3600);
+      const mapa: Record<string, string> = {};
+      let i = 0;
+      for (const a of lista) {
+        if (!a.foto_path) continue;
+        const url = signed?.[i]?.signedUrl;
+        if (url) mapa[a.id] = url;
+        i++;
+      }
+      setFotos(mapa);
+    }
+
+    const hoje = new Date().toISOString().slice(0, 10);
+    const pres = await supabase
+      .from("presencas")
+      .select("aluno_id,status")
+      .eq("data", hoje)
+      .in("aluno_id", lista.map((a) => a.id));
+    if (pres.data) {
+      const mapa: Record<string, StatusPresenca> = {};
+      for (const r of pres.data as { aluno_id: string; status: string }[]) {
+        mapa[r.aluno_id] = (r.status as StatusPresenca) ?? "presente";
+      }
+      setStatusPresenca(mapa);
+    }
   }
 
-  const visiveis = turmas.filter((t) => filtroModalidade === "todas" || t.modalidade === filtroModalidade);
+  async function registrarPresenca(alunoId: string, status: StatusPresenca) {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const existente = await supabase
+      .from("presencas")
+      .select("id")
+      .eq("aluno_id", alunoId)
+      .eq("data", hoje)
+      .maybeSingle();
+    const { error } = existente.data
+      ? await supabase
+          .from("presencas")
+          .update({ status, metodo: "manual", turma_id: turmaAberta?.id ?? null, horario: new Date().toISOString() })
+          .eq("id", existente.data.id)
+      : await supabase.from("presencas").insert({
+          aluno_id: alunoId,
+          turma_id: turmaAberta?.id ?? null,
+          data: hoje,
+          metodo: "manual",
+          status,
+        });
+    if (error) return toast.error(error.message);
+    setStatusPresenca((s) => ({ ...s, [alunoId]: status }));
+    toast.success(ROTULO_PRESENCA[status] + " registrada");
+    return;
+  }
+
+  const visiveis = turmas.filter(
+    (t) =>
+      (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
+      (filtroHorario === "todos" || t.horario === filtroHorario),
+  );
 
   return (
     <AppShell title="Turmas" subtitle="Modalidades, horários e professores">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Select value={filtroModalidade} onValueChange={setFiltroModalidade}>
-          <SelectTrigger className="sm:w-60"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as modalidades</SelectItem>
-            <SelectItem value="Natação">Natação</SelectItem>
-            <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Select value={filtroModalidade} onValueChange={setFiltroModalidade}>
+            <SelectTrigger className="sm:w-60"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as modalidades</SelectItem>
+              <SelectItem value="Natação">Natação</SelectItem>
+              <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filtroHorario} onValueChange={setFiltroHorario}>
+            <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-80">
+              <SelectItem value="todos">Todos os horários</SelectItem>
+              {HORARIOS_TURMA.map((h) => (
+                <SelectItem key={h} value={h}>{h}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <Button onClick={abrirNova}><Plus className="size-4" /> Nova turma</Button>
       </div>
+
 
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">

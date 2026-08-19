@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download } from "lucide-react";
+import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CONDICOES_PCD, HORARIOS_TURMA } from "@/lib/pcd";
@@ -791,15 +791,51 @@ function AlunosPage() {
                       <ImageIcon className="size-5" />
                     </div>
                   )}
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0] ?? null;
-                      setFoto(f);
-                      setFotoPreview(f ? URL.createObjectURL(f) : null);
-                    }}
-                  />
+                  <div className="flex flex-1 flex-wrap gap-2">
+                    <input
+                      id="foto-aluno-arquivo"
+                      className="hidden"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        setFoto(f);
+                        setFotoPreview(f ? URL.createObjectURL(f) : null);
+                      }}
+                    />
+                    <input
+                      id="foto-aluno-camera"
+                      className="hidden"
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        setFoto(f);
+                        setFotoPreview(f ? URL.createObjectURL(f) : null);
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById("foto-aluno-arquivo")?.click()}
+                    >
+                      <Upload className="mr-2 size-4" /> Escolher arquivo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById("foto-aluno-camera")?.click()}
+                    >
+                      <Camera className="mr-2 size-4" /> Usar câmera
+                    </Button>
+                    {foto ? (
+                      <span className="w-full truncate text-xs text-muted-foreground">{foto.name}</span>
+                    ) : null}
+                  </div>
+
                 </div>
               </div>
               <div className="space-y-3 rounded-lg border border-border/70 p-3">

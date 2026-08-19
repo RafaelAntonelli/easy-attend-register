@@ -223,6 +223,7 @@ function AlunosPage() {
       rede_ensino: aluno.rede_ensino ?? "",
       escola: aluno.escola ?? "",
       idade: aluno.idade != null ? String(aluno.idade) : "",
+      sexo: aluno.sexo ?? "",
     });
     setFoto(null);
     setFotoPreview(fotos[aluno.id] ?? null);

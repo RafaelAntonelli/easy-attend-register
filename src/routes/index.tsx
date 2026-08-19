@@ -3,9 +3,16 @@ import { useEffect, useState } from "react";
 import { Users, CalendarDays, QrCode, TrendingUp, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { CONDICOES_PCD, HORARIOS_TURMA } from "@/lib/pcd";
+import { capitalizarNome, formatarCelular } from "@/lib/formatacao";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -16,7 +23,13 @@ type Fila = {
   modalidade: string;
   preferencia_horario: string | null;
   created_at: string;
+  idade: number | null;
+  pcd: boolean;
+  pcd_condicoes: string[] | null;
+  pcd_descricao: string | null;
+  observacoes: string | null;
 };
+
 
 export const Route = createFileRoute("/")({
   component: Painel,

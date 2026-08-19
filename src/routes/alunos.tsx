@@ -246,8 +246,12 @@ function AlunosPage() {
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
+    if (form.cpf && !cpfValido(form.cpf)) {
+      toast.error("CPF inválido. Verifique os números digitados.");
+      return;
+    }
     const payload = {
-      nome: form.nome,
+      nome: capitalizarNome(form.nome),
       data_nascimento: form.data_nascimento || null,
       telefone: form.telefone || null,
       responsavel: form.responsavel || null,
@@ -264,6 +268,7 @@ function AlunosPage() {
       rede_ensino: form.rede_ensino || null,
       escola: form.escola || null,
       idade: form.idade ? Number(form.idade) : null,
+      sexo: form.sexo || null,
     };
 
     if (turmaId) {
@@ -272,6 +277,17 @@ function AlunosPage() {
       if (!jaMatriculado && ocupadas >= CAPACIDADE_TURMA) {
         toast.error(`Turma lotada (${CAPACIDADE_TURMA} vagas por horário).`);
         return;
+      }
+      // Verificação por CPF: mesmo CPF não pode ocupar outra turma
+      if (form.cpf) {
+        const cpfDigitos = apenasDigitos(form.cpf);
+        const duplicado = alunos.find(
+          (a) => a.id !== editando?.id && apenasDigitos(a.cpf) === cpfDigitos && matriculas.some((m) => m.aluno_id === a.id),
+        );
+        if (duplicado) {
+          toast.error(`Este CPF já está matriculado em outra turma (${duplicado.nome}).`);
+          return;
+        }
       }
     }
     setSalvando(true);
@@ -295,6 +311,22 @@ function AlunosPage() {
         const { error } = await supabase.from("alunos").update({ foto_path: caminho }).eq("id", alunoId);
         if (error) throw error;
       }
+
+      const atualizacaoDocs: Record<string, string> = {};
+      for (const d of DOCUMENTOS) {
+        const arquivo = docs[d.campo];
+        if (!arquivo || !alunoId) continue;
+        const ext = arquivo.name.split(".").pop() ?? "jpg";
+        const caminho = `${alunoId}/${d.campo}-${Date.now()}.${ext}`;
+        const up = await supabase.storage.from("fotos-alunos").upload(caminho, arquivo, { upsert: true });
+        if (up.error) throw up.error;
+        atualizacaoDocs[d.campo] = caminho;
+      }
+      if (Object.keys(atualizacaoDocs).length && alunoId) {
+        const { error } = await supabase.from("alunos").update(atualizacaoDocs).eq("id", alunoId);
+        if (error) throw error;
+      }
+
     } catch (err: any) {
       setSalvando(false);
       toast.error(err?.message ?? "Erro ao salvar");

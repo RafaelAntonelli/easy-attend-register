@@ -57,10 +57,16 @@ function EquipePage() {
 
   async function definirPapel(userId: string, role: AppRole | null) {
     const del = await supabase.from("user_roles").delete().eq("user_id", userId);
-    if (del.error) return toast.error(del.error.message);
+    if (del.error) {
+      toast.error(del.error.message);
+      return;
+    }
     if (role) {
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
-      if (error) return toast.error(error.message);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
     }
     toast.success("Acesso atualizado");
     void carregar();

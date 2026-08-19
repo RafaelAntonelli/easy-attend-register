@@ -23,7 +23,7 @@ export const Route = createFileRoute("/presenca")({
   }),
 });
 
-type Turma = { id: string; nome: string; horario: string | null };
+type Turma = { id: string; nome: string; horario: string | null; modalidade: string };
 type Aluno = { id: string; nome: string; codigo: string };
 type StatusPresenca = "presente" | "falta" | "falta_justificada";
 

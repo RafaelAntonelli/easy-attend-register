@@ -62,7 +62,22 @@ type Aluno = {
   rede_ensino: string | null;
   escola: string | null;
   idade: number | null;
+  sexo: string | null;
+  doc_atestado_path: string | null;
+  doc_residencia_path: string | null;
+  doc_matricula_path: string | null;
+  doc_identidade_path: string | null;
 };
+
+const DOCUMENTOS = [
+  { campo: "doc_atestado_path", rotulo: "Atestado médico" },
+  { campo: "doc_residencia_path", rotulo: "Comprovante de residência" },
+  { campo: "doc_matricula_path", rotulo: "Comprovante de matrícula escolar" },
+  { campo: "doc_identidade_path", rotulo: "Documento de identidade" },
+] as const;
+
+type CampoDoc = (typeof DOCUMENTOS)[number]["campo"];
+
 
 function atestadoVencido(data: string | null | undefined) {
   if (!data) return false;

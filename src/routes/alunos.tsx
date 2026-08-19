@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck } from "lucide-react";
+import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { CONDICOES_PCD } from "@/lib/pcd";
+import { CONDICOES_PCD, HORARIOS_TURMA } from "@/lib/pcd";
+import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, apenasDigitos } from "@/lib/formatacao";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,7 +62,22 @@ type Aluno = {
   rede_ensino: string | null;
   escola: string | null;
   idade: number | null;
+  sexo: string | null;
+  doc_atestado_path: string | null;
+  doc_residencia_path: string | null;
+  doc_matricula_path: string | null;
+  doc_identidade_path: string | null;
 };
+
+const DOCUMENTOS = [
+  { campo: "doc_atestado_path", rotulo: "Atestado médico" },
+  { campo: "doc_residencia_path", rotulo: "Comprovante de residência" },
+  { campo: "doc_matricula_path", rotulo: "Comprovante de matrícula escolar" },
+  { campo: "doc_identidade_path", rotulo: "Documento de identidade" },
+] as const;
+
+type CampoDoc = (typeof DOCUMENTOS)[number]["campo"];
+
 
 function atestadoVencido(data: string | null | undefined) {
   if (!data) return false;
@@ -102,6 +118,7 @@ const vazio = {
   rede_ensino: "",
   escola: "",
   idade: "",
+  sexo: "",
 };
 
 
@@ -113,6 +130,17 @@ function AlunosPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [filtroPcd, setFiltroPcd] = useState("todos");
+  const [filtroSexo, setFiltroSexo] = useState("todos");
+  const [filtroModalidade, setFiltroModalidade] = useState("todas");
+  const [filtroHorario, setFiltroHorario] = useState("todos");
+  const [idadeMin, setIdadeMin] = useState("");
+  const [idadeMax, setIdadeMax] = useState("");
+  const [docs, setDocs] = useState<Record<CampoDoc, File | null>>({
+    doc_atestado_path: null,
+    doc_residencia_path: null,
+    doc_matricula_path: null,
+    doc_identidade_path: null,
+  });
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Aluno | null>(null);
   const [form, setForm] = useState(vazio);
@@ -176,12 +204,17 @@ function AlunosPage() {
   }, []);
 
 
+  function limparDocs() {
+    setDocs({ doc_atestado_path: null, doc_residencia_path: null, doc_matricula_path: null, doc_identidade_path: null });
+  }
+
   function abrirNovo() {
     setEditando(null);
     setForm(vazio);
     setTurmaId("");
     setFoto(null);
     setFotoPreview(null);
+    limparDocs();
     setAberto(true);
   }
 
@@ -206,8 +239,10 @@ function AlunosPage() {
       rede_ensino: aluno.rede_ensino ?? "",
       escola: aluno.escola ?? "",
       idade: aluno.idade != null ? String(aluno.idade) : "",
+      sexo: aluno.sexo ?? "",
     });
     setFoto(null);
+    limparDocs();
     setFotoPreview(fotos[aluno.id] ?? null);
     const m = matriculas.find((x) => x.aluno_id === aluno.id);
     setTurmaId(m?.turma_id ?? "");
@@ -217,8 +252,12 @@ function AlunosPage() {
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
+    if (form.cpf && !cpfValido(form.cpf)) {
+      toast.error("CPF inválido. Verifique os números digitados.");
+      return;
+    }
     const payload = {
-      nome: form.nome,
+      nome: capitalizarNome(form.nome),
       data_nascimento: form.data_nascimento || null,
       telefone: form.telefone || null,
       responsavel: form.responsavel || null,
@@ -235,6 +274,7 @@ function AlunosPage() {
       rede_ensino: form.rede_ensino || null,
       escola: form.escola || null,
       idade: form.idade ? Number(form.idade) : null,
+      sexo: form.sexo || null,
     };
 
     if (turmaId) {
@@ -243,6 +283,17 @@ function AlunosPage() {
       if (!jaMatriculado && ocupadas >= CAPACIDADE_TURMA) {
         toast.error(`Turma lotada (${CAPACIDADE_TURMA} vagas por horário).`);
         return;
+      }
+      // Verificação por CPF: mesmo CPF não pode ocupar outra turma
+      if (form.cpf) {
+        const cpfDigitos = apenasDigitos(form.cpf);
+        const duplicado = alunos.find(
+          (a) => a.id !== editando?.id && apenasDigitos(a.cpf) === cpfDigitos && matriculas.some((m) => m.aluno_id === a.id),
+        );
+        if (duplicado) {
+          toast.error(`Este CPF já está matriculado em outra turma (${duplicado.nome}).`);
+          return;
+        }
       }
     }
     setSalvando(true);
@@ -266,6 +317,22 @@ function AlunosPage() {
         const { error } = await supabase.from("alunos").update({ foto_path: caminho }).eq("id", alunoId);
         if (error) throw error;
       }
+
+      const atualizacaoDocs: Partial<Record<CampoDoc, string>> = {};
+      for (const d of DOCUMENTOS) {
+        const arquivo = docs[d.campo];
+        if (!arquivo || !alunoId) continue;
+        const ext = arquivo.name.split(".").pop() ?? "jpg";
+        const caminho = `${alunoId}/${d.campo}-${Date.now()}.${ext}`;
+        const up = await supabase.storage.from("fotos-alunos").upload(caminho, arquivo, { upsert: true });
+        if (up.error) throw up.error;
+        atualizacaoDocs[d.campo] = caminho;
+      }
+      if (Object.keys(atualizacaoDocs).length && alunoId) {
+        const { error } = await supabase.from("alunos").update(atualizacaoDocs).eq("id", alunoId);
+        if (error) throw error;
+      }
+
     } catch (err: any) {
       setSalvando(false);
       toast.error(err?.message ?? "Erro ao salvar");
@@ -348,13 +415,57 @@ function AlunosPage() {
     return;
   }
 
+  function matriculaDoAluno(id: string) {
+    return matriculas.find((m) => m.aluno_id === id);
+  }
+
+  function turmaDoAluno(id: string) {
+    const m = matriculaDoAluno(id);
+    return m ? turmas.find((t) => t.id === m.turma_id) : undefined;
+  }
+
   const filtrados = alunos.filter((a) => {
     if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+    if (filtroSexo !== "todos" && (a.sexo ?? "") !== filtroSexo) return false;
+    if (idadeMin && (a.idade ?? -1) < Number(idadeMin)) return false;
+    if (idadeMax && (a.idade ?? 999) > Number(idadeMax)) return false;
+    if (filtroModalidade !== "todas" && matriculaDoAluno(a.id)?.modalidade !== filtroModalidade) return false;
+    if (filtroHorario !== "todos" && turmaDoAluno(a.id)?.horario !== filtroHorario) return false;
     if (filtroPcd === "todos") return true;
     if (filtroPcd === "sem") return !a.pcd;
     if (filtroPcd === "com") return a.pcd;
     return (a.pcd_condicoes ?? []).includes(filtroPcd);
   });
+
+  function exportarPlanilha() {
+    const cabecalho = [
+      "Nome", "Sexo", "Idade", "Nascimento", "CPF", "RG", "Celular", "Celular 2", "E-mail",
+      "Responsável", "Rede de ensino", "Escola", "PCD", "Condições PCD", "Atestado entregue",
+      "Data do atestado", "Modalidade", "Turma", "Horário", "Situação",
+    ];
+    const linhas = filtrados.map((a) => {
+      const m = matriculaDoAluno(a.id);
+      const t = turmaDoAluno(a.id);
+      return [
+        a.nome, a.sexo ?? "", a.idade ?? "", a.data_nascimento ?? "", a.cpf ?? "", a.rg ?? "",
+        a.telefone ?? "", a.telefone2 ?? "", a.email ?? "", a.responsavel ?? "", a.rede_ensino ?? "",
+        a.escola ?? "", a.pcd ? "Sim" : "Não", (a.pcd_condicoes ?? []).join(" | "),
+        a.atestado_entregue ? "Sim" : "Não", a.atestado_data ?? "", m?.modalidade ?? "",
+        t?.nome ?? "", t?.horario ?? "", a.ativo ? "Ativo" : "Inativo",
+      ];
+    });
+    const csv = [cabecalho, ...linhas]
+      .map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `alunos-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Planilha exportada");
+  }
+
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
   const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
@@ -408,9 +519,9 @@ function AlunosPage() {
           </CardContent>
         </Card>
       ) : null}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Select value={filtroPcd} onValueChange={setFiltroPcd}>
-          <SelectTrigger className="sm:w-72"><SelectValue placeholder="Filtrar PCD" /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder="Filtrar PCD" /></SelectTrigger>
           <SelectContent className="max-h-80">
             <SelectItem value="todos">Todos os alunos</SelectItem>
             <SelectItem value="com">Somente PCD</SelectItem>
@@ -423,11 +534,46 @@ function AlunosPage() {
             </SelectGroup>
           </SelectContent>
         </Select>
+        <Select value={filtroModalidade} onValueChange={setFiltroModalidade}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as modalidades</SelectItem>
+            <SelectItem value="Natação">Natação</SelectItem>
+            <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filtroHorario} onValueChange={setFiltroHorario}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent className="max-h-80">
+            <SelectItem value="todos">Todos os horários</SelectItem>
+            {HORARIOS_TURMA.map((h) => (
+              <SelectItem key={h} value={h}>{h}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filtroSexo} onValueChange={setFiltroSexo}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os sexos</SelectItem>
+            <SelectItem value="Masculino">Masculino</SelectItem>
+            <SelectItem value="Feminino">Feminino</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-2">
+          <Input className="w-24" type="number" min={0} placeholder="Idade mín." value={idadeMin} onChange={(e) => setIdadeMin(e.target.value)} />
+          <span className="text-sm text-muted-foreground">a</span>
+          <Input className="w-24" type="number" min={0} placeholder="Idade máx." value={idadeMax} onChange={(e) => setIdadeMax(e.target.value)} />
+        </div>
         <div className="relative flex-1">
-
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
+        <Button variant="outline" onClick={exportarPlanilha}>
+          <Download className="size-4" /> Exportar planilha
+        </Button>
+
         <Dialog open={aberto} onOpenChange={setAberto}>
           <DialogTrigger asChild>
             <Button onClick={abrirNovo}>
@@ -441,7 +587,11 @@ function AlunosPage() {
             <form onSubmit={salvar} className="space-y-4">
               <div className="space-y-2">
                 <Label>Nome completo</Label>
-                <Input required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+                <Input
+                  required
+                  value={form.nome}
+                  onChange={(e) => setForm({ ...form, nome: capitalizarNome(e.target.value) })}
+                />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -450,7 +600,17 @@ function AlunosPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>CPF</Label>
-                  <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} />
+                  <Input
+                    inputMode="numeric"
+                    placeholder="000.000.000-00"
+                    value={form.cpf}
+                    onChange={(e) => setForm({ ...form, cpf: formatarCPF(e.target.value) })}
+                  />
+                  {form.cpf && !cpfValido(form.cpf) ? (
+                    <p className="flex items-center gap-1 text-xs font-medium text-destructive">
+                      <AlertTriangle className="size-3.5" /> CPF inválido
+                    </p>
+                  ) : null}
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -459,20 +619,41 @@ function AlunosPage() {
                   <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Telefone</Label>
-                  <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+                  <Label>Celular</Label>
+                  <Input
+                    inputMode="numeric"
+                    placeholder="(00) 00000-0000"
+                    value={form.telefone}
+                    onChange={(e) => setForm({ ...form, telefone: formatarCelular(e.target.value) })}
+                  />
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Telefone 2</Label>
-                  <Input value={form.telefone2} onChange={(e) => setForm({ ...form, telefone2: e.target.value })} />
+                  <Label>Celular 2</Label>
+                  <Input
+                    inputMode="numeric"
+                    placeholder="(00) 00000-0000"
+                    value={form.telefone2}
+                    onChange={(e) => setForm({ ...form, telefone2: formatarCelular(e.target.value) })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Idade</Label>
                   <Input type="number" min={0} max={120} value={form.idade} onChange={(e) => setForm({ ...form, idade: e.target.value })} />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Sexo</Label>
+                <Select value={form.sexo} onValueChange={(v) => setForm({ ...form, sexo: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Masculino">Masculino</SelectItem>
+                    <SelectItem value="Feminino">Feminino</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Estuda na rede</Label>
@@ -620,6 +801,22 @@ function AlunosPage() {
                     }}
                   />
                 </div>
+              </div>
+              <div className="space-y-3 rounded-lg border border-border/70 p-3">
+                <Label>Fotos dos documentos</Label>
+                {DOCUMENTOS.map((d) => (
+                  <div key={d.campo} className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      {d.rotulo}
+                      {editando?.[d.campo] ? " · já enviado" : ""}
+                    </p>
+                    <Input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => setDocs((s) => ({ ...s, [d.campo]: e.target.files?.[0] ?? null }))}
+                    />
+                  </div>
+                ))}
               </div>
               <div className="space-y-2">
                 <Label>Observações</Label>

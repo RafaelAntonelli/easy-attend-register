@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Users, Trash2, Pencil } from "lucide-react";
+import { Plus, Users, Trash2, Pencil, Check, X, FileCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { HORARIOS_TURMA } from "@/lib/pcd";
@@ -56,7 +56,14 @@ function grupoDosDias(dias: string[] | null) {
   return g?.label ?? "";
 }
 
-type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean };
+type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean; foto_path: string | null };
+type StatusPresenca = "presente" | "falta" | "falta_justificada";
+
+const ROTULO_PRESENCA: Record<StatusPresenca, string> = {
+  presente: "Presença",
+  falta: "Falta",
+  falta_justificada: "Falta justificada",
+};
 
 function TurmasPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -70,6 +77,9 @@ function TurmasPage() {
   const [horario, setHorario] = useState("");
   const [capacidade, setCapacidade] = useState("40");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
+  const [filtroHorario, setFiltroHorario] = useState("todos");
+  const [fotos, setFotos] = useState<Record<string, string>>({});
+  const [statusPresenca, setStatusPresenca] = useState<Record<string, StatusPresenca>>({});
   const [turmaAberta, setTurmaAberta] = useState<Turma | null>(null);
   const [alunosTurma, setAlunosTurma] = useState<AlunoTurma[] | null>(null);
   const [confirmarExclusao, setConfirmarExclusao] = useState<Turma | null>(null);
@@ -150,9 +160,10 @@ function TurmasPage() {
   async function abrirTurma(t: Turma) {
     setTurmaAberta(t);
     setAlunosTurma(null);
+    setStatusPresenca({});
     const { data, error } = await supabase
       .from("matriculas")
-      .select("id,status,modalidade,alunos(id,nome,pcd)")
+      .select("id,status,modalidade,alunos(id,nome,pcd,foto_path)")
       .eq("turma_id", t.id);
     if (error) {
       toast.error(error.message);
@@ -161,31 +172,108 @@ function TurmasPage() {
     }
     const lista = (data ?? [])
       .map((m) => {
-        const a = m.alunos as { id: string; nome: string; pcd: boolean } | null;
+        const a = m.alunos as { id: string; nome: string; pcd: boolean; foto_path: string | null } | null;
         return a
-          ? { id: a.id, nome: a.nome, pcd: a.pcd, modalidade: m.modalidade as string, status: m.status as string }
+          ? {
+              id: a.id,
+              nome: a.nome,
+              pcd: a.pcd,
+              foto_path: a.foto_path,
+              modalidade: m.modalidade as string,
+              status: m.status as string,
+            }
           : null;
       })
       .filter(Boolean) as AlunoTurma[];
     lista.sort((x, y) => x.nome.localeCompare(y.nome));
     setAlunosTurma(lista);
+
+    const caminhos = lista.map((a) => a.foto_path).filter(Boolean) as string[];
+    if (caminhos.length) {
+      const { data: signed } = await supabase.storage.from("fotos-alunos").createSignedUrls(caminhos, 3600);
+      const mapa: Record<string, string> = {};
+      let i = 0;
+      for (const a of lista) {
+        if (!a.foto_path) continue;
+        const url = signed?.[i]?.signedUrl;
+        if (url) mapa[a.id] = url;
+        i++;
+      }
+      setFotos(mapa);
+    }
+
+    const hoje = new Date().toISOString().slice(0, 10);
+    const pres = await supabase
+      .from("presencas")
+      .select("aluno_id,status")
+      .eq("data", hoje)
+      .in("aluno_id", lista.map((a) => a.id));
+    if (pres.data) {
+      const mapa: Record<string, StatusPresenca> = {};
+      for (const r of pres.data as { aluno_id: string; status: string }[]) {
+        mapa[r.aluno_id] = (r.status as StatusPresenca) ?? "presente";
+      }
+      setStatusPresenca(mapa);
+    }
   }
 
-  const visiveis = turmas.filter((t) => filtroModalidade === "todas" || t.modalidade === filtroModalidade);
+  async function registrarPresenca(alunoId: string, status: StatusPresenca) {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const existente = await supabase
+      .from("presencas")
+      .select("id")
+      .eq("aluno_id", alunoId)
+      .eq("data", hoje)
+      .maybeSingle();
+    const { error } = existente.data
+      ? await supabase
+          .from("presencas")
+          .update({ status, metodo: "manual", turma_id: turmaAberta?.id ?? null, horario: new Date().toISOString() })
+          .eq("id", existente.data.id)
+      : await supabase.from("presencas").insert({
+          aluno_id: alunoId,
+          turma_id: turmaAberta?.id ?? null,
+          data: hoje,
+          metodo: "manual",
+          status,
+        });
+    if (error) return toast.error(error.message);
+    setStatusPresenca((s) => ({ ...s, [alunoId]: status }));
+    toast.success(ROTULO_PRESENCA[status] + " registrada");
+    return;
+  }
+
+  const visiveis = turmas.filter(
+    (t) =>
+      (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
+      (filtroHorario === "todos" || t.horario === filtroHorario),
+  );
 
   return (
     <AppShell title="Turmas" subtitle="Modalidades, horários e professores">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Select value={filtroModalidade} onValueChange={setFiltroModalidade}>
-          <SelectTrigger className="sm:w-60"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as modalidades</SelectItem>
-            <SelectItem value="Natação">Natação</SelectItem>
-            <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Select value={filtroModalidade} onValueChange={setFiltroModalidade}>
+            <SelectTrigger className="sm:w-60"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as modalidades</SelectItem>
+              <SelectItem value="Natação">Natação</SelectItem>
+              <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filtroHorario} onValueChange={setFiltroHorario}>
+            <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-80">
+              <SelectItem value="todos">Todos os horários</SelectItem>
+              {HORARIOS_TURMA.map((h) => (
+                <SelectItem key={h} value={h}>{h}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <Button onClick={abrirNova}><Plus className="size-4" /> Nova turma</Button>
       </div>
+
 
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
@@ -317,17 +405,55 @@ function TurmasPage() {
               <p className="py-6 text-center text-sm text-muted-foreground">Nenhum aluno matriculado nesta turma.</p>
             ) : (
               alunosTurma.map((a) => (
-                <div key={a.id} className="flex items-center justify-between gap-2 rounded-lg border border-border/70 px-3 py-2">
-                  <div>
-                    <p className="text-sm font-medium">{a.nome}</p>
-                    <p className="text-xs text-muted-foreground">{a.modalidade}</p>
+                <div key={a.id} className="space-y-2 rounded-lg border border-border/70 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      {fotos[a.id] ? (
+                        <img src={fotos[a.id]} alt={`Foto de ${a.nome}`} className="size-10 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <div className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold">
+                          {a.nome.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">{a.nome}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {a.modalidade}
+                          {statusPresenca[a.id] ? ` · ${ROTULO_PRESENCA[statusPresenca[a.id] as StatusPresenca]} hoje` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {a.pcd ? <Badge variant="outline">PCD</Badge> : null}
+                      <Badge variant={a.status === "ativa" ? "default" : "secondary"}>{a.status}</Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {a.pcd ? <Badge variant="outline">PCD</Badge> : null}
-                    <Badge variant={a.status === "ativa" ? "default" : "secondary"}>{a.status}</Badge>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      size="sm"
+                      variant={statusPresenca[a.id] === "presente" ? "default" : "outline"}
+                      onClick={() => void registrarPresenca(a.id, "presente")}
+                    >
+                      <Check className="size-4" /> Presença
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={statusPresenca[a.id] === "falta" ? "destructive" : "outline"}
+                      onClick={() => void registrarPresenca(a.id, "falta")}
+                    >
+                      <X className="size-4" /> Falta
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={statusPresenca[a.id] === "falta_justificada" ? "secondary" : "outline"}
+                      onClick={() => void registrarPresenca(a.id, "falta_justificada")}
+                    >
+                      <FileCheck className="size-4" /> Justificada
+                    </Button>
                   </div>
                 </div>
               ))
+
             )}
           </div>
         </DialogContent>

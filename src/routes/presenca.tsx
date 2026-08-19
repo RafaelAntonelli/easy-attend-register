@@ -43,6 +43,7 @@ function PresencaPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [turmaId, setTurmaId] = useState("");
+  const [filtroModalidade, setFiltroModalidade] = useState("todas");
   const [scanning, setScanning] = useState(false);
   const [busca, setBusca] = useState("");
   const [statusPorAluno, setStatusPorAluno] = useState<Record<string, StatusPresenca>>({});
@@ -55,7 +56,7 @@ function PresencaPage() {
   useEffect(() => {
     void (async () => {
       const [t, a] = await Promise.all([
-        supabase.from("turmas").select("id,nome,horario").order("nome"),
+        supabase.from("turmas").select("id,nome,horario,modalidade").order("nome"),
         supabase.from("alunos").select("id,nome,codigo").eq("ativo", true).order("nome"),
       ]);
       if (t.data) setTurmas(t.data as Turma[]);

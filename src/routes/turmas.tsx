@@ -56,7 +56,8 @@ function grupoDosDias(dias: string[] | null) {
   return g?.label ?? "";
 }
 
-type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean };
+type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean; foto_path: string | null };
+type StatusPresenca = "presente" | "falta" | "falta_justificada";
 
 function TurmasPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);

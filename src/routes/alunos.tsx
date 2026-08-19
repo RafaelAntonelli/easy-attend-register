@@ -242,7 +242,7 @@ function AlunosPage() {
       sexo: aluno.sexo ?? "",
     });
     setFoto(null);
-    setFotoPreview(fotos[aluno.id] ?? null);
+    limparDocs();
     const m = matriculas.find((x) => x.aluno_id === aluno.id);
     setTurmaId(m?.turma_id ?? "");
     setForm((f) => ({ ...f, modalidade: m?.modalidade ?? "Natação" }));

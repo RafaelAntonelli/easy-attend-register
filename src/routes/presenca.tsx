@@ -171,6 +171,7 @@ function PresencaPage() {
   }, []);
 
   const filtrados = alunos.filter((a) => a.nome.toLowerCase().includes(busca.toLowerCase()));
+  const turmasVisiveis = turmas.filter((t) => filtroModalidade === "todas" || t.modalidade === filtroModalidade);
 
   return (
     <AppShell title="Presença" subtitle={`Registros de hoje · ${new Date().toLocaleDateString("pt-BR")}`}>

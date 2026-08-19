@@ -312,7 +312,7 @@ function AlunosPage() {
         if (error) throw error;
       }
 
-      const atualizacaoDocs: Record<string, string> = {};
+      const atualizacaoDocs: Partial<Record<CampoDoc, string>> = {};
       for (const d of DOCUMENTOS) {
         const arquivo = docs[d.campo];
         if (!arquivo || !alunoId) continue;

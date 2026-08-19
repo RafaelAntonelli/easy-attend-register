@@ -587,7 +587,11 @@ function AlunosPage() {
             <form onSubmit={salvar} className="space-y-4">
               <div className="space-y-2">
                 <Label>Nome completo</Label>
-                <Input required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+                <Input
+                  required
+                  value={form.nome}
+                  onChange={(e) => setForm({ ...form, nome: capitalizarNome(e.target.value) })}
+                />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -596,7 +600,17 @@ function AlunosPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>CPF</Label>
-                  <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} />
+                  <Input
+                    inputMode="numeric"
+                    placeholder="000.000.000-00"
+                    value={form.cpf}
+                    onChange={(e) => setForm({ ...form, cpf: formatarCPF(e.target.value) })}
+                  />
+                  {form.cpf && !cpfValido(form.cpf) ? (
+                    <p className="flex items-center gap-1 text-xs font-medium text-destructive">
+                      <AlertTriangle className="size-3.5" /> CPF inválido
+                    </p>
+                  ) : null}
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -605,20 +619,41 @@ function AlunosPage() {
                   <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Telefone</Label>
-                  <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+                  <Label>Celular</Label>
+                  <Input
+                    inputMode="numeric"
+                    placeholder="(00) 00000-0000"
+                    value={form.telefone}
+                    onChange={(e) => setForm({ ...form, telefone: formatarCelular(e.target.value) })}
+                  />
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Telefone 2</Label>
-                  <Input value={form.telefone2} onChange={(e) => setForm({ ...form, telefone2: e.target.value })} />
+                  <Label>Celular 2</Label>
+                  <Input
+                    inputMode="numeric"
+                    placeholder="(00) 00000-0000"
+                    value={form.telefone2}
+                    onChange={(e) => setForm({ ...form, telefone2: formatarCelular(e.target.value) })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Idade</Label>
                   <Input type="number" min={0} max={120} value={form.idade} onChange={(e) => setForm({ ...form, idade: e.target.value })} />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Sexo</Label>
+                <Select value={form.sexo} onValueChange={(v) => setForm({ ...form, sexo: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Masculino">Masculino</SelectItem>
+                    <SelectItem value="Feminino">Feminino</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Estuda na rede</Label>

@@ -204,12 +204,17 @@ function AlunosPage() {
   }, []);
 
 
+  function limparDocs() {
+    setDocs({ doc_atestado_path: null, doc_residencia_path: null, doc_matricula_path: null, doc_identidade_path: null });
+  }
+
   function abrirNovo() {
     setEditando(null);
     setForm(vazio);
     setTurmaId("");
     setFoto(null);
     setFotoPreview(null);
+    limparDocs();
     setAberto(true);
   }
 

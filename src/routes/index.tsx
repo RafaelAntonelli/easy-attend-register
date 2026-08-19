@@ -50,15 +50,30 @@ function Painel() {
   const [stats, setStats] = useState({ alunos: 0, turmas: 0, hoje: 0, mes: 0 });
   const [ultimas, setUltimas] = useState<{ nome: string; hora: string }[]>([]);
   const [fila, setFila] = useState<Fila[]>([]);
-  const [novo, setNovo] = useState({ nome: "", telefone: "", modalidade: "Natação", preferencia_horario: "" });
+  const filaVazia = {
+    nome: "",
+    telefone: "",
+    modalidade: "Natação",
+    preferencia_horario: "",
+    idade: "",
+    pcd: false,
+    pcd_condicoes: [] as string[],
+    pcd_descricao: "",
+    observacoes: "",
+  };
+  const [novo, setNovo] = useState(filaVazia);
 
   async function carregarFila() {
     const { data, error } = await supabase
       .from("fila_espera")
-      .select("id,nome,telefone,modalidade,preferencia_horario,created_at")
+      .select("id,nome,telefone,modalidade,preferencia_horario,created_at,idade,pcd,pcd_condicoes,pcd_descricao,observacoes")
       .order("created_at");
     if (error) return toast.error(error.message);
-    setFila((data ?? []) as Fila[]);
+    const lista = ((data ?? []) as Fila[]).slice().sort((a, b) => {
+      if (a.pcd !== b.pcd) return a.pcd ? -1 : 1;
+      return a.created_at.localeCompare(b.created_at);
+    });
+    setFila(lista);
     return;
   }
 
@@ -69,17 +84,23 @@ function Painel() {
   async function adicionarFila(e: React.FormEvent) {
     e.preventDefault();
     const { error } = await supabase.from("fila_espera").insert({
-      nome: novo.nome,
+      nome: capitalizarNome(novo.nome),
       telefone: novo.telefone || null,
       modalidade: novo.modalidade,
       preferencia_horario: novo.preferencia_horario || null,
+      idade: novo.idade ? Number(novo.idade) : null,
+      pcd: novo.pcd,
+      pcd_condicoes: novo.pcd ? novo.pcd_condicoes : [],
+      pcd_descricao: novo.pcd ? novo.pcd_descricao || null : null,
+      observacoes: novo.observacoes || null,
     });
     if (error) return toast.error(error.message);
     toast.success("Adicionado à fila de espera");
-    setNovo({ nome: "", telefone: "", modalidade: "Natação", preferencia_horario: "" });
+    setNovo(filaVazia);
     void carregarFila();
     return;
   }
+
 
   async function removerFila(id: string) {
     const { error } = await supabase.from("fila_espera").delete().eq("id", id);

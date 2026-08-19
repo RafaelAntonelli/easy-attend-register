@@ -118,6 +118,7 @@ const vazio = {
   rede_ensino: "",
   escola: "",
   idade: "",
+  sexo: "",
 };
 
 

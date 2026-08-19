@@ -23,6 +23,10 @@ export type Database = {
           cpf: string | null
           created_at: string
           data_nascimento: string | null
+          doc_atestado_path: string | null
+          doc_identidade_path: string | null
+          doc_matricula_path: string | null
+          doc_residencia_path: string | null
           email: string | null
           escola: string | null
           foto_path: string | null
@@ -36,6 +40,7 @@ export type Database = {
           rede_ensino: string | null
           responsavel: string | null
           rg: string | null
+          sexo: string | null
           telefone: string | null
           telefone2: string | null
         }
@@ -47,6 +52,10 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
+          doc_atestado_path?: string | null
+          doc_identidade_path?: string | null
+          doc_matricula_path?: string | null
+          doc_residencia_path?: string | null
           email?: string | null
           escola?: string | null
           foto_path?: string | null
@@ -60,6 +69,7 @@ export type Database = {
           rede_ensino?: string | null
           responsavel?: string | null
           rg?: string | null
+          sexo?: string | null
           telefone?: string | null
           telefone2?: string | null
         }
@@ -71,6 +81,10 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
+          doc_atestado_path?: string | null
+          doc_identidade_path?: string | null
+          doc_matricula_path?: string | null
+          doc_residencia_path?: string | null
           email?: string | null
           escola?: string | null
           foto_path?: string | null
@@ -84,6 +98,7 @@ export type Database = {
           rede_ensino?: string | null
           responsavel?: string | null
           rg?: string | null
+          sexo?: string | null
           telefone?: string | null
           telefone2?: string | null
         }
@@ -93,9 +108,13 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          idade: number | null
           modalidade: string
           nome: string
           observacoes: string | null
+          pcd: boolean
+          pcd_condicoes: string[]
+          pcd_descricao: string | null
           preferencia_horario: string | null
           telefone: string | null
           updated_at: string
@@ -103,9 +122,13 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          idade?: number | null
           modalidade?: string
           nome: string
           observacoes?: string | null
+          pcd?: boolean
+          pcd_condicoes?: string[]
+          pcd_descricao?: string | null
           preferencia_horario?: string | null
           telefone?: string | null
           updated_at?: string
@@ -113,9 +136,13 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          idade?: number | null
           modalidade?: string
           nome?: string
           observacoes?: string | null
+          pcd?: boolean
+          pcd_condicoes?: string[]
+          pcd_descricao?: string | null
           preferencia_horario?: string | null
           telefone?: string | null
           updated_at?: string

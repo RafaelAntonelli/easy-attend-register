@@ -130,6 +130,17 @@ function AlunosPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [filtroPcd, setFiltroPcd] = useState("todos");
+  const [filtroSexo, setFiltroSexo] = useState("todos");
+  const [filtroModalidade, setFiltroModalidade] = useState("todas");
+  const [filtroHorario, setFiltroHorario] = useState("todos");
+  const [idadeMin, setIdadeMin] = useState("");
+  const [idadeMax, setIdadeMax] = useState("");
+  const [docs, setDocs] = useState<Record<CampoDoc, File | null>>({
+    doc_atestado_path: null,
+    doc_residencia_path: null,
+    doc_matricula_path: null,
+    doc_identidade_path: null,
+  });
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Aluno | null>(null);
   const [form, setForm] = useState(vazio);

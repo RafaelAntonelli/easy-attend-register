@@ -519,9 +519,9 @@ function AlunosPage() {
           </CardContent>
         </Card>
       ) : null}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Select value={filtroPcd} onValueChange={setFiltroPcd}>
-          <SelectTrigger className="sm:w-72"><SelectValue placeholder="Filtrar PCD" /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder="Filtrar PCD" /></SelectTrigger>
           <SelectContent className="max-h-80">
             <SelectItem value="todos">Todos os alunos</SelectItem>
             <SelectItem value="com">Somente PCD</SelectItem>
@@ -534,11 +534,46 @@ function AlunosPage() {
             </SelectGroup>
           </SelectContent>
         </Select>
+        <Select value={filtroModalidade} onValueChange={setFiltroModalidade}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as modalidades</SelectItem>
+            <SelectItem value="Natação">Natação</SelectItem>
+            <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filtroHorario} onValueChange={setFiltroHorario}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent className="max-h-80">
+            <SelectItem value="todos">Todos os horários</SelectItem>
+            {HORARIOS_TURMA.map((h) => (
+              <SelectItem key={h} value={h}>{h}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filtroSexo} onValueChange={setFiltroSexo}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os sexos</SelectItem>
+            <SelectItem value="Masculino">Masculino</SelectItem>
+            <SelectItem value="Feminino">Feminino</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-2">
+          <Input className="w-24" type="number" min={0} placeholder="Idade mín." value={idadeMin} onChange={(e) => setIdadeMin(e.target.value)} />
+          <span className="text-sm text-muted-foreground">a</span>
+          <Input className="w-24" type="number" min={0} placeholder="Idade máx." value={idadeMax} onChange={(e) => setIdadeMax(e.target.value)} />
+        </div>
         <div className="relative flex-1">
-
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
+        <Button variant="outline" onClick={exportarPlanilha}>
+          <Download className="size-4" /> Exportar planilha
+        </Button>
+
         <Dialog open={aberto} onOpenChange={setAberto}>
           <DialogTrigger asChild>
             <Button onClick={abrirNovo}>

@@ -59,6 +59,12 @@ function grupoDosDias(dias: string[] | null) {
 type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean; foto_path: string | null };
 type StatusPresenca = "presente" | "falta" | "falta_justificada";
 
+const ROTULO_PRESENCA: Record<StatusPresenca, string> = {
+  presente: "Presença",
+  falta: "Falta",
+  falta_justificada: "Falta justificada",
+};
+
 function TurmasPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [contagem, setContagem] = useState<Record<string, number>>({});

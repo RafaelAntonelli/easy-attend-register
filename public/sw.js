@@ -1,4 +1,4 @@
-const CACHE = "arena-aquatica-v1";
+const CACHE = "arena-aquatica-v2";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

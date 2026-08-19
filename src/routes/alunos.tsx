@@ -802,6 +802,22 @@ function AlunosPage() {
                   />
                 </div>
               </div>
+              <div className="space-y-3 rounded-lg border border-border/70 p-3">
+                <Label>Fotos dos documentos</Label>
+                {DOCUMENTOS.map((d) => (
+                  <div key={d.campo} className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      {d.rotulo}
+                      {editando?.[d.campo] ? " · já enviado" : ""}
+                    </p>
+                    <Input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => setDocs((s) => ({ ...s, [d.campo]: e.target.files?.[0] ?? null }))}
+                    />
+                  </div>
+                ))}
+              </div>
               <div className="space-y-2">
                 <Label>Observações</Label>
                 <Textarea rows={2} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />

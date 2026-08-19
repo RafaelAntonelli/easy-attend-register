@@ -405,17 +405,55 @@ function TurmasPage() {
               <p className="py-6 text-center text-sm text-muted-foreground">Nenhum aluno matriculado nesta turma.</p>
             ) : (
               alunosTurma.map((a) => (
-                <div key={a.id} className="flex items-center justify-between gap-2 rounded-lg border border-border/70 px-3 py-2">
-                  <div>
-                    <p className="text-sm font-medium">{a.nome}</p>
-                    <p className="text-xs text-muted-foreground">{a.modalidade}</p>
+                <div key={a.id} className="space-y-2 rounded-lg border border-border/70 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      {fotos[a.id] ? (
+                        <img src={fotos[a.id]} alt={`Foto de ${a.nome}`} className="size-10 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <div className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold">
+                          {a.nome.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">{a.nome}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {a.modalidade}
+                          {statusPresenca[a.id] ? ` · ${ROTULO_PRESENCA[statusPresenca[a.id] as StatusPresenca]} hoje` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {a.pcd ? <Badge variant="outline">PCD</Badge> : null}
+                      <Badge variant={a.status === "ativa" ? "default" : "secondary"}>{a.status}</Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {a.pcd ? <Badge variant="outline">PCD</Badge> : null}
-                    <Badge variant={a.status === "ativa" ? "default" : "secondary"}>{a.status}</Badge>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      size="sm"
+                      variant={statusPresenca[a.id] === "presente" ? "default" : "outline"}
+                      onClick={() => void registrarPresenca(a.id, "presente")}
+                    >
+                      <Check className="size-4" /> Presença
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={statusPresenca[a.id] === "falta" ? "destructive" : "outline"}
+                      onClick={() => void registrarPresenca(a.id, "falta")}
+                    >
+                      <X className="size-4" /> Falta
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={statusPresenca[a.id] === "falta_justificada" ? "secondary" : "outline"}
+                      onClick={() => void registrarPresenca(a.id, "falta_justificada")}
+                    >
+                      <FileCheck className="size-4" /> Justificada
+                    </Button>
                   </div>
                 </div>
               ))
+
             )}
           </div>
         </DialogContent>

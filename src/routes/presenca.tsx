@@ -174,31 +174,51 @@ function PresencaPage() {
 
   return (
     <AppShell title="Presença" subtitle={`Registros de hoje · ${new Date().toLocaleDateString("pt-BR")}`}>
-      <div className="mb-6 max-w-sm space-y-2">
-        <Label>Turma da aula</Label>
-        <Select value={turmaId} onValueChange={setTurmaId}>
-          <SelectTrigger><SelectValue placeholder="Selecione a turma (opcional)" /></SelectTrigger>
-          <SelectContent className="max-h-80">
-            {GRUPOS_DIAS.map((g) => {
-              const doGrupo = turmas.filter((t) => t.nome.toLowerCase().startsWith(g.prefixo));
-              if (!doGrupo.length) return null;
-              return (
-                <SelectGroup key={g.rotulo}>
-                  <SelectLabel>{g.rotulo}</SelectLabel>
-                  {doGrupo.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.nome.replace(g.remover, "")}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              );
-            })}
-            {turmas.filter((t) => !GRUPOS_DIAS.some((g) => t.nome.toLowerCase().startsWith(g.prefixo))).map((t) => (
-              <SelectItem key={t.id} value={t.id}>{t.nome}{t.horario ? ` · ${t.horario}` : ""}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="mb-6 grid max-w-2xl gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>Modalidade</Label>
+          <Select
+            value={filtroModalidade}
+            onValueChange={(v) => {
+              setFiltroModalidade(v);
+              setTurmaId("");
+            }}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as modalidades</SelectItem>
+              <SelectItem value="Natação">Natação</SelectItem>
+              <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Turma da aula</Label>
+          <Select value={turmaId} onValueChange={setTurmaId}>
+            <SelectTrigger><SelectValue placeholder="Selecione a turma (opcional)" /></SelectTrigger>
+            <SelectContent className="max-h-80">
+              {GRUPOS_DIAS.map((g) => {
+                const doGrupo = turmasVisiveis.filter((t) => t.nome.toLowerCase().startsWith(g.prefixo));
+                if (!doGrupo.length) return null;
+                return (
+                  <SelectGroup key={g.rotulo}>
+                    <SelectLabel>{g.rotulo}</SelectLabel>
+                    {doGrupo.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.nome.replace(g.remover, "")}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                );
+              })}
+              {turmasVisiveis.filter((t) => !GRUPOS_DIAS.some((g) => t.nome.toLowerCase().startsWith(g.prefixo))).map((t) => (
+                <SelectItem key={t.id} value={t.id}>{t.nome}{t.horario ? ` · ${t.horario}` : ""}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
         <Tabs defaultValue="qr">

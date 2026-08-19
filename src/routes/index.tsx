@@ -201,17 +201,79 @@ function Painel() {
       <Card className="mt-6 border-border/70">
         <CardHeader><CardTitle className="font-display text-lg">Fila de espera</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={adicionarFila} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <Input required placeholder="Nome" value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: e.target.value })} />
-            <Input placeholder="Telefone" value={novo.telefone} onChange={(e) => setNovo({ ...novo, telefone: e.target.value })} />
-            <Select value={novo.modalidade} onValueChange={(v) => setNovo({ ...novo, modalidade: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Natação">Natação</SelectItem>
-                <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input placeholder="Horário preferido" value={novo.preferencia_horario} onChange={(e) => setNovo({ ...novo, preferencia_horario: e.target.value })} />
+          <form onSubmit={adicionarFila} className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <Input
+                required
+                placeholder="Nome"
+                value={novo.nome}
+                onChange={(e) => setNovo({ ...novo, nome: capitalizarNome(e.target.value) })}
+              />
+              <Input
+                placeholder="Celular (11) 99999-9999"
+                inputMode="numeric"
+                value={novo.telefone}
+                onChange={(e) => setNovo({ ...novo, telefone: formatarCelular(e.target.value) })}
+              />
+              <Input
+                type="number"
+                min={0}
+                max={120}
+                placeholder="Idade"
+                value={novo.idade}
+                onChange={(e) => setNovo({ ...novo, idade: e.target.value })}
+              />
+              <Select value={novo.modalidade} onValueChange={(v) => setNovo({ ...novo, modalidade: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Natação">Natação</SelectItem>
+                  <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={novo.preferencia_horario} onValueChange={(v) => setNovo({ ...novo, preferencia_horario: v })}>
+                <SelectTrigger><SelectValue placeholder="Horário preferido" /></SelectTrigger>
+                <SelectContent className="max-h-80">
+                  {HORARIOS_TURMA.map((h) => (
+                    <SelectItem key={h} value={h}>{h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Textarea
+              rows={2}
+              placeholder="Observações"
+              value={novo.observacoes}
+              onChange={(e) => setNovo({ ...novo, observacoes: e.target.value })}
+            />
+            <div className="space-y-3 rounded-lg border border-border/70 p-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="fila-pcd">Pessoa com deficiência (PCD)</Label>
+                <Switch id="fila-pcd" checked={novo.pcd} onCheckedChange={(v) => setNovo({ ...novo, pcd: v })} />
+              </div>
+              {novo.pcd ? (
+                <div className="space-y-3">
+                  {CONDICOES_PCD.map((c) => (
+                    <label key={c} className="flex items-start gap-2 text-sm">
+                      <Checkbox
+                        checked={novo.pcd_condicoes.includes(c)}
+                        onCheckedChange={(v) =>
+                          setNovo((n) => ({
+                            ...n,
+                            pcd_condicoes: v ? [...n.pcd_condicoes, c] : n.pcd_condicoes.filter((x) => x !== c),
+                          }))
+                        }
+                      />
+                      <span>{c}</span>
+                    </label>
+                  ))}
+                  <Input
+                    placeholder="Outras observações sobre a deficiência / apoio"
+                    value={novo.pcd_descricao}
+                    onChange={(e) => setNovo({ ...novo, pcd_descricao: e.target.value })}
+                  />
+                </div>
+              ) : null}
+            </div>
             <Button type="submit"><Plus className="size-4" /> Adicionar</Button>
           </form>
 
@@ -220,14 +282,21 @@ function Painel() {
               <div key={f.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border/70 px-3 py-2 text-sm">
                 <span className="grid size-6 shrink-0 place-items-center rounded-full bg-secondary text-xs">{i + 1}</span>
                 <span className="font-medium">{f.nome}</span>
+                {f.pcd ? <Badge variant="outline">PCD</Badge> : null}
                 <span className="text-muted-foreground">{f.modalidade}</span>
+                {f.idade != null ? <span className="text-muted-foreground">· {f.idade} anos</span> : null}
                 {f.preferencia_horario ? <span className="text-muted-foreground">· {f.preferencia_horario}</span> : null}
                 {f.telefone ? <span className="text-muted-foreground">· {f.telefone}</span> : null}
+                {f.pcd && (f.pcd_condicoes ?? []).length ? (
+                  <span className="w-full text-xs text-muted-foreground">{(f.pcd_condicoes ?? []).join(" · ")}</span>
+                ) : null}
+                {f.observacoes ? <span className="w-full text-xs text-muted-foreground">{f.observacoes}</span> : null}
                 <Button variant="ghost" size="icon" className="ml-auto text-destructive" title="Remover" onClick={() => void removerFila(f.id)}>
                   <Trash2 className="size-4" />
                 </Button>
               </div>
             ))}
+
             {!fila.length && <p className="py-6 text-center text-sm text-muted-foreground">Nenhum aluno na fila de espera.</p>}
           </div>
         </CardContent>

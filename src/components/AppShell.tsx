@@ -1,20 +1,21 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { LayoutDashboard, Users, CalendarDays, QrCode, LogOut, Waves } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, QrCode, LogOut, Waves, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const nav = [
+const baseNav = [
   { to: "/", label: "Painel", icon: LayoutDashboard },
   { to: "/alunos", label: "Alunos", icon: Users },
   { to: "/turmas", label: "Turmas", icon: CalendarDays },
   { to: "/presenca", label: "Presença", icon: QrCode },
 ];
+const adminNav = [{ to: "/equipe", label: "Equipe", icon: ShieldCheck }];
 
 export function AppShell({ children, title, subtitle }: { children: ReactNode; title: string; subtitle?: string }) {
-  const { session, loading } = useAuth();
+  const { session, loading, isStaff, isAdmin } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -29,6 +30,32 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
       </div>
     );
   }
+
+  if (!isStaff) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+        <Waves className="size-8 text-primary" />
+        <div>
+          <h1 className="font-display text-xl font-semibold text-foreground">Acesso aguardando liberação</h1>
+          <p className="mt-1 max-w-md text-sm text-muted-foreground">
+            Sua conta foi criada, mas ainda não tem permissão para acessar os dados. Peça a um administrador da Arena
+            Aquática para liberar seu acesso.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={async () => {
+            await supabase.auth.signOut();
+            navigate({ to: "/auth" });
+          }}
+        >
+          <LogOut className="mr-2 size-4" /> Sair
+        </Button>
+      </div>
+    );
+  }
+
+  const nav = isAdmin ? [...baseNav, ...adminNav] : baseNav;
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-64">

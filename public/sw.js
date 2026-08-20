@@ -1,8 +1,8 @@
-const CACHE = "arena-aquatica-v2";
+const CACHE = "arena-aquatica-v3";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/manifest.webmanifest"]).catch(() => undefined)));
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/manifest.webmanifest", "/favicon.ico", "/icons/icon-192x192.png", "/icons/icon-512x512.png", "/icons/apple-touch-icon.png"]).catch(() => undefined)));
 });
 
 self.addEventListener("activate", (event) => {

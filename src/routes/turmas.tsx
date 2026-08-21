@@ -46,15 +46,8 @@ type Turma = {
   ativa: boolean;
 };
 
-const GRUPOS = [
-  { label: "Terça e Quinta", dias: ["Ter", "Qui"] },
-  { label: "Quarta e Sexta", dias: ["Qua", "Sex"] },
-] as const;
+type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean; foto_path: string | null };
 
-function grupoDosDias(dias: string[] | null) {
-  const g = GRUPOS.find((x) => x.dias.every((d) => (dias ?? []).includes(d)));
-  return g?.label ?? "";
-}
 
 type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean; foto_path: string | null };
 type StatusPresenca = "presente" | "falta" | "falta_justificada";

@@ -149,6 +149,30 @@ export type Database = {
         }
         Relationships: []
       }
+      grupos_dias: {
+        Row: {
+          created_at: string
+          dias: string[]
+          id: string
+          label: string
+          ordem: number
+        }
+        Insert: {
+          created_at?: string
+          dias?: string[]
+          id?: string
+          label: string
+          ordem?: number
+        }
+        Update: {
+          created_at?: string
+          dias?: string[]
+          id?: string
+          label?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
       horarios: {
         Row: {
           created_at: string

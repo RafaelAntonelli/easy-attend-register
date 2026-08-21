@@ -57,7 +57,40 @@ const ROTULO_PRESENCA: Record<StatusPresenca, string> = {
 
 function TurmasPage() {
   const { horarios, lista: listaHorarios, recarregar: recarregarHorarios } = useHorarios();
+  const { grupos, lista: listaGrupos, recarregar: recarregarGrupos } = useGruposDias();
+  const [gerenciarDias, setGerenciarDias] = useState(false);
+  const [novoGrupo, setNovoGrupo] = useState("");
+  const [filtroDias, setFiltroDias] = useState("todos");
   const [gerenciarHorarios, setGerenciarHorarios] = useState(false);
+
+  function grupoDosDias(dias: string[] | null) {
+    const g = listaGrupos.find((x) => x.dias.length && x.dias.every((d) => (dias ?? []).includes(d)));
+    return g?.label ?? "";
+  }
+
+  async function adicionarGrupo(e: React.FormEvent) {
+    e.preventDefault();
+    const label = novoGrupo.trim();
+    if (!label) return;
+    const ordem = (grupos.at(-1)?.ordem ?? 0) + 1;
+    const { error } = await supabase
+      .from("grupos_dias")
+      .insert({ label, dias: diasDoLabel(label), ordem });
+    if (error) return toast.error(error.message);
+    setNovoGrupo("");
+    toast.success("Dias adicionados");
+    void recarregarGrupos();
+    return;
+  }
+
+  async function removerGrupo(id: string) {
+    const { error } = await supabase.from("grupos_dias").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Dias removidos");
+    void recarregarGrupos();
+    return;
+  }
+
   const [novoHorario, setNovoHorario] = useState("");
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [contagem, setContagem] = useState<Record<string, number>>({});

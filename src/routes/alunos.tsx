@@ -4,7 +4,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { CONDICOES_PCD, HORARIOS_TURMA } from "@/lib/pcd";
+import { CONDICOES_PCD } from "@/lib/pcd";
+import { useHorarios } from "@/lib/horarios";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, apenasDigitos } from "@/lib/formatacao";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -546,7 +547,7 @@ function AlunosPage() {
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent className="max-h-80">
             <SelectItem value="todos">Todos os horários</SelectItem>
-            {HORARIOS_TURMA.map((h) => (
+            {listaHorarios.map((h) => (
               <SelectItem key={h} value={h}>{h}</SelectItem>
             ))}
           </SelectContent>

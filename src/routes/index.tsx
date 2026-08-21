@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { Users, CalendarDays, QrCode, TrendingUp, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { CONDICOES_PCD, HORARIOS_TURMA } from "@/lib/pcd";
+import { CONDICOES_PCD } from "@/lib/pcd";
+import { useHorarios } from "@/lib/horarios";
 import { capitalizarNome, formatarCelular } from "@/lib/formatacao";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Painel() {
+  const { lista: listaHorarios } = useHorarios();
   const [stats, setStats] = useState({ alunos: 0, turmas: 0, hoje: 0, mes: 0 });
   const [ultimas, setUltimas] = useState<{ nome: string; hora: string }[]>([]);
   const [fila, setFila] = useState<Fila[]>([]);
@@ -233,7 +235,7 @@ function Painel() {
               <Select value={novo.preferencia_horario} onValueChange={(v) => setNovo({ ...novo, preferencia_horario: v })}>
                 <SelectTrigger><SelectValue placeholder="Horário preferido" /></SelectTrigger>
                 <SelectContent className="max-h-80">
-                  {HORARIOS_TURMA.map((h) => (
+                  {listaHorarios.map((h) => (
                     <SelectItem key={h} value={h}>{h}</SelectItem>
                   ))}
                 </SelectContent>

@@ -149,6 +149,27 @@ export type Database = {
         }
         Relationships: []
       }
+      horarios: {
+        Row: {
+          created_at: string
+          horario: string
+          id: string
+          ordem: number
+        }
+        Insert: {
+          created_at?: string
+          horario: string
+          id?: string
+          ordem?: number
+        }
+        Update: {
+          created_at?: string
+          horario?: string
+          id?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
       matriculas: {
         Row: {
           aluno_id: string

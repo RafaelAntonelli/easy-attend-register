@@ -124,6 +124,7 @@ const vazio = {
 
 
 function AlunosPage() {
+  const { lista: listaHorarios } = useHorarios();
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);

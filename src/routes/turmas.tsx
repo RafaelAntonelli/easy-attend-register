@@ -118,7 +118,7 @@ function TurmasPage() {
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
-    const dias = GRUPOS.find((g) => g.label === grupo)?.dias ?? [];
+    const dias = listaGrupos.find((g) => g.label === grupo)?.dias ?? [];
     if (!dias.length) return toast.error("Selecione os dias da semana");
     if (!horario) return toast.error("Selecione o horário");
     const payload = {

@@ -9,6 +9,8 @@ export const CONDICOES_PCD = [
 ] as const;
 
 export const HORARIOS_TURMA = [
+  "06:00 às 06:50",
+  "07:00 às 07:50",
   "08:00 às 08:50",
   "09:00 às 09:50",
   "10:00 às 10:50",

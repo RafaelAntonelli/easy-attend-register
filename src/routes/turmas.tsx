@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Users, Trash2, Pencil, Check, X, FileCheck } from "lucide-react";
+import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { HORARIOS_TURMA } from "@/lib/pcd";
+import { useHorarios } from "@/lib/horarios";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +66,9 @@ const ROTULO_PRESENCA: Record<StatusPresenca, string> = {
 };
 
 function TurmasPage() {
+  const { horarios, lista: listaHorarios, recarregar: recarregarHorarios } = useHorarios();
+  const [gerenciarHorarios, setGerenciarHorarios] = useState(false);
+  const [novoHorario, setNovoHorario] = useState("");
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [contagem, setContagem] = useState<Record<string, number>>({});
   const [aberto, setAberto] = useState(false);
@@ -143,6 +146,27 @@ function TurmasPage() {
     toast.success(editando ? "Turma atualizada" : "Turma criada");
     setAberto(false);
     void carregar();
+    return;
+  }
+
+  async function adicionarHorario(e: React.FormEvent) {
+    e.preventDefault();
+    const valor = novoHorario.trim();
+    if (!valor) return;
+    const ordem = (horarios.at(-1)?.ordem ?? 0) + 1;
+    const { error } = await supabase.from("horarios").insert({ horario: valor, ordem });
+    if (error) return toast.error(error.message);
+    setNovoHorario("");
+    toast.success("Horário adicionado");
+    void recarregarHorarios();
+    return;
+  }
+
+  async function removerHorario(id: string) {
+    const { error } = await supabase.from("horarios").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Horário removido");
+    void recarregarHorarios();
     return;
   }
 
@@ -265,13 +289,16 @@ function TurmasPage() {
             <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-80">
               <SelectItem value="todos">Todos os horários</SelectItem>
-              {HORARIOS_TURMA.map((h) => (
+              {listaHorarios.map((h) => (
                 <SelectItem key={h} value={h}>{h}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={abrirNova}><Plus className="size-4" /> Nova turma</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setGerenciarHorarios(true)}><Clock className="size-4" /> Editar horários</Button>
+          <Button onClick={abrirNova}><Plus className="size-4" /> Nova turma</Button>
+        </div>
       </div>
 
 
@@ -316,7 +343,7 @@ function TurmasPage() {
                 <Select value={horario} onValueChange={setHorario}>
                   <SelectTrigger><SelectValue placeholder="Selecione o horário" /></SelectTrigger>
                   <SelectContent className="max-h-80">
-                    {HORARIOS_TURMA.map((h) => (
+                    {listaHorarios.map((h) => (
                       <SelectItem key={h} value={h}>{h}</SelectItem>
                     ))}
                   </SelectContent>
@@ -458,6 +485,39 @@ function TurmasPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={gerenciarHorarios} onOpenChange={setGerenciarHorarios}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader><DialogTitle className="font-display">Horários disponíveis</DialogTitle></DialogHeader>
+          <form onSubmit={adicionarHorario} className="flex gap-2">
+            <Input
+              value={novoHorario}
+              onChange={(e) => setNovoHorario(e.target.value)}
+              placeholder="06:00 às 06:50"
+            />
+            <Button type="submit"><Plus className="size-4" /> Adicionar</Button>
+          </form>
+          <div className="space-y-2">
+            {horarios.map((h) => (
+              <div key={h.id} className="flex items-center justify-between rounded-lg border border-border/70 px-3 py-2">
+                <span className="text-sm">{h.horario}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive"
+                  title="Remover horário"
+                  onClick={() => void removerHorario(h.id)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            ))}
+            {!horarios.length && (
+              <p className="py-6 text-center text-sm text-muted-foreground">Nenhum horário cadastrado.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!confirmarExclusao} onOpenChange={(o) => !o && setConfirmarExclusao(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -46,16 +46,6 @@ type Turma = {
   ativa: boolean;
 };
 
-const GRUPOS = [
-  { label: "Terça e Quinta", dias: ["Ter", "Qui"] },
-  { label: "Quarta e Sexta", dias: ["Qua", "Sex"] },
-] as const;
-
-function grupoDosDias(dias: string[] | null) {
-  const g = GRUPOS.find((x) => x.dias.every((d) => (dias ?? []).includes(d)));
-  return g?.label ?? "";
-}
-
 type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean; foto_path: string | null };
 type StatusPresenca = "presente" | "falta" | "falta_justificada";
 
@@ -67,7 +57,40 @@ const ROTULO_PRESENCA: Record<StatusPresenca, string> = {
 
 function TurmasPage() {
   const { horarios, lista: listaHorarios, recarregar: recarregarHorarios } = useHorarios();
+  const { grupos, lista: listaGrupos, recarregar: recarregarGrupos } = useGruposDias();
+  const [gerenciarDias, setGerenciarDias] = useState(false);
+  const [novoGrupo, setNovoGrupo] = useState("");
+  const [filtroDias, setFiltroDias] = useState("todos");
   const [gerenciarHorarios, setGerenciarHorarios] = useState(false);
+
+  function grupoDosDias(dias: string[] | null) {
+    const g = listaGrupos.find((x) => x.dias.length && x.dias.every((d) => (dias ?? []).includes(d)));
+    return g?.label ?? "";
+  }
+
+  async function adicionarGrupo(e: React.FormEvent) {
+    e.preventDefault();
+    const label = novoGrupo.trim();
+    if (!label) return;
+    const ordem = (grupos.at(-1)?.ordem ?? 0) + 1;
+    const { error } = await supabase
+      .from("grupos_dias")
+      .insert({ label, dias: diasDoLabel(label), ordem });
+    if (error) return toast.error(error.message);
+    setNovoGrupo("");
+    toast.success("Dias adicionados");
+    void recarregarGrupos();
+    return;
+  }
+
+  async function removerGrupo(id: string) {
+    const { error } = await supabase.from("grupos_dias").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Dias removidos");
+    void recarregarGrupos();
+    return;
+  }
+
   const [novoHorario, setNovoHorario] = useState("");
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [contagem, setContagem] = useState<Record<string, number>>({});
@@ -128,7 +151,7 @@ function TurmasPage() {
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
-    const dias = GRUPOS.find((g) => g.label === grupo)?.dias ?? [];
+    const dias = listaGrupos.find((g) => g.label === grupo)?.dias ?? [];
     if (!dias.length) return toast.error("Selecione os dias da semana");
     if (!horario) return toast.error("Selecione o horário");
     const payload = {
@@ -331,7 +354,7 @@ function TurmasPage() {
               <Select value={grupo} onValueChange={setGrupo}>
                 <SelectTrigger><SelectValue placeholder="Selecione os dias" /></SelectTrigger>
                 <SelectContent>
-                  {GRUPOS.map((g) => (
+                  {listaGrupos.map((g) => (
                     <SelectItem key={g.label} value={g.label}>{g.label}</SelectItem>
                   ))}
                 </SelectContent>

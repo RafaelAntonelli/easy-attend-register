@@ -47,9 +47,6 @@ type Turma = {
 };
 
 type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean; foto_path: string | null };
-
-
-type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean; foto_path: string | null };
 type StatusPresenca = "presente" | "falta" | "falta_justificada";
 
 const ROTULO_PRESENCA: Record<StatusPresenca, string> = {

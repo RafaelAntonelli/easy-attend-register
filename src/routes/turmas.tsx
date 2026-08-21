@@ -321,7 +321,7 @@ function TurmasPage() {
               <Select value={grupo} onValueChange={setGrupo}>
                 <SelectTrigger><SelectValue placeholder="Selecione os dias" /></SelectTrigger>
                 <SelectContent>
-                  {GRUPOS.map((g) => (
+                  {listaGrupos.map((g) => (
                     <SelectItem key={g.label} value={g.label}>{g.label}</SelectItem>
                   ))}
                 </SelectContent>

@@ -393,9 +393,10 @@ function AlunosPage() {
   }
 
   const gruposDeTurmas = (() => {
+    const porModalidade = turmas.filter((t) => (t.modalidade ?? "Natação") === form.modalidade);
     const usadas = new Set<string>();
     const grupos = listaGrupos.map((g) => {
-      const doGrupo = turmas.filter((t) => {
+      const doGrupo = porModalidade.filter((t) => {
         const dias = t.dias_semana ?? [];
         const casa = g.dias.length
           ? g.dias.every((d) => dias.includes(d))
@@ -405,7 +406,7 @@ function AlunosPage() {
       });
       return { label: g.label, turmas: doGrupo };
     });
-    const restantes = turmas.filter((t) => !usadas.has(t.id));
+    const restantes = porModalidade.filter((t) => !usadas.has(t.id));
     if (restantes.length) grupos.push({ label: "Outros dias", turmas: restantes });
     return grupos.filter((g) => g.turmas.length);
   })();

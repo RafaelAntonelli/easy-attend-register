@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock } from "lucide-react";
+import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useHorarios } from "@/lib/horarios";
+import { useGruposDias, diasDoLabel } from "@/lib/dias";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -293,7 +294,8 @@ function TurmasPage() {
   const visiveis = turmas.filter(
     (t) =>
       (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
-      (filtroHorario === "todos" || t.horario === filtroHorario),
+      (filtroHorario === "todos" || t.horario === filtroHorario) &&
+      (filtroDias === "todos" || grupoDosDias(t.dias_semana) === filtroDias),
   );
 
   return (
@@ -301,15 +303,24 @@ function TurmasPage() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row">
           <Select value={filtroModalidade} onValueChange={setFiltroModalidade}>
-            <SelectTrigger className="sm:w-60"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas as modalidades</SelectItem>
               <SelectItem value="Natação">Natação</SelectItem>
               <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filtroDias} onValueChange={setFiltroDias}>
+            <SelectTrigger className="sm:w-52"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-80">
+              <SelectItem value="todos">Todos os dias</SelectItem>
+              {listaGrupos.map((g) => (
+                <SelectItem key={g.label} value={g.label}>{g.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={filtroHorario} onValueChange={setFiltroHorario}>
-            <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="sm:w-52"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-80">
               <SelectItem value="todos">Todos os horários</SelectItem>
               {listaHorarios.map((h) => (
@@ -318,7 +329,8 @@ function TurmasPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setGerenciarDias(true)}><CalendarDays className="size-4" /> Editar dias</Button>
           <Button variant="outline" onClick={() => setGerenciarHorarios(true)}><Clock className="size-4" /> Editar horários</Button>
           <Button onClick={abrirNova}><Plus className="size-4" /> Nova turma</Button>
         </div>
@@ -508,6 +520,39 @@ function TurmasPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={gerenciarDias} onOpenChange={setGerenciarDias}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader><DialogTitle className="font-display">Dias disponíveis</DialogTitle></DialogHeader>
+          <form onSubmit={adicionarGrupo} className="flex gap-2">
+            <Input
+              value={novoGrupo}
+              onChange={(e) => setNovoGrupo(e.target.value)}
+              placeholder="Segunda e Quarta"
+            />
+            <Button type="submit"><Plus className="size-4" /> Adicionar</Button>
+          </form>
+          <div className="space-y-2">
+            {grupos.map((g) => (
+              <div key={g.id} className="flex items-center justify-between rounded-lg border border-border/70 px-3 py-2">
+                <span className="text-sm">{g.label} <span className="text-muted-foreground">({g.dias.join(", ")})</span></span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive"
+                  title="Remover dias"
+                  onClick={() => void removerGrupo(g.id)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            ))}
+            {!grupos.length && (
+              <p className="py-6 text-center text-sm text-muted-foreground">Nenhum grupo de dias cadastrado.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={gerenciarHorarios} onOpenChange={setGerenciarHorarios}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
           <DialogHeader><DialogTitle className="font-display">Horários disponíveis</DialogTitle></DialogHeader>

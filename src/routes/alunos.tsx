@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CONDICOES_PCD } from "@/lib/pcd";
 import { useHorarios } from "@/lib/horarios";
+import { useGruposDias } from "@/lib/dias";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, apenasDigitos } from "@/lib/formatacao";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -125,6 +126,7 @@ const vazio = {
 
 function AlunosPage() {
   const { lista: listaHorarios } = useHorarios();
+  const { lista: listaGrupos } = useGruposDias();
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
@@ -389,6 +391,25 @@ function AlunosPage() {
   function vagasUsadas(id: string) {
     return matriculas.filter((m) => m.turma_id === id && m.status === "ativa").length;
   }
+
+  const gruposDeTurmas = (() => {
+    const usadas = new Set<string>();
+    const grupos = listaGrupos.map((g) => {
+      const doGrupo = turmas.filter((t) => {
+        const dias = t.dias_semana ?? [];
+        const casa = g.dias.length
+          ? g.dias.every((d) => dias.includes(d))
+          : t.nome.toLowerCase().startsWith(g.label.toLowerCase());
+        if (casa) usadas.add(t.id);
+        return casa;
+      });
+      return { label: g.label, turmas: doGrupo };
+    });
+    const restantes = turmas.filter((t) => !usadas.has(t.id));
+    if (restantes.length) grupos.push({ label: "Outros dias", turmas: restantes });
+    return grupos.filter((g) => g.turmas.length);
+  })();
+
 
   async function excluirAlunos(lista: Aluno[]) {
     const ids = lista.map((a) => a.id);
@@ -727,22 +748,16 @@ function AlunosPage() {
                     ) : (
                       <>
                         <SelectItem value="none" disabled>Selecione uma turma</SelectItem>
-                        <SelectGroup>
-                          <SelectLabel>Terça e Quinta</SelectLabel>
-                          {turmas.filter((t) => t.nome.toLowerCase().startsWith("terça e quinta") || t.nome.toLowerCase().startsWith("terca e quinta")).map((t) => (
-                            <SelectItem key={t.id} value={t.id} disabled={vagasUsadas(t.id) >= CAPACIDADE_TURMA}>
-                              {t.nome.replace("Terça e Quinta - ", "")} · {vagasUsadas(t.id)}/{CAPACIDADE_TURMA}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                        <SelectGroup>
-                          <SelectLabel>Quarta e Sexta</SelectLabel>
-                          {turmas.filter((t) => t.nome.toLowerCase().startsWith("quarta e sexta")).map((t) => (
-                            <SelectItem key={t.id} value={t.id} disabled={vagasUsadas(t.id) >= CAPACIDADE_TURMA}>
-                              {t.nome.replace("Quarta e Sexta - ", "")} · {vagasUsadas(t.id)}/{CAPACIDADE_TURMA}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
+                        {gruposDeTurmas.map((g) => (
+                          <SelectGroup key={g.label}>
+                            <SelectLabel>{g.label}</SelectLabel>
+                            {g.turmas.map((t) => (
+                              <SelectItem key={t.id} value={t.id} disabled={vagasUsadas(t.id) >= CAPACIDADE_TURMA}>
+                                {t.nome.replace(`${g.label} - `, "")} · {vagasUsadas(t.id)}/{CAPACIDADE_TURMA}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
                       </>
                     )}
                   </SelectContent>

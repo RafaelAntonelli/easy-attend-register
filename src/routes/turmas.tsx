@@ -335,7 +335,6 @@ function TurmasPage() {
           <Button onClick={abrirNova}><Plus className="size-4" /> Nova turma</Button>
         </div>
       </div>
-      </div>
 
 
       <Dialog open={aberto} onOpenChange={setAberto}>

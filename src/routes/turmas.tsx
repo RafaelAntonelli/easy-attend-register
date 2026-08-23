@@ -520,6 +520,39 @@ function TurmasPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={gerenciarDias} onOpenChange={setGerenciarDias}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader><DialogTitle className="font-display">Dias disponíveis</DialogTitle></DialogHeader>
+          <form onSubmit={adicionarGrupo} className="flex gap-2">
+            <Input
+              value={novoGrupo}
+              onChange={(e) => setNovoGrupo(e.target.value)}
+              placeholder="Segunda e Quarta"
+            />
+            <Button type="submit"><Plus className="size-4" /> Adicionar</Button>
+          </form>
+          <div className="space-y-2">
+            {grupos.map((g) => (
+              <div key={g.id} className="flex items-center justify-between rounded-lg border border-border/70 px-3 py-2">
+                <span className="text-sm">{g.label} <span className="text-muted-foreground">({g.dias.join(", ")})</span></span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive"
+                  title="Remover dias"
+                  onClick={() => void removerGrupo(g.id)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            ))}
+            {!grupos.length && (
+              <p className="py-6 text-center text-sm text-muted-foreground">Nenhum grupo de dias cadastrado.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={gerenciarHorarios} onOpenChange={setGerenciarHorarios}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
           <DialogHeader><DialogTitle className="font-display">Horários disponíveis</DialogTitle></DialogHeader>

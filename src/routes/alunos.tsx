@@ -96,7 +96,7 @@ const ROTULO_STATUS = {
   falta_justificada: "Faltas justificadas",
 } as const;
 
-type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[] | null };
+type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[] | null; modalidade: string | null };
 type Matricula = { id: string; aluno_id: string; turma_id: string; status: string; modalidade: string; data_inicio: string | null };
 type Presenca = { id: string; data: string; status: string; turma_id: string | null };
 

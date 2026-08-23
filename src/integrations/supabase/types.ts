@@ -253,6 +253,7 @@ export type Database = {
           horario: string
           id: string
           metodo: string
+          observacoes: string | null
           registrado_por: string | null
           status: string
           turma_id: string | null
@@ -264,6 +265,7 @@ export type Database = {
           horario?: string
           id?: string
           metodo?: string
+          observacoes?: string | null
           registrado_por?: string | null
           status?: string
           turma_id?: string | null
@@ -275,6 +277,7 @@ export type Database = {
           horario?: string
           id?: string
           metodo?: string
+          observacoes?: string | null
           registrado_por?: string | null
           status?: string
           turma_id?: string | null

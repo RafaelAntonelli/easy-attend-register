@@ -294,7 +294,8 @@ function TurmasPage() {
   const visiveis = turmas.filter(
     (t) =>
       (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
-      (filtroHorario === "todos" || t.horario === filtroHorario),
+      (filtroHorario === "todos" || t.horario === filtroHorario) &&
+      (filtroDias === "todos" || grupoDosDias(t.dias_semana) === filtroDias),
   );
 
   return (
@@ -302,15 +303,24 @@ function TurmasPage() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row">
           <Select value={filtroModalidade} onValueChange={setFiltroModalidade}>
-            <SelectTrigger className="sm:w-60"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas as modalidades</SelectItem>
               <SelectItem value="Natação">Natação</SelectItem>
               <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filtroDias} onValueChange={setFiltroDias}>
+            <SelectTrigger className="sm:w-52"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-80">
+              <SelectItem value="todos">Todos os dias</SelectItem>
+              {listaGrupos.map((g) => (
+                <SelectItem key={g.label} value={g.label}>{g.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={filtroHorario} onValueChange={setFiltroHorario}>
-            <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="sm:w-52"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-80">
               <SelectItem value="todos">Todos os horários</SelectItem>
               {listaHorarios.map((h) => (
@@ -319,10 +329,12 @@ function TurmasPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setGerenciarDias(true)}><CalendarDays className="size-4" /> Editar dias</Button>
           <Button variant="outline" onClick={() => setGerenciarHorarios(true)}><Clock className="size-4" /> Editar horários</Button>
           <Button onClick={abrirNova}><Plus className="size-4" /> Nova turma</Button>
         </div>
+      </div>
       </div>
 
 

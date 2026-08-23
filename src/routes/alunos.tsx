@@ -727,7 +727,11 @@ function AlunosPage() {
               </div>
               <div className="space-y-2">
                 <Label>Modalidade</Label>
-                <Select value={form.modalidade} onValueChange={(v) => setForm({ ...form, modalidade: v })}>
+                <Select value={form.modalidade} onValueChange={(v) => {
+                  const selecionada = turmas.find((t) => t.id === turmaId);
+                  if (selecionada && (selecionada.modalidade ?? "Natação") !== v) setTurmaId("");
+                  setForm({ ...form, modalidade: v });
+                }}>
                   <SelectTrigger><SelectValue placeholder="Selecione a modalidade" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Natação">Natação</SelectItem>

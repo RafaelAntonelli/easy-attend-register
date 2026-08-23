@@ -98,7 +98,7 @@ const ROTULO_STATUS = {
 
 type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[] | null; modalidade: string | null };
 type Matricula = { id: string; aluno_id: string; turma_id: string; status: string; modalidade: string; data_inicio: string | null };
-type Presenca = { id: string; data: string; status: string; turma_id: string | null };
+type Presenca = { id: string; data: string; status: string; turma_id: string | null; observacoes: string | null };
 
 
 const vazio = {
@@ -377,7 +377,7 @@ function AlunosPage() {
     setHistorico(null);
     const { data, error } = await supabase
       .from("presencas")
-      .select("id,data,status,turma_id")
+      .select("id,data,status,turma_id,observacoes")
       .eq("aluno_id", aluno.id)
       .order("data", { ascending: false });
     if (error) {
@@ -1053,9 +1053,12 @@ function AlunosPage() {
                     </div>
                     <div className="max-h-56 space-y-1 overflow-y-auto">
                       {historico.map((h) => (
-                        <div key={h.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-1.5 text-sm">
-                          <span>{new Date(`${h.data}T00:00:00`).toLocaleDateString("pt-BR")}</span>
-                          <span className="text-muted-foreground">{ROTULO_STATUS[h.status as keyof typeof ROTULO_STATUS] ?? h.status}</span>
+                        <div key={h.id} className="rounded-lg bg-secondary/50 px-3 py-1.5 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span>{new Date(`${h.data}T00:00:00`).toLocaleDateString("pt-BR")}</span>
+                            <span className="text-muted-foreground">{ROTULO_STATUS[h.status as keyof typeof ROTULO_STATUS] ?? h.status}</span>
+                          </div>
+                          {h.observacoes ? <p className="mt-0.5 text-xs text-muted-foreground">Obs.: {h.observacoes}</p> : null}
                         </div>
                       ))}
                     </div>

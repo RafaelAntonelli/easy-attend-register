@@ -392,6 +392,25 @@ function AlunosPage() {
     return matriculas.filter((m) => m.turma_id === id && m.status === "ativa").length;
   }
 
+  const gruposDeTurmas = (() => {
+    const usadas = new Set<string>();
+    const grupos = listaGrupos.map((g) => {
+      const doGrupo = turmas.filter((t) => {
+        const dias = t.dias_semana ?? [];
+        const casa = g.dias.length
+          ? g.dias.every((d) => dias.includes(d))
+          : t.nome.toLowerCase().startsWith(g.label.toLowerCase());
+        if (casa) usadas.add(t.id);
+        return casa;
+      });
+      return { label: g.label, turmas: doGrupo };
+    });
+    const restantes = turmas.filter((t) => !usadas.has(t.id));
+    if (restantes.length) grupos.push({ label: "Outros dias", turmas: restantes });
+    return grupos.filter((g) => g.turmas.length);
+  })();
+
+
   async function excluirAlunos(lista: Aluno[]) {
     const ids = lista.map((a) => a.id);
     const caminhos = lista.map((a) => a.foto_path).filter(Boolean) as string[];

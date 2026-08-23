@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CONDICOES_PCD } from "@/lib/pcd";
 import { useHorarios } from "@/lib/horarios";
+import { useGruposDias } from "@/lib/dias";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, apenasDigitos } from "@/lib/formatacao";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";

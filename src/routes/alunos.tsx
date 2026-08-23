@@ -729,22 +729,16 @@ function AlunosPage() {
                     ) : (
                       <>
                         <SelectItem value="none" disabled>Selecione uma turma</SelectItem>
-                        <SelectGroup>
-                          <SelectLabel>Terça e Quinta</SelectLabel>
-                          {turmas.filter((t) => t.nome.toLowerCase().startsWith("terça e quinta") || t.nome.toLowerCase().startsWith("terca e quinta")).map((t) => (
-                            <SelectItem key={t.id} value={t.id} disabled={vagasUsadas(t.id) >= CAPACIDADE_TURMA}>
-                              {t.nome.replace("Terça e Quinta - ", "")} · {vagasUsadas(t.id)}/{CAPACIDADE_TURMA}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                        <SelectGroup>
-                          <SelectLabel>Quarta e Sexta</SelectLabel>
-                          {turmas.filter((t) => t.nome.toLowerCase().startsWith("quarta e sexta")).map((t) => (
-                            <SelectItem key={t.id} value={t.id} disabled={vagasUsadas(t.id) >= CAPACIDADE_TURMA}>
-                              {t.nome.replace("Quarta e Sexta - ", "")} · {vagasUsadas(t.id)}/{CAPACIDADE_TURMA}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
+                        {gruposDeTurmas.map((g) => (
+                          <SelectGroup key={g.label}>
+                            <SelectLabel>{g.label}</SelectLabel>
+                            {g.turmas.map((t) => (
+                              <SelectItem key={t.id} value={t.id} disabled={vagasUsadas(t.id) >= CAPACIDADE_TURMA}>
+                                {t.nome.replace(`${g.label} - `, "")} · {vagasUsadas(t.id)}/{CAPACIDADE_TURMA}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
                       </>
                     )}
                   </SelectContent>

@@ -166,7 +166,7 @@ function AlunosPage() {
     try {
       const [a, t, m] = await Promise.all([
         supabase.from("alunos").select("*").order("nome"),
-        supabase.from("turmas").select("id,nome,horario,dias_semana").order("nome"),
+        supabase.from("turmas").select("id,nome,horario,dias_semana,modalidade").order("nome"),
         supabase.from("matriculas").select("*"),
       ]);
       if (a.error) throw a.error;

@@ -96,7 +96,7 @@ const ROTULO_STATUS = {
   falta_justificada: "Faltas justificadas",
 } as const;
 
-type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[] | null };
+type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[] | null; modalidade: string | null };
 type Matricula = { id: string; aluno_id: string; turma_id: string; status: string; modalidade: string; data_inicio: string | null };
 type Presenca = { id: string; data: string; status: string; turma_id: string | null };
 
@@ -166,7 +166,7 @@ function AlunosPage() {
     try {
       const [a, t, m] = await Promise.all([
         supabase.from("alunos").select("*").order("nome"),
-        supabase.from("turmas").select("id,nome,horario,dias_semana").order("nome"),
+        supabase.from("turmas").select("id,nome,horario,dias_semana,modalidade").order("nome"),
         supabase.from("matriculas").select("*"),
       ]);
       if (a.error) throw a.error;
@@ -393,9 +393,10 @@ function AlunosPage() {
   }
 
   const gruposDeTurmas = (() => {
+    const porModalidade = turmas.filter((t) => (t.modalidade ?? "Natação") === form.modalidade);
     const usadas = new Set<string>();
     const grupos = listaGrupos.map((g) => {
-      const doGrupo = turmas.filter((t) => {
+      const doGrupo = porModalidade.filter((t) => {
         const dias = t.dias_semana ?? [];
         const casa = g.dias.length
           ? g.dias.every((d) => dias.includes(d))
@@ -405,7 +406,7 @@ function AlunosPage() {
       });
       return { label: g.label, turmas: doGrupo };
     });
-    const restantes = turmas.filter((t) => !usadas.has(t.id));
+    const restantes = porModalidade.filter((t) => !usadas.has(t.id));
     if (restantes.length) grupos.push({ label: "Outros dias", turmas: restantes });
     return grupos.filter((g) => g.turmas.length);
   })();
@@ -726,7 +727,11 @@ function AlunosPage() {
               </div>
               <div className="space-y-2">
                 <Label>Modalidade</Label>
-                <Select value={form.modalidade} onValueChange={(v) => setForm({ ...form, modalidade: v })}>
+                <Select value={form.modalidade} onValueChange={(v) => {
+                  const selecionada = turmas.find((t) => t.id === turmaId);
+                  if (selecionada && (selecionada.modalidade ?? "Natação") !== v) setTurmaId("");
+                  setForm({ ...form, modalidade: v });
+                }}>
                   <SelectTrigger><SelectValue placeholder="Selecione a modalidade" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Natação">Natação</SelectItem>
@@ -738,13 +743,23 @@ function AlunosPage() {
                 <Label>Turma</Label>
                 <Select value={turmaId} onValueChange={setTurmaId} required={!editando}>
                   <SelectTrigger>
-                    <SelectValue placeholder={carregando ? "Carregando turmas..." : turmas.length ? "Selecione a turma" : "Nenhuma turma disponível"} />
+                    <SelectValue placeholder={
+                      carregando
+                        ? "Carregando turmas..."
+                        : gruposDeTurmas.length
+                          ? "Selecione a turma"
+                          : turmas.length
+                            ? `Nenhuma turma de ${form.modalidade} disponível`
+                            : "Nenhuma turma disponível"
+                    } />
                   </SelectTrigger>
                   <SelectContent className="max-h-80">
                     {erro ? (
                       <div className="px-3 py-2 text-sm text-destructive">Erro ao carregar turmas</div>
                     ) : turmas.length === 0 ? (
                       <div className="px-3 py-2 text-sm text-muted-foreground">Nenhuma turma cadastrada</div>
+                    ) : gruposDeTurmas.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">Nenhuma turma de {form.modalidade} cadastrada</div>
                     ) : (
                       <>
                         <SelectItem value="none" disabled>Selecione uma turma</SelectItem>

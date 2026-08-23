@@ -743,13 +743,23 @@ function AlunosPage() {
                 <Label>Turma</Label>
                 <Select value={turmaId} onValueChange={setTurmaId} required={!editando}>
                   <SelectTrigger>
-                    <SelectValue placeholder={carregando ? "Carregando turmas..." : turmas.length ? "Selecione a turma" : "Nenhuma turma disponível"} />
+                    <SelectValue placeholder={
+                      carregando
+                        ? "Carregando turmas..."
+                        : gruposDeTurmas.length
+                          ? "Selecione a turma"
+                          : turmas.length
+                            ? `Nenhuma turma de ${form.modalidade} disponível`
+                            : "Nenhuma turma disponível"
+                    } />
                   </SelectTrigger>
                   <SelectContent className="max-h-80">
                     {erro ? (
                       <div className="px-3 py-2 text-sm text-destructive">Erro ao carregar turmas</div>
                     ) : turmas.length === 0 ? (
                       <div className="px-3 py-2 text-sm text-muted-foreground">Nenhuma turma cadastrada</div>
+                    ) : gruposDeTurmas.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">Nenhuma turma de {form.modalidade} cadastrada</div>
                     ) : (
                       <>
                         <SelectItem value="none" disabled>Selecione uma turma</SelectItem>

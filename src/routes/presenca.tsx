@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -262,6 +263,16 @@ function PresencaPage() {
                   <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
                 </div>
+                <div className="space-y-1.5">
+                  <Label>Observações (justificativa)</Label>
+                  <Textarea
+                    rows={2}
+                    placeholder="Ex.: apresentou atestado médico"
+                    value={observacao}
+                    onChange={(e) => setObservacao(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">O texto é salvo no histórico do aluno junto com o registro.</p>
+                </div>
                 <div className="max-h-96 space-y-2 overflow-y-auto">
                   {filtrados.map((a) => {
                     const atual = statusPorAluno[a.id];
@@ -296,9 +307,12 @@ function PresencaPage() {
           <CardHeader><CardTitle className="font-display text-lg">Registros de hoje ({registros.length})</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {registros.map((r, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg bg-secondary/60 px-3 py-2 text-sm">
-                <span>{r.nome}</span>
-                <span className="text-muted-foreground">{rotuloStatus[r.status]} · {r.hora}</span>
+              <div key={i} className="rounded-lg bg-secondary/60 px-3 py-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span>{r.nome}</span>
+                  <span className="text-muted-foreground">{rotuloStatus[r.status]} · {r.hora}</span>
+                </div>
+                {r.obs ? <p className="mt-0.5 text-xs text-muted-foreground">Obs.: {r.obs}</p> : null}
               </div>
             ))}
             {!registros.length && <p className="py-8 text-center text-sm text-muted-foreground">Nenhum registro hoje.</p>}

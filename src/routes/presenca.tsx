@@ -47,6 +47,7 @@ function PresencaPage() {
   const [scanning, setScanning] = useState(false);
   const [busca, setBusca] = useState("");
   const [statusPorAluno, setStatusPorAluno] = useState<Record<string, StatusPresenca>>({});
+  const [observacao, setObservacao] = useState("");
   const [registros, setRegistros] = useState<{ nome: string; hora: string; status: StatusPresenca }[]>([]);
   const scannerRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
   const lastRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });

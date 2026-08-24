@@ -96,7 +96,7 @@ const ROTULO_STATUS = {
   falta_justificada: "Faltas justificadas",
 } as const;
 
-type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[] | null; modalidade: string | null };
+type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[] | null; modalidade: string | null; capacidade: number | null };
 type Matricula = { id: string; aluno_id: string; turma_id: string; status: string; modalidade: string; data_inicio: string | null };
 type Presenca = { id: string; data: string; status: string; turma_id: string | null; observacoes: string | null };
 
@@ -166,7 +166,7 @@ function AlunosPage() {
     try {
       const [a, t, m] = await Promise.all([
         supabase.from("alunos").select("*").order("nome"),
-        supabase.from("turmas").select("id,nome,horario,dias_semana,modalidade").order("nome"),
+        supabase.from("turmas").select("id,nome,horario,dias_semana,modalidade,capacidade").order("nome"),
         supabase.from("matriculas").select("*"),
       ]);
       if (a.error) throw a.error;
@@ -284,8 +284,9 @@ function AlunosPage() {
     if (turmaId) {
       const jaMatriculado = matriculas.some((m) => m.aluno_id === editando?.id && m.turma_id === turmaId);
       const ocupadas = matriculas.filter((m) => m.turma_id === turmaId && m.status === "ativa").length;
-      if (!jaMatriculado && ocupadas >= CAPACIDADE_TURMA) {
-        toast.error(`Turma lotada (${CAPACIDADE_TURMA} vagas por horário).`);
+      const capacidade = turmas.find((t) => t.id === turmaId)?.capacidade ?? CAPACIDADE_TURMA;
+      if (!jaMatriculado && ocupadas >= capacidade) {
+        toast.error(`Turma lotada (${capacidade} vagas por horário).`);
         return;
       }
       // Verificação por CPF: mesmo CPF não pode ocupar outra turma
@@ -390,6 +391,10 @@ function AlunosPage() {
 
   function vagasUsadas(id: string) {
     return matriculas.filter((m) => m.turma_id === id && m.status === "ativa").length;
+  }
+
+  function capacidadeTurma(id: string) {
+    return turmas.find((t) => t.id === id)?.capacidade ?? CAPACIDADE_TURMA;
   }
 
   const gruposDeTurmas = (() => {
@@ -767,8 +772,8 @@ function AlunosPage() {
                           <SelectGroup key={g.label}>
                             <SelectLabel>{g.label}</SelectLabel>
                             {g.turmas.map((t) => (
-                              <SelectItem key={t.id} value={t.id} disabled={vagasUsadas(t.id) >= CAPACIDADE_TURMA}>
-                                {t.nome.replace(`${g.label} - `, "")} · {vagasUsadas(t.id)}/{CAPACIDADE_TURMA}
+                              <SelectItem key={t.id} value={t.id} disabled={vagasUsadas(t.id) >= capacidadeTurma(t.id)}>
+                                {t.nome.replace(`${g.label} - `, "")} · {vagasUsadas(t.id)}/{capacidadeTurma(t.id)}
                               </SelectItem>
                             ))}
                           </SelectGroup>

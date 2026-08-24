@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Check, Search, X, FileCheck } from "lucide-react";
+import { Camera, CameraOff, Check, Search, X, FileCheck, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -11,6 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/presenca")({
   component: PresencaPage,
@@ -53,7 +58,8 @@ function PresencaPage() {
   const scannerRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
   const lastRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const [data, setData] = useState<Date>(new Date());
+  const hoje = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
 
   useEffect(() => {
     void (async () => {
@@ -91,7 +97,7 @@ function PresencaPage() {
   useEffect(() => {
     void carregarPresencasDoDia();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hoje]);
 
   async function registrar(aluno: Aluno, metodo: "qrcode" | "manual", status: StatusPresenca = "presente") {
     const obs = observacao.trim() ? observacao.trim() : null;
@@ -180,8 +186,29 @@ function PresencaPage() {
   const turmasVisiveis = turmas.filter((t) => filtroModalidade === "todas" || t.modalidade === filtroModalidade);
 
   return (
-    <AppShell title="Presença" subtitle={`Registros de hoje · ${new Date().toLocaleDateString("pt-BR")}`}>
-      <div className="mb-6 grid max-w-2xl gap-4 sm:grid-cols-2">
+    <AppShell title="Presença" subtitle={`Registros de ${data.toLocaleDateString("pt-BR")}`}>
+      <div className="mb-6 grid max-w-4xl gap-4 sm:grid-cols-3">
+        <div className="space-y-2">
+          <Label>Data do registro</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full justify-start text-left font-normal">
+                <CalendarIcon className="size-4" />
+                {format(data, "PPP", { locale: ptBR })}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                locale={ptBR}
+                selected={data}
+                onSelect={(d) => d && setData(d)}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
         <div className="space-y-2">
           <Label>Modalidade</Label>
           <Select
@@ -304,7 +331,7 @@ function PresencaPage() {
         </Tabs>
 
         <Card className="border-border/70">
-          <CardHeader><CardTitle className="font-display text-lg">Registros de hoje ({registros.length})</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="font-display text-lg">Registros do dia ({registros.length})</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {registros.map((r, i) => (
               <div key={i} className="rounded-lg bg-secondary/60 px-3 py-2 text-sm">
@@ -315,7 +342,7 @@ function PresencaPage() {
                 {r.obs ? <p className="mt-0.5 text-xs text-muted-foreground">Obs.: {r.obs}</p> : null}
               </div>
             ))}
-            {!registros.length && <p className="py-8 text-center text-sm text-muted-foreground">Nenhum registro hoje.</p>}
+            {!registros.length && <p className="py-8 text-center text-sm text-muted-foreground">Nenhum registro nesta data.</p>}
           </CardContent>
         </Card>
       </div>

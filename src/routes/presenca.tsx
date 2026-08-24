@@ -92,6 +92,7 @@ function PresencaPage() {
   }, []);
 
   async function registrar(aluno: Aluno, metodo: "qrcode" | "manual", status: StatusPresenca = "presente") {
+    const obs = observacao.trim() ? observacao.trim() : null;
     const existente = await supabase
       .from("presencas")
       .select("id")
@@ -102,7 +103,7 @@ function PresencaPage() {
     if (existente.data) {
       const { error } = await supabase
         .from("presencas")
-        .update({ status, metodo, turma_id: turmaId || null, horario: new Date().toISOString() })
+        .update({ status, metodo, turma_id: turmaId || null, horario: new Date().toISOString(), observacoes: obs })
         .eq("id", existente.data.id);
       if (error) {
         toast.error(error.message);
@@ -115,6 +116,7 @@ function PresencaPage() {
         data: hoje,
         metodo,
         status,
+        observacoes: obs,
       });
       if (error) {
         toast.error(error.message);
@@ -122,6 +124,7 @@ function PresencaPage() {
       }
     }
     toast.success(`${rotuloStatus[status]}: ${aluno.nome}`);
+    setObservacao("");
     void carregarPresencasDoDia();
   }
 

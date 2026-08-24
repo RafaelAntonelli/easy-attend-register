@@ -48,7 +48,7 @@ function PresencaPage() {
   const [busca, setBusca] = useState("");
   const [statusPorAluno, setStatusPorAluno] = useState<Record<string, StatusPresenca>>({});
   const [observacao, setObservacao] = useState("");
-  const [registros, setRegistros] = useState<{ nome: string; hora: string; status: StatusPresenca }[]>([]);
+  const [registros, setRegistros] = useState<{ nome: string; hora: string; status: StatusPresenca; obs: string | null }[]>([]);
   const scannerRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
   const lastRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
 
@@ -68,7 +68,7 @@ function PresencaPage() {
   async function carregarPresencasDoDia() {
     const { data } = await supabase
       .from("presencas")
-      .select("aluno_id,horario,status,alunos(nome)")
+      .select("aluno_id,horario,status,observacoes,alunos(nome)")
       .eq("data", hoje)
       .order("horario", { ascending: false });
     if (!data) return;
@@ -82,6 +82,7 @@ function PresencaPage() {
         nome: (r.alunos as { nome: string } | null)?.nome ?? "Aluno",
         hora: new Date(r.horario as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
         status: (r.status as StatusPresenca) ?? "presente",
+        obs: (r.observacoes as string | null) ?? null,
       })),
     );
   }

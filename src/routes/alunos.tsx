@@ -376,6 +376,21 @@ function AlunosPage() {
   async function abrirDetalhe(aluno: Aluno) {
     setDetalhe(aluno);
     setHistorico(null);
+    setDocsUrls({});
+    const caminhos = CAMPOS_DOC
+      .map((d) => ({ campo: d.campo, path: aluno[d.campo] }))
+      .filter((d) => d.path) as { campo: string; path: string }[];
+    if (caminhos.length) {
+      const { data: signed } = await supabase.storage
+        .from("fotos-alunos")
+        .createSignedUrls(caminhos.map((c) => c.path), 3600);
+      const mapa: Record<string, string> = {};
+      signed?.forEach((s, i) => {
+        const c = caminhos[i];
+        if (s.signedUrl && c) mapa[c.campo] = s.signedUrl;
+      });
+      setDocsUrls(mapa);
+    }
     const { data, error } = await supabase
       .from("presencas")
       .select("id,data,status,turma_id,observacoes")
@@ -388,6 +403,20 @@ function AlunosPage() {
     }
     setHistorico((data ?? []) as Presenca[]);
   }
+
+  async function baixarDoc(campo: string, rotulo: string, path: string, nomeAluno: string) {
+    const { data, error } = await supabase.storage.from("fotos-alunos").download(path);
+    if (error || !data) return toast.error(error?.message ?? "Falha ao baixar documento");
+    const ext = path.split(".").pop() ?? "jpg";
+    const url = URL.createObjectURL(data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${nomeAluno} - ${rotulo}.${ext}`.replace(/\//g, "-");
+    link.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+
 
   function vagasUsadas(id: string) {
     return matriculas.filter((m) => m.turma_id === id && m.status === "ativa").length;

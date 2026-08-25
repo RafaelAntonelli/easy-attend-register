@@ -155,6 +155,8 @@ function AlunosPage() {
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [detalhe, setDetalhe] = useState<Aluno | null>(null);
+  const [docsUrls, setDocsUrls] = useState<Record<string, string>>({});
+
   const [historico, setHistorico] = useState<Presenca[] | null>(null);
   const [faltasPorAluno, setFaltasPorAluno] = useState<Record<string, number>>({});
   const [selecionados, setSelecionados] = useState<string[]>([]);

@@ -646,6 +646,8 @@ function AlunosPage() {
         <Button variant="outline" onClick={exportarPlanilha}>
           <Download className="size-4" /> Exportar planilha
         </Button>
+        <ImportarAlunos turmas={turmas} matriculas={matriculas} onImportado={() => void carregar()} />
+
 
         <Dialog open={aberto} onOpenChange={setAberto}>
           <DialogTrigger asChild>

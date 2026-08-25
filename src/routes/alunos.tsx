@@ -377,9 +377,10 @@ function AlunosPage() {
     setDetalhe(aluno);
     setHistorico(null);
     setDocsUrls({});
-    const caminhos = CAMPOS_DOC
-      .map((d) => ({ campo: d.campo, path: aluno[d.campo] }))
+    const caminhos = DOCUMENTOS
+      .map((d) => ({ campo: d.campo as string, path: aluno[d.campo] }))
       .filter((d) => d.path) as { campo: string; path: string }[];
+
     if (caminhos.length) {
       const { data: signed } = await supabase.storage
         .from("fotos-alunos")

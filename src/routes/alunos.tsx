@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload } from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { CONDICOES_PCD } from "@/lib/pcd";
 import { useHorarios } from "@/lib/horarios";
@@ -155,6 +156,8 @@ function AlunosPage() {
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [detalhe, setDetalhe] = useState<Aluno | null>(null);
+  const [docsUrls, setDocsUrls] = useState<Record<string, string>>({});
+
   const [historico, setHistorico] = useState<Presenca[] | null>(null);
   const [faltasPorAluno, setFaltasPorAluno] = useState<Record<string, number>>({});
   const [selecionados, setSelecionados] = useState<string[]>([]);
@@ -376,6 +379,22 @@ function AlunosPage() {
   async function abrirDetalhe(aluno: Aluno) {
     setDetalhe(aluno);
     setHistorico(null);
+    setDocsUrls({});
+    const caminhos = DOCUMENTOS
+      .map((d) => ({ campo: d.campo as string, path: aluno[d.campo] }))
+      .filter((d) => d.path) as { campo: string; path: string }[];
+
+    if (caminhos.length) {
+      const { data: signed } = await supabase.storage
+        .from("fotos-alunos")
+        .createSignedUrls(caminhos.map((c) => c.path), 3600);
+      const mapa: Record<string, string> = {};
+      signed?.forEach((s, i) => {
+        const c = caminhos[i];
+        if (s.signedUrl && c) mapa[c.campo] = s.signedUrl;
+      });
+      setDocsUrls(mapa);
+    }
     const { data, error } = await supabase
       .from("presencas")
       .select("id,data,status,turma_id,observacoes")
@@ -388,6 +407,20 @@ function AlunosPage() {
     }
     setHistorico((data ?? []) as Presenca[]);
   }
+
+  async function baixarDoc(campo: string, rotulo: string, path: string, nomeAluno: string) {
+    const { data, error } = await supabase.storage.from("fotos-alunos").download(path);
+    if (error || !data) return toast.error(error?.message ?? "Falha ao baixar documento");
+    const ext = path.split(".").pop() ?? "jpg";
+    const url = URL.createObjectURL(data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${nomeAluno} - ${rotulo}.${ext}`.replace(/\//g, "-");
+    link.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+
 
   function vagasUsadas(id: string) {
     return matriculas.filter((m) => m.turma_id === id && m.status === "ativa").length;
@@ -471,29 +504,40 @@ function AlunosPage() {
       "Nome", "Sexo", "Idade", "Nascimento", "CPF", "RG", "Celular", "Celular 2", "E-mail",
       "Responsável", "Rede de ensino", "Escola", "PCD", "Condições PCD", "Atestado entregue",
       "Data do atestado", "Modalidade", "Turma", "Horário", "Situação",
+      ...DOCUMENTOS.map((d) => d.rotulo),
+      "Documentos enviados",
     ];
     const linhas = filtrados.map((a) => {
       const m = matriculaDoAluno(a.id);
       const t = turmaDoAluno(a.id);
+      const docs = DOCUMENTOS.map((d) => (a[d.campo] ? "Enviado" : "Pendente"));
       return [
         a.nome, a.sexo ?? "", a.idade ?? "", a.data_nascimento ?? "", a.cpf ?? "", a.rg ?? "",
         a.telefone ?? "", a.telefone2 ?? "", a.email ?? "", a.responsavel ?? "", a.rede_ensino ?? "",
         a.escola ?? "", a.pcd ? "Sim" : "Não", (a.pcd_condicoes ?? []).join(" | "),
         a.atestado_entregue ? "Sim" : "Não", a.atestado_data ?? "", m?.modalidade ?? "",
         t?.nome ?? "", t?.horario ?? "", a.ativo ? "Ativo" : "Inativo",
+        ...docs,
+        `${docs.filter((d) => d === "Enviado").length} de ${DOCUMENTOS.length}`,
       ];
     });
-    const csv = [cabecalho, ...linhas]
-      .map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
-      .join("\n");
-    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `alunos-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const dados = [cabecalho, ...linhas];
+    const ws = XLSX.utils.aoa_to_sheet(dados);
+    ws["!cols"] = cabecalho.map((_, i) => {
+      const largura = dados.reduce((max, linha) => Math.max(max, String(linha[i] ?? "").length), 10);
+      return { wch: Math.min(largura + 2, 45) };
+    });
+    ws["!rows"] = [{ hpt: 22 }];
+    ws["!freeze"] = { xSplit: "0", ySplit: "1" };
+    ws["!autofilter"] = {
+      ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: dados.length - 1, c: cabecalho.length - 1 } }),
+    };
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Alunos");
+    XLSX.writeFile(wb, `alunos-${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast.success("Planilha exportada");
   }
+
 
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
   const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
@@ -1009,6 +1053,37 @@ function AlunosPage() {
                 <p className="mb-3 text-muted-foreground">
                   RG: {detalhe.rg ?? "-"} · CPF: {detalhe.cpf ?? "-"}
                 </p>
+                <div className="mb-3 space-y-2">
+                  {DOCUMENTOS.map((d) => {
+                    const path = detalhe[d.campo];
+                    const url = docsUrls[d.campo];
+                    return (
+                      <div key={d.campo} className="flex items-center gap-3 rounded-lg bg-secondary/50 p-2">
+                        {url ? (
+                          <a href={url} target="_blank" rel="noreferrer">
+                            <img src={url} alt={d.rotulo} className="size-12 rounded object-cover" />
+                          </a>
+                        ) : (
+                          <div className="grid size-12 place-items-center rounded bg-muted text-xs text-muted-foreground">—</div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm">{d.rotulo}</p>
+                          <p className="text-xs text-muted-foreground">{path ? "Enviado" : "Não enviado"}</p>
+                        </div>
+                        {path ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void baixarDoc(d.campo, d.rotulo, path, detalhe.nome)}
+                          >
+                            Baixar
+                          </Button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+
                 <p className="mb-1 font-medium">PCD</p>
                 <p className="text-muted-foreground">
                   {detalhe.pcd ? detalhe.pcd_descricao || "Sim" : "Não"}

@@ -1041,6 +1041,37 @@ function AlunosPage() {
                 <p className="mb-3 text-muted-foreground">
                   RG: {detalhe.rg ?? "-"} · CPF: {detalhe.cpf ?? "-"}
                 </p>
+                <div className="mb-3 space-y-2">
+                  {DOCUMENTOS.map((d) => {
+                    const path = detalhe[d.campo];
+                    const url = docsUrls[d.campo];
+                    return (
+                      <div key={d.campo} className="flex items-center gap-3 rounded-lg bg-secondary/50 p-2">
+                        {url ? (
+                          <a href={url} target="_blank" rel="noreferrer">
+                            <img src={url} alt={d.rotulo} className="size-12 rounded object-cover" />
+                          </a>
+                        ) : (
+                          <div className="grid size-12 place-items-center rounded bg-muted text-xs text-muted-foreground">—</div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm">{d.rotulo}</p>
+                          <p className="text-xs text-muted-foreground">{path ? "Enviado" : "Não enviado"}</p>
+                        </div>
+                        {path ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void baixarDoc(d.campo, d.rotulo, path, detalhe.nome)}
+                          >
+                            Baixar
+                          </Button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+
                 <p className="mb-1 font-medium">PCD</p>
                 <p className="text-muted-foreground">
                   {detalhe.pcd ? detalhe.pcd_descricao || "Sim" : "Não"}

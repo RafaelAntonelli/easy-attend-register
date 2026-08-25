@@ -10,6 +10,8 @@ import { useHorarios } from "@/lib/horarios";
 import { useGruposDias } from "@/lib/dias";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, apenasDigitos } from "@/lib/formatacao";
 import { AppShell } from "@/components/AppShell";
+import { ImportarAlunos } from "@/components/ImportarAlunos";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -646,6 +648,8 @@ function AlunosPage() {
         <Button variant="outline" onClick={exportarPlanilha}>
           <Download className="size-4" /> Exportar planilha
         </Button>
+        <ImportarAlunos turmas={turmas} matriculas={matriculas} onImportado={() => void carregar()} />
+
 
         <Dialog open={aberto} onOpenChange={setAberto}>
           <DialogTrigger asChild>

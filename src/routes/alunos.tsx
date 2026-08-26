@@ -553,44 +553,95 @@ function AlunosPage() {
   });
 
 
-  function exportarPlanilha() {
-    const cabecalho = [
-      "Nome", "Sexo", "Idade", "Nascimento", "CPF", "RG", "Celular", "Celular 2", "E-mail",
-      "Responsável", "Rede de ensino", "Escola", "PCD", "Condições PCD", "Atestado entregue",
-      "Data do atestado", "Modalidade", "Turma", "Horário", "Situação",
-      ...DOCUMENTOS.map((d) => d.rotulo),
-      "Documentos enviados",
-    ];
-    const linhas = filtrados.map((a) => {
-      const m = matriculaDoAluno(a.id);
-      const t = turmaDoAluno(a.id);
-      const docs = DOCUMENTOS.map((d) => (a[d.campo] ? "Enviado" : "Pendente"));
-      return [
-        a.nome, a.sexo ?? "", a.idade ?? "", a.data_nascimento ?? "", a.cpf ?? "", a.rg ?? "",
-        a.telefone ?? "", a.telefone2 ?? "", a.email ?? "", a.responsavel ?? "", a.rede_ensino ?? "",
-        a.escola ?? "", a.pcd ? "Sim" : "Não", (a.pcd_condicoes ?? []).join(" | "),
-        a.atestado_entregue ? "Sim" : "Não", a.atestado_data ?? "", m?.modalidade ?? "",
-        t?.nome ?? "", t?.horario ?? "", a.ativo ? "Ativo" : "Inativo",
-        ...docs,
-        `${docs.filter((d) => d === "Enviado").length} de ${DOCUMENTOS.length}`,
+  async function exportarPlanilha() {
+    setExportando(true);
+    try {
+      const ExcelJS = (await import("exceljs")).default;
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Alunos");
+      const cabecalho = [
+        "Nome", "Sexo", "Idade", "Nascimento", "CPF", "RG", "Celular", "Celular 2", "E-mail",
+        "Responsável", "Rede de ensino", "Escola", "PCD", "Condições PCD", "Atestado entregue",
+        "Data do atestado", "Modalidade", "Turma", "Horário", "Turno", "Situação", "Observações",
+        ...DOCUMENTOS.map((d) => d.rotulo),
       ];
-    });
-    const dados = [cabecalho, ...linhas];
-    const ws = XLSX.utils.aoa_to_sheet(dados);
-    ws["!cols"] = cabecalho.map((_, i) => {
-      const largura = dados.reduce((max, linha) => Math.max(max, String(linha[i] ?? "").length), 10);
-      return { wch: Math.min(largura + 2, 45) };
-    });
-    ws["!rows"] = [{ hpt: 22 }];
-    ws["!freeze"] = { xSplit: "0", ySplit: "1" };
-    ws["!autofilter"] = {
-      ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: dados.length - 1, c: cabecalho.length - 1 } }),
-    };
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Alunos");
-    XLSX.writeFile(wb, `alunos-${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success("Planilha exportada");
+      ws.addRow(cabecalho);
+      ws.getRow(1).font = { bold: true };
+      ws.views = [{ state: "frozen", ySplit: 1 }];
+
+      const linhas = filtrados.map((a) => {
+        const m = matriculaDoAluno(a.id);
+        const t = turmaDoAluno(a.id);
+        return {
+          aluno: a,
+          valores: [
+            a.nome, a.sexo ?? "", a.idade ?? "", a.data_nascimento ?? "", a.cpf ?? "", a.rg ?? "",
+            a.telefone ?? "", a.telefone2 ?? "", a.email ?? "", a.responsavel ?? "", a.rede_ensino ?? "",
+            a.escola ?? "", a.pcd ? "Sim" : "Não", (a.pcd_condicoes ?? []).join(" | "),
+            a.atestado_entregue ? "Sim" : "Não", a.atestado_data ?? "",
+            m?.modalidade ?? t?.modalidade ?? "", t?.nome ?? "", t?.horario ?? "",
+            turnoDoHorario(t?.horario), a.ativo ? "Ativo" : "Inativo", a.observacoes ?? "",
+            ...DOCUMENTOS.map((d) => (a[d.campo] ? "Enviado" : "Pendente")),
+          ] as (string | number)[],
+        };
+      });
+
+      linhas.forEach((l) => ws.addRow(l.valores));
+
+      // Largura das colunas conforme conteúdo
+      cabecalho.forEach((titulo, i) => {
+        const largura = linhas.reduce(
+          (max, l) => Math.max(max, String(l.valores[i] ?? "").length),
+          titulo.length,
+        );
+        const col = ws.getColumn(i + 1);
+        col.width = Math.min(largura + 2, 45);
+        col.alignment = { vertical: "middle", wrapText: i === cabecalho.indexOf("Observações") };
+      });
+      const colunaDocInicial = cabecalho.length - DOCUMENTOS.length;
+      for (let i = 0; i < DOCUMENTOS.length; i++) ws.getColumn(colunaDocInicial + i + 1).width = 18;
+
+      // Imagens dos documentos
+      for (let li = 0; li < linhas.length; li++) {
+        const item = linhas[li];
+        if (!item) continue;
+        const linhaExcel = li + 2;
+        let temImagem = false;
+        for (let di = 0; di < DOCUMENTOS.length; di++) {
+          const doc = DOCUMENTOS[di];
+          const caminho = doc ? item.aluno[doc.campo] : null;
+          if (!caminho) continue;
+          const ext = (caminho.split(".").pop() ?? "").toLowerCase();
+          if (!["png", "jpg", "jpeg"].includes(ext)) continue;
+          const { data } = await supabase.storage.from("fotos-alunos").download(caminho);
+          if (!data) continue;
+          const buffer = await data.arrayBuffer();
+          const imageId = wb.addImage({ buffer, extension: ext === "png" ? "png" : "jpeg" });
+          ws.addImage(imageId, {
+            tl: { col: colunaDocInicial + di + 0.1, row: linhaExcel - 1 + 0.1 },
+            ext: { width: 100, height: 70 },
+          });
+          temImagem = true;
+        }
+        if (temImagem) ws.getRow(linhaExcel).height = 60;
+      }
+
+      ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cabecalho.length } };
+      const buffer = await wb.xlsx.writeBuffer();
+      const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `alunos-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Planilha exportada com as imagens dos documentos");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao exportar planilha");
+    } finally {
+      setExportando(false);
+    }
   }
+
 
 
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));

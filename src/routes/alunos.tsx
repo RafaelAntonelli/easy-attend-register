@@ -272,6 +272,21 @@ function AlunosPage() {
       toast.error("CPF inválido. Verifique os números digitados.");
       return;
     }
+    // Não permitir matrícula duplicada (nome, CPF ou celular já cadastrados)
+    const nomeNormalizado = capitalizarNome(form.nome).trim().toLowerCase();
+    const cpfDigitosForm = apenasDigitos(form.cpf);
+    const celularDigitos = apenasDigitos(form.telefone);
+    const duplicado = alunos.find((a) => {
+      if (a.id === editando?.id) return false;
+      if (cpfDigitosForm && apenasDigitos(a.cpf) === cpfDigitosForm) return true;
+      if (celularDigitos && apenasDigitos(a.telefone) === celularDigitos) return true;
+      return a.nome.trim().toLowerCase() === nomeNormalizado;
+    });
+    if (duplicado) {
+      toast.error(`Matrícula duplicada: ${duplicado.nome} já está cadastrado(a) com o mesmo nome, CPF ou celular.`);
+      return;
+    }
+
     const payload = {
       nome: capitalizarNome(form.nome),
       data_nascimento: form.data_nascimento || null,

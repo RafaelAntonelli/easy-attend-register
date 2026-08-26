@@ -228,6 +228,8 @@ function AlunosPage() {
     setEditando(null);
     setForm(vazio);
     setTurmaId("");
+    setTurnoForm("todos");
+
     setFoto(null);
     setFotoPreview(null);
     limparDocs();

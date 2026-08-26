@@ -142,6 +142,11 @@ function AlunosPage() {
   const [filtroSexo, setFiltroSexo] = useState("todos");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
   const [filtroHorario, setFiltroHorario] = useState("todos");
+  const [filtroTurno, setFiltroTurno] = useState("todos");
+  const [turnoForm, setTurnoForm] = useState("todos");
+  const [excluindoTodos, setExcluindoTodos] = useState(false);
+  const [exportando, setExportando] = useState(false);
+
   const [idadeMin, setIdadeMin] = useState("");
   const [idadeMax, setIdadeMax] = useState("");
   const [docs, setDocs] = useState<Record<CampoDoc, File | null>>({

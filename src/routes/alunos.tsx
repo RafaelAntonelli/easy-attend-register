@@ -775,6 +775,10 @@ function AlunosPage() {
                 <div className="space-y-2">
                   <Label>Idade</Label>
                   <Input type="number" min={0} max={120} value={form.idade} onChange={(e) => setForm({ ...form, idade: e.target.value })} />
+                  {form.data_nascimento ? (
+                    <p className="text-xs text-muted-foreground">Calculada automaticamente pela data de nascimento.</p>
+                  ) : null}
+
                 </div>
               </div>
               <div className="space-y-2">

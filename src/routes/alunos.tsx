@@ -741,7 +741,16 @@ function AlunosPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Nascimento</Label>
-                  <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} />
+                  <Input
+                    type="date"
+                    value={form.data_nascimento}
+                    onChange={(e) => {
+                      const nasc = e.target.value;
+                      const calculada = idadePorNascimento(nasc);
+                      setForm((f) => ({ ...f, data_nascimento: nasc, idade: calculada || f.idade }));
+                    }}
+                  />
+
                 </div>
                 <div className="space-y-2">
                   <Label>Celular</Label>

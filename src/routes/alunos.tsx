@@ -500,13 +500,17 @@ function AlunosPage() {
     if (filtroSexo !== "todos" && (a.sexo ?? "") !== filtroSexo) return false;
     if (idadeMin && (a.idade ?? -1) < Number(idadeMin)) return false;
     if (idadeMax && (a.idade ?? 999) > Number(idadeMax)) return false;
-    if (filtroModalidade !== "todas" && matriculaDoAluno(a.id)?.modalidade !== filtroModalidade) return false;
-    if (filtroHorario !== "todos" && turmaDoAluno(a.id)?.horario !== filtroHorario) return false;
+    const turma = turmaDoAluno(a.id);
+    const modalidade = matriculaDoAluno(a.id)?.modalidade ?? turma?.modalidade ?? "";
+    if (filtroModalidade !== "todas" && modalidade !== filtroModalidade) return false;
+    if (filtroHorario !== "todos" && turma?.horario !== filtroHorario) return false;
+    if (filtroTurno !== "todos" && turnoDoHorario(turma?.horario) !== filtroTurno) return false;
     if (filtroPcd === "todos") return true;
     if (filtroPcd === "sem") return !a.pcd;
     if (filtroPcd === "com") return a.pcd;
     return (a.pcd_condicoes ?? []).includes(filtroPcd);
   });
+
 
   function exportarPlanilha() {
     const cabecalho = [

@@ -440,7 +440,11 @@ function AlunosPage() {
   }
 
   const gruposDeTurmas = (() => {
-    const porModalidade = turmas.filter((t) => (t.modalidade ?? "Natação") === form.modalidade);
+    const porModalidade = turmas.filter(
+      (t) =>
+        (t.modalidade ?? "Natação") === form.modalidade &&
+        (turnoForm === "todos" || turnoDoHorario(t.horario) === turnoForm),
+    );
     const usadas = new Set<string>();
     const grupos = listaGrupos.map((g) => {
       const doGrupo = porModalidade.filter((t) => {
@@ -461,20 +465,38 @@ function AlunosPage() {
 
   async function excluirAlunos(lista: Aluno[]) {
     const ids = lista.map((a) => a.id);
+    if (!ids.length) return;
     const caminhos = lista.map((a) => a.foto_path).filter(Boolean) as string[];
-    const { error: e1 } = await supabase.from("presencas").delete().in("aluno_id", ids);
-    if (e1) return toast.error(e1.message);
-    const { error: e2 } = await supabase.from("matriculas").delete().in("aluno_id", ids);
-    if (e2) return toast.error(e2.message);
-    const { error } = await supabase.from("alunos").delete().in("id", ids);
-    if (error) return toast.error(error.message);
-    if (caminhos.length) await supabase.storage.from("fotos-alunos").remove(caminhos);
+    // Lotes pequenos evitam o erro 400 (URL longa demais) ao excluir muitos alunos
+    try {
+      for (let i = 0; i < ids.length; i += 40) {
+        const lote = ids.slice(i, i + 40);
+        const p = await supabase.from("presencas").delete().in("aluno_id", lote);
+        if (p.error) throw p.error;
+        const m = await supabase.from("matriculas").delete().in("aluno_id", lote);
+        if (m.error) throw m.error;
+        const a = await supabase.from("alunos").delete().in("id", lote);
+        if (a.error) throw a.error;
+      }
+      for (let i = 0; i < caminhos.length; i += 40) {
+        await supabase.storage.from("fotos-alunos").remove(caminhos.slice(i, i + 40));
+      }
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao excluir alunos");
+      return;
+    }
     toast.success(ids.length > 1 ? `${ids.length} alunos excluídos` : "Aluno excluído");
     setSelecionados([]);
     setConfirmarExclusao(null);
     void carregar();
     return;
   }
+
+  async function excluirTodos() {
+    setExcluindoTodos(false);
+    await excluirAlunos(alunos);
+  }
+
 
   async function alternarAtivo(lista: Aluno[], ativo: boolean) {
     const ids = lista.map((a) => a.id);

@@ -122,6 +122,8 @@ type Dados = {
   rede_ensino: string;
   escola: string;
   pcd: string;
+  atestado: string;
+  atestado_data: string;
   modalidade: string;
   observacoes: string;
   turmaNome: string;

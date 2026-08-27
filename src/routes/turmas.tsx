@@ -417,7 +417,11 @@ function TurmasPage() {
                   <h3 className="font-display text-lg font-semibold">{t.nome}</h3>
                   <p className="text-sm text-muted-foreground">{t.modalidade}{t.professor ? ` · ${t.professor}` : ""}</p>
                 </div>
-                <Badge variant="secondary">{t.horario ?? "s/ horário"}</Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant="secondary">{t.horario ?? "s/ horário"}</Badge>
+                  {turnoDoHorario(t.horario) ? <Badge variant="outline">{turnoDoHorario(t.horario)}</Badge> : null}
+                </div>
+
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {t.dias_semana.map((d) => (

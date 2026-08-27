@@ -5,7 +5,7 @@ import modeloCracha from "@/assets/cracha-modelo.jpg";
 export const CR80 = { largura: 85.6, altura: 54 };
 
 // A arte modelo tem 1920 x 1210 px e a mesma proporção do CR-80
-const ARTE = { largura: 1920, altura: 1210 };
+const ARTE = { largura: 1920, altura: 1209 };
 const EX = CR80.largura / ARTE.largura;
 const EY = CR80.altura / ARTE.altura;
 
@@ -26,14 +26,14 @@ export type DadosCracha = {
 };
 
 const CAMPOS = {
-  nome: { x: 525, y: 305, w: 900 },
-  pcd: { x: 1478, y: 305, w: 380 },
-  documento: { x: 525, y: 515, w: 1330 },
-  responsavel: { x: 525, y: 660, w: 1330 },
-  celular: { x: 525, y: 820, w: 700 },
-  modalidade: { x: 1278, y: 820, w: 580 },
-  horario: { x: 525, y: 962, w: 700 },
-  dias: { x: 1278, y: 962, w: 580 },
+  nome: { x: 525, y: 312, w: 900 },
+  pcd: { x: 1478, y: 312, w: 380 },
+  documento: { x: 525, y: 498, w: 1330 },
+  responsavel: { x: 525, y: 650, w: 1330 },
+  celular: { x: 525, y: 807, w: 700 },
+  modalidade: { x: 1278, y: 807, w: 580 },
+  horario: { x: 525, y: 974, w: 700 },
+  dias: { x: 1278, y: 974, w: 580 },
 } as const;
 
 const FOTO = { x: 42, y: 168, w: 415, h: 585 };

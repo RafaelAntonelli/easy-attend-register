@@ -246,6 +246,21 @@ export function ImportarAlunos({
       const nascimento = dataISO(mapa["Nascimento"] ? l[mapa["Nascimento"] as string] : "");
       if (nascBruto && !nascimento) erros.push("Data de nascimento inválida (use DD/MM/AAAA)");
 
+      const atestadoBruto = valor("Atestado");
+      const atestadoDataBruta = valor("Data do atestado");
+      const atestadoData = dataISO(mapa["Data do atestado"] ? l[mapa["Data do atestado"] as string] : "");
+      if (atestadoDataBruta && !atestadoData) erros.push("Data do atestado inválida (use DD/MM/AAAA)");
+      const atestadoEntregue = atestadoBruto
+        ? sim(mapa["Atestado"] ? l[mapa["Atestado"] as string] : "")
+        : !!atestadoData;
+      if (atestadoEntregue && !atestadoData) avisos.push("Atestado marcado como entregue, mas sem data");
+      if (atestadoData) {
+        const limite = new Date(atestadoData);
+        limite.setFullYear(limite.getFullYear() + 1);
+        if (limite < new Date()) avisos.push("Atestado vencido (mais de 1 ano)");
+      }
+
+
       const idadeBruta = valor("Idade");
       let idade: number | null = null;
       if (idadeBruta) {

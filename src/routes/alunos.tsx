@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload } from "lucide-react";
+import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { useHorarios } from "@/lib/horarios";
 import { useGruposDias } from "@/lib/dias";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, apenasDigitos } from "@/lib/formatacao";
 import { TURNOS, turnoDoHorario, idadePorNascimento } from "@/lib/turnos";
+import { gerarCrachasPdf, gerarFolhaA4Crachas, type DadosCracha } from "@/lib/cracha";
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";
@@ -23,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
@@ -146,6 +148,7 @@ function AlunosPage() {
   const [turnoForm, setTurnoForm] = useState("todos");
   const [excluindoTodos, setExcluindoTodos] = useState(false);
   const [exportando, setExportando] = useState(false);
+  const [gerandoCrachas, setGerandoCrachas] = useState(false);
 
   const [idadeMin, setIdadeMin] = useState("");
   const [idadeMax, setIdadeMax] = useState("");
@@ -538,6 +541,41 @@ function AlunosPage() {
     return m ? turmas.find((t) => t.id === m.turma_id) : undefined;
   }
 
+  function dadosCracha(a: Aluno): DadosCracha {
+    const t = turmaDoAluno(a.id);
+    return {
+      nome: a.nome,
+      rg: a.rg,
+      cpf: a.cpf,
+      responsavel: a.responsavel,
+      telefone: a.telefone,
+      pcd: a.pcd,
+      modalidade: matriculaDoAluno(a.id)?.modalidade ?? t?.modalidade ?? "",
+      horario: t?.horario ?? "",
+      dias: t?.dias_semana ?? [],
+      fotoUrl: fotos[a.id] ?? null,
+    };
+  }
+
+  async function exportarCrachas(lista: Aluno[], formato: "cartao" | "folha") {
+    if (!lista.length) {
+      toast.error("Nenhum aluno para gerar crachá");
+      return;
+    }
+    setGerandoCrachas(true);
+    try {
+      const dados = lista.map(dadosCracha);
+      const nome = lista.length === 1 ? `cracha-${lista[0]!.nome.replace(/\s+/g, "-").toLowerCase()}` : "crachas-arena-aquatica";
+      if (formato === "folha") await gerarFolhaA4Crachas(dados, `${nome}-a4`);
+      else await gerarCrachasPdf(dados, nome);
+      toast.success(`${lista.length} crachá(s) gerado(s)`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao gerar crachás");
+    } finally {
+      setGerandoCrachas(false);
+    }
+  }
+
   const filtrados = alunos.filter((a) => {
     if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
     if (filtroSexo !== "todos" && (a.sexo ?? "") !== filtroSexo) return false;
@@ -762,6 +800,35 @@ function AlunosPage() {
         <Button variant="outline" disabled={exportando} onClick={() => void exportarPlanilha()}>
           <Download className="size-4" /> {exportando ? "Exportando..." : "Exportar planilha"}
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" disabled={gerandoCrachas || !filtrados.length}>
+              <IdCard className="size-4" /> {gerandoCrachas ? "Gerando..." : "Crachás"}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72">
+            <DropdownMenuLabel>Exportar crachás CR-80 (PDF)</DropdownMenuLabel>
+            <DropdownMenuItem
+              disabled={!selecionados.length}
+              onClick={() => void exportarCrachas(filtrados.filter((a) => selecionados.includes(a.id)), "cartao")}
+            >
+              Selecionados ({selecionados.length}) — 1 por página
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!selecionados.length}
+              onClick={() => void exportarCrachas(filtrados.filter((a) => selecionados.includes(a.id)), "folha")}
+            >
+              Selecionados ({selecionados.length}) — folha A4
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => void exportarCrachas(filtrados, "cartao")}>
+              Todos da lista ({filtrados.length}) — 1 por página
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void exportarCrachas(filtrados, "folha")}>
+              Todos da lista ({filtrados.length}) — folha A4
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button variant="destructive" disabled={!alunos.length} onClick={() => setExcluindoTodos(true)}>
           <Trash2 className="size-4" /> Excluir todos
         </Button>
@@ -1208,6 +1275,14 @@ function AlunosPage() {
                   </p>
                 </div>
               </div>
+
+              <Button
+                variant="outline"
+                disabled={gerandoCrachas}
+                onClick={() => void exportarCrachas([detalhe], "cartao")}
+              >
+                <IdCard className="size-4" /> {gerandoCrachas ? "Gerando..." : "Gerar crachá CR-80 (PDF)"}
+              </Button>
 
               {detalhe.observacoes ? (
                 <div className="rounded-lg border border-border/70 p-3 text-sm">

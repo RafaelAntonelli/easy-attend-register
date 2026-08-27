@@ -44,8 +44,13 @@ export function candidatosImagem(url: string): string[] {
 export const baixarImagem = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ url: z.string().url() }).parse(data))
   .handler(async ({ data }) => {
+    if (ehPastaDrive(data.url))
+      throw new Error(
+        "O link é de uma PASTA do Google Drive. Use o link de compartilhamento de cada arquivo de imagem.",
+      );
     const alvos = candidatosImagem(data.url).filter((u) => /^https?:\/\//i.test(u));
     if (alvos.length === 0) throw new Error("Link inválido");
+
 
     let contentType = "";
     let bytes: Uint8Array | undefined;

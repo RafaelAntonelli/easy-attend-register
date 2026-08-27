@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
+import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -180,6 +181,18 @@ function AlunosPage() {
   async function carregar() {
     setCarregando(true);
     setErro(null);
+    if (!estaOnline()) {
+      const c = await lerCache<{ alunos: Aluno[]; turmas: Turma[]; matriculas: Matricula[] }>("alunos");
+      if (c) {
+        setAlunos(c.alunos ?? []);
+        setTurmas(c.turmas ?? []);
+        setMatriculas(c.matriculas ?? []);
+      } else {
+        setErro("Sem conexão e sem dados salvos neste aparelho.");
+      }
+      setCarregando(false);
+      return;
+    }
     try {
       const [a, t, m] = await Promise.all([
         supabase.from("alunos").select("*").order("nome"),
@@ -192,6 +205,7 @@ function AlunosPage() {
       setAlunos(a.data as Aluno[]);
       setTurmas(t.data as Turma[]);
       setMatriculas(m.data as Matricula[]);
+      void salvarCache("alunos", { alunos: a.data, turmas: t.data, matriculas: m.data });
       const f = await supabase.from("presencas").select("aluno_id").eq("status", "falta");
       if (f.data) {
         const contagem: Record<string, number> = {};
@@ -340,6 +354,28 @@ function AlunosPage() {
       }
     }
     setSalvando(true);
+
+    if (!estaOnline()) {
+      const idLocal = editando?.id ?? crypto.randomUUID();
+      if (editando) {
+        await enfileirar({ tipo: "aluno_update", aluno_id: idLocal, dados: payload, foto: foto ?? null, fotoNome: foto?.name ?? null });
+        setAlunos((lista) => lista.map((a) => (a.id === idLocal ? ({ ...a, ...payload } as Aluno) : a)));
+      } else {
+        await enfileirar({ tipo: "aluno_novo", aluno: { id: idLocal, ...payload }, foto: foto ?? null, fotoNome: foto?.name ?? null });
+        setAlunos((lista) => [...lista, { id: idLocal, ativo: true, ...payload } as unknown as Aluno]);
+      }
+      if (turmaId) {
+        await enfileirar({ tipo: "matricula", aluno_id: idLocal, turma_id: turmaId, modalidade: form.modalidade });
+        setMatriculas((lista) => [
+          ...lista.filter((m) => m.aluno_id !== idLocal),
+          { aluno_id: idLocal, turma_id: turmaId, status: "ativa", modalidade: form.modalidade } as unknown as Matricula,
+        ]);
+      }
+      setSalvando(false);
+      setAberto(false);
+      toast.success("Salvo offline. Será enviado quando a internet voltar.");
+      return;
+    }
 
     let alunoId = editando?.id;
     try {

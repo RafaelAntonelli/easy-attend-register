@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { StatusOffline } from "@/components/StatusOffline";
+
 
 const baseNav = [
   { to: "/", label: "Painel", icon: LayoutDashboard },
@@ -96,10 +98,13 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
         </Button>
       </aside>
 
+      <StatusOffline />
+
       <header className="border-b border-border bg-card/60 px-5 py-6 backdrop-blur md:px-10">
         <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{title}</h1>
         {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
       </header>
+
 
       <main className="px-5 py-6 md:px-10">{children}</main>
 

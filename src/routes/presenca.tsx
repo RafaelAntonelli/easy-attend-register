@@ -17,6 +17,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { TURNOS, turnoDoHorario } from "@/lib/turnos";
+import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
+
 
 
 export const Route = createFileRoute("/presenca")({
@@ -67,6 +69,15 @@ function PresencaPage() {
 
   useEffect(() => {
     void (async () => {
+      if (!estaOnline()) {
+        const c = await lerCache<{ turmas: Turma[]; alunos: Aluno[]; matriculas: { aluno_id: string; turma_id: string }[] }>("presenca");
+        if (c) {
+          setTurmas(c.turmas ?? []);
+          setAlunos(c.alunos ?? []);
+          setMatriculas(c.matriculas ?? []);
+        }
+        return;
+      }
       const [t, a, m] = await Promise.all([
         supabase.from("turmas").select("id,nome,horario,modalidade").order("nome"),
         supabase.from("alunos").select("id,nome,codigo").eq("ativo", true).order("nome"),
@@ -75,11 +86,13 @@ function PresencaPage() {
       if (t.data) setTurmas(t.data as Turma[]);
       if (a.data) setAlunos(a.data as Aluno[]);
       if (m.data) setMatriculas(m.data as { aluno_id: string; turma_id: string }[]);
+      void salvarCache("presenca", { turmas: t.data ?? [], alunos: a.data ?? [], matriculas: m.data ?? [] });
     })();
   }, []);
 
 
   async function carregarPresencasDoDia() {
+    if (!estaOnline()) return;
     const { data } = await supabase
       .from("presencas")
       .select("aluno_id,horario,status,observacoes,alunos(nome)")
@@ -108,6 +121,29 @@ function PresencaPage() {
 
   async function registrar(aluno: Aluno, metodo: "qrcode" | "manual", status: StatusPresenca = "presente") {
     const obs = observacao.trim() ? observacao.trim() : null;
+    const agoraIso = new Date().toISOString();
+
+    if (!estaOnline()) {
+      await enfileirar({
+        tipo: "presenca",
+        aluno_id: aluno.id,
+        turma_id: turmaId || null,
+        data: hoje,
+        status,
+        metodo,
+        observacoes: obs,
+        horario: agoraIso,
+      });
+      setStatusPorAluno((s) => ({ ...s, [aluno.id]: status }));
+      setRegistros((r) => [
+        { nome: aluno.nome, hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }), status, obs },
+        ...r.filter((x) => x.nome !== aluno.nome),
+      ]);
+      setObservacao("");
+      toast.success(`${rotuloStatus[status]}: ${aluno.nome} (salvo offline)`);
+      return;
+    }
+
     const existente = await supabase
       .from("presencas")
       .select("id")
@@ -118,7 +154,7 @@ function PresencaPage() {
     if (existente.data) {
       const { error } = await supabase
         .from("presencas")
-        .update({ status, metodo, turma_id: turmaId || null, horario: new Date().toISOString(), observacoes: obs })
+        .update({ status, metodo, turma_id: turmaId || null, horario: agoraIso, observacoes: obs })
         .eq("id", existente.data.id);
       if (error) {
         toast.error(error.message);
@@ -142,6 +178,7 @@ function PresencaPage() {
     setObservacao("");
     void carregarPresencasDoDia();
   }
+
 
   async function onScan(texto: string) {
     const agora = Date.now();

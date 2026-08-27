@@ -11,6 +11,7 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -111,6 +112,8 @@ function TurmasPage() {
 
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [statusPresenca, setStatusPresenca] = useState<Record<string, StatusPresenca>>({});
+  const [observacoesPresenca, setObservacoesPresenca] = useState<Record<string, string>>({});
+  const [editandoObservacao, setEditandoObservacao] = useState<{ alunoId: string; nome: string; texto: string } | null>(null);
   const [turmaAberta, setTurmaAberta] = useState<Turma | null>(null);
   const [alunosTurma, setAlunosTurma] = useState<AlunoTurma[] | null>(null);
   const [confirmarExclusao, setConfirmarExclusao] = useState<Turma | null>(null);
@@ -257,15 +260,18 @@ function TurmasPage() {
     const hoje = new Date().toISOString().slice(0, 10);
     const pres = await supabase
       .from("presencas")
-      .select("aluno_id,status")
+      .select("aluno_id,status,observacoes")
       .eq("data", hoje)
       .in("aluno_id", lista.map((a) => a.id));
     if (pres.data) {
       const mapa: Record<string, StatusPresenca> = {};
-      for (const r of pres.data as { aluno_id: string; status: string }[]) {
+      const mapaObs: Record<string, string> = {};
+      for (const r of pres.data as { aluno_id: string; status: string; observacoes: string | null }[]) {
         mapa[r.aluno_id] = (r.status as StatusPresenca) ?? "presente";
+        mapaObs[r.aluno_id] = r.observacoes ?? "";
       }
       setStatusPresenca(mapa);
+      setObservacoesPresenca(mapaObs);
     }
   }
 
@@ -292,6 +298,36 @@ function TurmasPage() {
     if (error) return toast.error(error.message);
     setStatusPresenca((s) => ({ ...s, [alunoId]: status }));
     toast.success(ROTULO_PRESENCA[status] + " registrada");
+    return;
+  }
+
+  async function salvarObservacao() {
+    if (!editandoObservacao) return;
+    const { alunoId, texto } = editandoObservacao;
+    const hoje = new Date().toISOString().slice(0, 10);
+    const existente = await supabase
+      .from("presencas")
+      .select("id")
+      .eq("aluno_id", alunoId)
+      .eq("data", hoje)
+      .maybeSingle();
+    const { error } = existente.data
+      ? await supabase
+          .from("presencas")
+          .update({ observacoes: texto || null, metodo: "manual", turma_id: turmaAberta?.id ?? null, horario: new Date().toISOString() })
+          .eq("id", existente.data.id)
+      : await supabase.from("presencas").insert({
+          aluno_id: alunoId,
+          turma_id: turmaAberta?.id ?? null,
+          data: hoje,
+          metodo: "manual",
+          status: "falta_justificada",
+          observacoes: texto || null,
+        });
+    if (error) return toast.error(error.message);
+    setObservacoesPresenca((o) => ({ ...o, [alunoId]: texto }));
+    setEditandoObservacao(null);
+    toast.success("Observação salva");
     return;
   }
 
@@ -532,11 +568,36 @@ function TurmasPage() {
                     >
                       <FileCheck className="size-4" /> Justificada
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      title="Editar observação"
+                      onClick={() => setEditandoObservacao({ alunoId: a.id, nome: a.nome, texto: observacoesPresenca[a.id] ?? "" })}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
                   </div>
                 </div>
               ))
 
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!editandoObservacao} onOpenChange={(o) => !o && setEditandoObservacao(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Observação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{editandoObservacao?.nome}</p>
+            <Textarea
+              value={editandoObservacao?.texto ?? ""}
+              onChange={(e) => setEditandoObservacao((prev) => (prev ? { ...prev, texto: e.target.value } : null))}
+              placeholder="Motivo da falta justificada..."
+              rows={4}
+            />
+            <Button onClick={() => void salvarObservacao()} className="w-full">Salvar observação</Button>
           </div>
         </DialogContent>
       </Dialog>

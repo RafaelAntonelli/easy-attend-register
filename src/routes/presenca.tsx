@@ -17,6 +17,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { TURNOS, turnoDoHorario } from "@/lib/turnos";
+import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
+
 
 
 export const Route = createFileRoute("/presenca")({

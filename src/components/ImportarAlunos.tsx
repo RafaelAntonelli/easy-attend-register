@@ -39,6 +39,8 @@ const COLUNAS = [
   "Rede de ensino",
   "Escola",
   "PCD",
+  "Atestado",
+  "Data do atestado",
   "Modalidade",
   "Turma",
   "Foto",
@@ -60,6 +62,14 @@ const ALIASES: Record<string, string[]> = {
   "Rede de ensino": ["rede de ensino", "rede", "rede ensino", "publica privada", "tipo de escola"],
   Escola: ["escola", "colegio", "nome da escola", "instituicao"],
   PCD: ["pcd", "deficiencia", "possui deficiencia"],
+  Atestado: ["atestado", "entregou atestado", "atestado entregue", "atestado medico", "entregou atestado medico"],
+  "Data do atestado": [
+    "data do atestado",
+    "data atestado",
+    "atestado data",
+    "validade do atestado",
+    "data do atestado medico",
+  ],
   Modalidade: ["modalidade", "atividade", "esporte"],
   Turma: ["turma", "turma horario", "horario", "classe", "grupo"],
   Observações: ["observacoes", "observacao", "obs", "anotacoes"],
@@ -112,6 +122,8 @@ type Dados = {
   rede_ensino: string;
   escola: string;
   pcd: string;
+  atestado: string;
+  atestado_data: string;
   modalidade: string;
   observacoes: string;
   turmaNome: string;
@@ -185,7 +197,7 @@ export function ImportarAlunos({
       [
         "Maria da Silva", "Feminino", 12, "2014-03-25", "000.000.000-00", "12.345.678-9",
         "(11) 99999-9999", "", "maria@email.com", "João da Silva", "Pública", "Escola Municipal",
-        "Não", "Natação", turmas[0]?.nome ?? "", "https://exemplo.com/foto-maria.jpg", "",
+        "Não", "Sim", "2026-02-10", "Natação", turmas[0]?.nome ?? "", "https://exemplo.com/foto-maria.jpg", "",
       ],
     ]);
     ws["!cols"] = COLUNAS.map((c) => ({ wch: Math.max(c.length + 4, 14) }));
@@ -233,6 +245,21 @@ export function ImportarAlunos({
       const nascBruto = valor("Nascimento");
       const nascimento = dataISO(mapa["Nascimento"] ? l[mapa["Nascimento"] as string] : "");
       if (nascBruto && !nascimento) erros.push("Data de nascimento inválida (use DD/MM/AAAA)");
+
+      const atestadoBruto = valor("Atestado");
+      const atestadoDataBruta = valor("Data do atestado");
+      const atestadoData = dataISO(mapa["Data do atestado"] ? l[mapa["Data do atestado"] as string] : "");
+      if (atestadoDataBruta && !atestadoData) erros.push("Data do atestado inválida (use DD/MM/AAAA)");
+      const atestadoEntregue = atestadoBruto
+        ? sim(mapa["Atestado"] ? l[mapa["Atestado"] as string] : "")
+        : !!atestadoData;
+      if (atestadoEntregue && !atestadoData) avisos.push("Atestado marcado como entregue, mas sem data");
+      if (atestadoData) {
+        const limite = new Date(atestadoData);
+        limite.setFullYear(limite.getFullYear() + 1);
+        if (limite < new Date()) avisos.push("Atestado vencido (mais de 1 ano)");
+      }
+
 
       const idadeBruta = valor("Idade");
       let idade: number | null = null;
@@ -349,6 +376,8 @@ export function ImportarAlunos({
           rede_ensino: valor("Rede de ensino"),
           escola: valor("Escola"),
           pcd: sim(mapa["PCD"] ? l[mapa["PCD"] as string] : "") ? "sim" : "",
+          atestado: atestadoEntregue ? "sim" : "",
+          atestado_data: atestadoData ?? "",
           modalidade: turma?.modalidade ?? modalidade,
           observacoes: valor("Observações"),
           turmaNome: turma ? `${turma.nome} · ${turma.modalidade ?? ""}` : nomeTurma,
@@ -465,6 +494,8 @@ export function ImportarAlunos({
         rede_ensino: d.rede_ensino || null,
         escola: d.escola || null,
         pcd: d.pcd === "sim",
+        atestado_entregue: d.atestado === "sim",
+        atestado_data: d.atestado_data || null,
         observacoes: d.observacoes || null,
       };
 

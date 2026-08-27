@@ -378,36 +378,38 @@ export async function gerarCrachaPreviewImagem(dados: DadosCracha, opcoes: Opcoe
   return canvas.toDataURL("image/png");
 }
 
+/** Baixa as fotos em paralelo (com limite) antes de renderizar — evita travar no meio do lote */
+async function prepararFotos(lista: DadosCracha[], limite = 6) {
+  const urls = Array.from(new Set(lista.map((d) => d.fotoUrl).filter(Boolean) as string[]));
+  let i = 0;
+  const trabalhador = async () => {
+    while (i < urls.length) {
+      const url = urls[i++]!;
+      try {
+        await carregarImagemCache(await urlParaDataUrlCache(url));
+      } catch {
+        // segue sem foto
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limite, urls.length) }, trabalhador));
+}
+
 // ---- Exportação fiel ao preview: usa exatamente a mesma renderização em canvas ----
 export async function gerarCrachasPdfFielAoPreview(
   lista: DadosCracha[],
   nomeArquivo: string,
-  opcoes: { formato?: "cartao" | "folha"; guias?: boolean } = {},
+  opcoes: {
+    formato?: "cartao" | "folha";
+    guias?: boolean;
+    /** Recebe (feitos, total) a cada crachá renderizado */
+    aoProgredir?: (feitos: number, total: number) => void;
+  } = {},
 ) {
   if (!lista.length) throw new Error("Nenhum aluno selecionado");
   const formato = opcoes.formato ?? "cartao";
-  const escala = 2; // ~1140 dpi no cartão CR-80
+  const escala = 1.5; // ~850 dpi no cartão CR-80 — nítido e muito mais leve que 2x PNG
 
-  const imagens: string[] = [];
-  for (const dados of lista) {
-    const canvas = await renderizarCrachaCanvas(dados, { escala, guias: !!opcoes.guias });
-    imagens.push(canvas.toDataURL("image/png"));
-  }
-
-  const salvar = (doc: jsPDF) =>
-    doc.save(nomeArquivo.endsWith(".pdf") ? nomeArquivo : `${nomeArquivo}.pdf`);
-
-  if (formato === "cartao") {
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [CR80.largura, CR80.altura] });
-    imagens.forEach((img, i) => {
-      if (i > 0) doc.addPage([CR80.largura, CR80.altura], "landscape");
-      doc.addImage(img, "PNG", 0, 0, CR80.largura, CR80.altura, undefined, "FAST");
-    });
-    salvar(doc);
-    return;
-  }
-
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const colunas = 2;
   const linhas = 5;
   const margemX = 10;
@@ -416,17 +418,40 @@ export async function gerarCrachasPdfFielAoPreview(
   const espacoY = 3;
   const porPagina = colunas * linhas;
 
-  imagens.forEach((img, i) => {
-    const indice = i % porPagina;
-    if (i > 0 && indice === 0) doc.addPage();
-    const col = indice % colunas;
-    const lin = Math.floor(indice / colunas);
-    const ox = margemX + col * (CR80.largura + espacoX);
-    const oy = margemY + lin * (CR80.altura + espacoY);
-    doc.addImage(img, "PNG", ox, oy, CR80.largura, CR80.altura, undefined, "FAST");
-    doc.setDrawColor(200);
-    doc.rect(ox, oy, CR80.largura, CR80.altura);
-  });
-  salvar(doc);
+  const doc =
+    formato === "cartao"
+      ? new jsPDF({ orientation: "landscape", unit: "mm", format: [CR80.largura, CR80.altura] })
+      : new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  // Fotos baixadas em paralelo e um único canvas reaproveitado em todo o lote
+  await prepararFotos(lista);
+  const canvas = document.createElement("canvas");
+
+  for (let i = 0; i < lista.length; i++) {
+    await renderizarCrachaCanvas(lista[i]!, { escala, guias: !!opcoes.guias, canvas });
+    // JPEG é ordens de grandeza mais rápido/leve que PNG para arte fotográfica
+    const img = canvas.toDataURL("image/jpeg", 0.92);
+
+    if (formato === "cartao") {
+      if (i > 0) doc.addPage([CR80.largura, CR80.altura], "landscape");
+      doc.addImage(img, "JPEG", 0, 0, CR80.largura, CR80.altura, undefined, "FAST");
+    } else {
+      const indice = i % porPagina;
+      if (i > 0 && indice === 0) doc.addPage();
+      const col = indice % colunas;
+      const lin = Math.floor(indice / colunas);
+      const ox = margemX + col * (CR80.largura + espacoX);
+      const oy = margemY + lin * (CR80.altura + espacoY);
+      doc.addImage(img, "JPEG", ox, oy, CR80.largura, CR80.altura, undefined, "FAST");
+      doc.setDrawColor(200);
+      doc.rect(ox, oy, CR80.largura, CR80.altura);
+    }
+
+    opcoes.aoProgredir?.(i + 1, lista.length);
+    await respirar(); // mantém a interface responsiva
+  }
+
+  doc.save(nomeArquivo.endsWith(".pdf") ? nomeArquivo : `${nomeArquivo}.pdf`);
 }
+
 

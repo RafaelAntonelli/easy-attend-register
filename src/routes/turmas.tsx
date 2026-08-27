@@ -568,6 +568,14 @@ function TurmasPage() {
                     >
                       <FileCheck className="size-4" /> Justificada
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      title="Editar observação"
+                      onClick={() => setEditandoObservacao({ alunoId: a.id, nome: a.nome, texto: observacoesPresenca[a.id] ?? "" })}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
                   </div>
                 </div>
               ))

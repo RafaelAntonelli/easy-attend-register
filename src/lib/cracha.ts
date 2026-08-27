@@ -79,13 +79,13 @@ function documentoFormatado(d: DadosCracha) {
   return [d.rg, d.cpf].filter(Boolean).join("  /  ");
 }
 
-async function desenharCracha(doc: jsPDF, dados: DadosCracha, modelo: string) {
-  doc.addImage(modelo, "JPEG", 0, 0, CR80.largura, CR80.altura);
+async function desenharCracha(doc: jsPDF, dados: DadosCracha, modelo: string, ox = 0, oy = 0) {
+  doc.addImage(modelo, "JPEG", ox, oy, CR80.largura, CR80.altura);
 
   if (dados.fotoUrl) {
     try {
       const foto = await urlParaDataUrl(dados.fotoUrl);
-      doc.addImage(foto, mmX(FOTO.x), mmY(FOTO.y), mmX(FOTO.w), mmY(FOTO.h), undefined, "FAST");
+      doc.addImage(foto, ox + mmX(FOTO.x), oy + mmY(FOTO.y), mmX(FOTO.w), mmY(FOTO.h), undefined, "FAST");
     } catch {
       // segue sem foto
     }
@@ -94,16 +94,23 @@ async function desenharCracha(doc: jsPDF, dados: DadosCracha, modelo: string) {
   doc.setTextColor(20, 20, 40);
   doc.setFont("helvetica", "bold");
 
-  escrever(doc, CAMPOS.nome, dados.nome ?? "");
-  escrever(doc, CAMPOS.pcd, dados.pcd ? "Sim" : "Não");
-  escrever(doc, CAMPOS.documento, documentoFormatado(dados));
-  escrever(doc, CAMPOS.responsavel, dados.responsavel ?? "");
-  escrever(doc, CAMPOS.celular, dados.telefone ?? "");
-  escrever(doc, CAMPOS.modalidade, dados.modalidade ?? "");
-  escrever(doc, CAMPOS.horario, dados.horario ?? "");
-  escrever(doc, CAMPOS.dias, (dados.dias ?? []).join(" e "), 8);
+  const put = (campo: { x: number; y: number; w: number }, texto: string, base = 9) => {
+    if (!texto) return;
+    textoAjustado(doc, texto, mmX(campo.w), base);
+    doc.text(texto, ox + mmX(campo.x), oy + mmY(campo.y), { baseline: "middle" });
+  };
+
+  put(CAMPOS.nome, dados.nome ?? "");
+  put(CAMPOS.pcd, dados.pcd ? "Sim" : "Nao".replace("Nao", "N\u00e3o"));
+  put(CAMPOS.documento, documentoFormatado(dados));
+  put(CAMPOS.responsavel, dados.responsavel ?? "");
+  put(CAMPOS.celular, dados.telefone ?? "");
+  put(CAMPOS.modalidade, dados.modalidade ?? "");
+  put(CAMPOS.horario, dados.horario ?? "");
+  put(CAMPOS.dias, (dados.dias ?? []).join(" e "), 8);
 }
 
+// Um crachá por página, no tamanho exato CR-80 (impressoras de cartão)
 export async function gerarCrachasPdf(lista: DadosCracha[], nomeArquivo: string) {
   if (!lista.length) throw new Error("Nenhum aluno selecionado");
   const modelo = await obterModelo();
@@ -117,7 +124,7 @@ export async function gerarCrachasPdf(lista: DadosCracha[], nomeArquivo: string)
   doc.save(nomeArquivo.endsWith(".pdf") ? nomeArquivo : `${nomeArquivo}.pdf`);
 }
 
-// Folha A4 com vários crachás para impressão em papel (3 colunas x 5 linhas)
+// Folha A4 com vários crachás (2 colunas x 5 linhas) para recorte
 export async function gerarFolhaA4Crachas(lista: DadosCracha[], nomeArquivo: string) {
   if (!lista.length) throw new Error("Nenhum aluno selecionado");
   const modelo = await obterModelo();
@@ -136,43 +143,12 @@ export async function gerarFolhaA4Crachas(lista: DadosCracha[], nomeArquivo: str
     if (i > 0 && indice === 0) doc.addPage();
     const col = indice % colunas;
     const lin = Math.floor(indice / colunas);
-    const offsetX = margemX + col * (CR80.largura + espacoX);
-    const offsetY = margemY + lin * (CR80.altura + espacoY);
-
-    const cartao = new jsPDF({ orientation: "landscape", unit: "mm", format: [CR80.largura, CR80.altura] });
-    await desenharCracha(cartao, lista[i]!, modelo);
-    // Reaproveita o desenho renderizando diretamente na folha
-    doc.addImage(modelo, "JPEG", offsetX, offsetY, CR80.largura, CR80.altura);
-    await desenharSobreFolha(doc, lista[i]!, offsetX, offsetY);
+    const ox = margemX + col * (CR80.largura + espacoX);
+    const oy = margemY + lin * (CR80.altura + espacoY);
+    await desenharCracha(doc, lista[i]!, modelo, ox, oy);
     doc.setDrawColor(200);
-    doc.rect(offsetX, offsetY, CR80.largura, CR80.altura);
+    doc.rect(ox, oy, CR80.largura, CR80.altura);
   }
 
   doc.save(nomeArquivo.endsWith(".pdf") ? nomeArquivo : `${nomeArquivo}.pdf`);
-}
-
-async function desenharSobreFolha(doc: jsPDF, dados: DadosCracha, ox: number, oy: number) {
-  if (dados.fotoUrl) {
-    try {
-      const foto = await urlParaDataUrl(dados.fotoUrl);
-      doc.addImage(foto, ox + mmX(FOTO.x), oy + mmY(FOTO.y), mmX(FOTO.w), mmY(FOTO.h), undefined, "FAST");
-    } catch {
-      // segue sem foto
-    }
-  }
-  doc.setTextColor(20, 20, 40);
-  doc.setFont("helvetica", "bold");
-  const put = (campo: { x: number; y: number; w: number }, texto: string, base = 9) => {
-    if (!texto) return;
-    textoAjustado(doc, texto, mmX(campo.w), base);
-    doc.text(texto, ox + mmX(campo.x), oy + mmY(campo.y), { baseline: "middle" });
-  };
-  put(CAMPOS.nome, dados.nome ?? "");
-  put(CAMPOS.pcd, dados.pcd ? "Sim" : "Não");
-  put(CAMPOS.documento, documentoFormatado(dados));
-  put(CAMPOS.responsavel, dados.responsavel ?? "");
-  put(CAMPOS.celular, dados.telefone ?? "");
-  put(CAMPOS.modalidade, dados.modalidade ?? "");
-  put(CAMPOS.horario, dados.horario ?? "");
-  put(CAMPOS.dias, (dados.dias ?? []).join(" e "), 8);
 }

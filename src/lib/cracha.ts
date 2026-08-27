@@ -34,7 +34,7 @@ const CAMPOS = {
   documento: { x: 775, y: 425, w: 1065 },
   responsavel: { x: 1155, y: 572, w: 685 },
   celular: { x: 760, y: 731, w: 490 },
-  modalidade: { x: 1622, y: 731, w: 220 },
+  modalidade: { x: 1615, y: 731, w: 205 },
   horario: { x: 770, y: 896, w: 470 },
   dias: { x: 1420, y: 896, w: 420 },
 } as const;

@@ -1198,8 +1198,23 @@ function AlunosPage() {
                   <p>{detalhe.telefone ?? "Sem telefone"}</p>
                   <p>{detalhe.email ?? "Sem e-mail"}</p>
                   <p>{detalhe.responsavel ? `Responsável: ${detalhe.responsavel}` : "Sem responsável"}</p>
+                  <p>
+                    Idade: {detalhe.idade ?? idadePorNascimento(detalhe.data_nascimento) || "-"}
+                    {turmaDoAluno(detalhe.id)?.horario
+                      ? ` · Turno: ${turnoDoHorario(turmaDoAluno(detalhe.id)?.horario)}`
+                      : ""}
+                  </p>
                 </div>
               </div>
+
+              {detalhe.observacoes ? (
+                <div className="rounded-lg border border-border/70 p-3 text-sm">
+                  <p className="mb-1 font-medium">Observações</p>
+                  <p className="whitespace-pre-wrap text-muted-foreground">{detalhe.observacoes}</p>
+                </div>
+              ) : null}
+
+
 
               <div className="rounded-lg border border-border/70 p-3 text-sm">
                 <p className="mb-1 font-medium">Documentos</p>

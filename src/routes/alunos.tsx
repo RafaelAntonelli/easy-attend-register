@@ -1337,6 +1337,23 @@ function AlunosPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={excluindoTodos} onOpenChange={setExcluindoTodos}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir TODOS os alunos?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os {alunos.length} alunos cadastrados serão removidos junto com matrículas, presenças e fotos. Esta ação não
+              pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void excluirTodos()}>Excluir todos</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </AppShell>
   );
 }

@@ -39,6 +39,8 @@ const COLUNAS = [
   "Rede de ensino",
   "Escola",
   "PCD",
+  "Atestado",
+  "Data do atestado",
   "Modalidade",
   "Turma",
   "Foto",

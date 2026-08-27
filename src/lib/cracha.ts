@@ -101,7 +101,7 @@ async function desenharCracha(doc: jsPDF, dados: DadosCracha, modelo: string, ox
   };
 
   put(CAMPOS.nome, dados.nome ?? "");
-  put(CAMPOS.pcd, dados.pcd ? "Sim" : "Nao".replace("Nao", "N\u00e3o"));
+  put(CAMPOS.pcd, dados.pcd ? "Sim" : "Não");
   put(CAMPOS.documento, documentoFormatado(dados));
   put(CAMPOS.responsavel, dados.responsavel ?? "");
   put(CAMPOS.celular, dados.telefone ?? "");

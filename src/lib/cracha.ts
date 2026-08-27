@@ -298,21 +298,30 @@ function desenharGuias(ctx: CanvasRenderingContext2D) {
 }
 
 /** Desenha o crachá num canvas — mesma fonte de verdade do preview e da exportação fiel */
-export async function renderizarCrachaCanvas(dados: DadosCracha, opcoes: OpcoesRender = {}) {
+export async function renderizarCrachaCanvas(
+  dados: DadosCracha,
+  opcoes: OpcoesRender & { canvas?: HTMLCanvasElement } = {},
+) {
   const escala = opcoes.escala ?? 1;
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(ARTE.largura * escala);
-  canvas.height = Math.round(ARTE.altura * escala);
+  const canvas = opcoes.canvas ?? document.createElement("canvas");
+  const largura = Math.round(ARTE.largura * escala);
+  const altura = Math.round(ARTE.altura * escala);
+  if (canvas.width !== largura || canvas.height !== altura) {
+    canvas.width = largura;
+    canvas.height = altura;
+  }
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas indisponível");
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, largura, altura);
   ctx.scale(escala, escala);
 
-  const modelo = await carregarImagem(await obterModelo());
+  const modelo = await carregarImagemCache(await obterModelo());
   ctx.drawImage(modelo, 0, 0, ARTE.largura, ARTE.altura);
 
   if (dados.fotoUrl) {
     try {
-      const foto = await carregarImagem(await urlParaDataUrl(dados.fotoUrl));
+      const foto = await carregarImagemCache(await urlParaDataUrlCache(dados.fotoUrl));
       ctx.drawImage(foto, FOTO.x, FOTO.y, FOTO.w, FOTO.h);
     } catch {
       // segue sem foto
@@ -321,7 +330,7 @@ export async function renderizarCrachaCanvas(dados: DadosCracha, opcoes: OpcoesR
 
   if (dados.codigo) {
     try {
-      const qr = await carregarImagem(await qrDataUrl(dados.codigo));
+      const qr = await carregarQr(dados.codigo);
       ctx.imageSmoothingEnabled = false;
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(QR.x - 10, QR.y - 10, QR.size + 20, QR.size + 20);
@@ -331,6 +340,7 @@ export async function renderizarCrachaCanvas(dados: DadosCracha, opcoes: OpcoesR
       // segue sem QR
     }
   }
+
 
   ctx.fillStyle = "#141428";
   ctx.textBaseline = "middle";

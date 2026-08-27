@@ -24,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
@@ -799,6 +800,35 @@ function AlunosPage() {
         <Button variant="outline" disabled={exportando} onClick={() => void exportarPlanilha()}>
           <Download className="size-4" /> {exportando ? "Exportando..." : "Exportar planilha"}
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" disabled={gerandoCrachas || !filtrados.length}>
+              <IdCard className="size-4" /> {gerandoCrachas ? "Gerando..." : "Crachás"}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72">
+            <DropdownMenuLabel>Exportar crachás CR-80 (PDF)</DropdownMenuLabel>
+            <DropdownMenuItem
+              disabled={!selecionados.length}
+              onClick={() => void exportarCrachas(filtrados.filter((a) => selecionados.includes(a.id)), "cartao")}
+            >
+              Selecionados ({selecionados.length}) — 1 por página
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!selecionados.length}
+              onClick={() => void exportarCrachas(filtrados.filter((a) => selecionados.includes(a.id)), "folha")}
+            >
+              Selecionados ({selecionados.length}) — folha A4
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => void exportarCrachas(filtrados, "cartao")}>
+              Todos da lista ({filtrados.length}) — 1 por página
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void exportarCrachas(filtrados, "folha")}>
+              Todos da lista ({filtrados.length}) — folha A4
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button variant="destructive" disabled={!alunos.length} onClick={() => setExcluindoTodos(true)}>
           <Trash2 className="size-4" /> Excluir todos
         </Button>

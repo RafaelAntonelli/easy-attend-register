@@ -583,17 +583,23 @@ function AlunosPage() {
       return;
     }
     setGerandoCrachas(true);
+    const idToast = toast.loading(`Gerando crachás… 0/${lista.length}`);
     try {
       const dados = lista.map(dadosCracha);
       const nome = lista.length === 1 ? `cracha-${lista[0]!.nome.replace(/\s+/g, "-").toLowerCase()}` : "crachas-arena-aquatica";
       // Exportação fiel: mesma renderização (margens e escala) da pré-visualização
-      await gerarCrachasPdfFielAoPreview(dados, formato === "folha" ? `${nome}-a4` : nome, { formato });
-      toast.success(`${lista.length} crachá(s) gerado(s)`);
+      await gerarCrachasPdfFielAoPreview(dados, formato === "folha" ? `${nome}-a4` : nome, {
+        formato,
+        aoProgredir: (feitos, total) =>
+          toast.loading(`Gerando crachás… ${feitos}/${total}`, { id: idToast }),
+      });
+      toast.success(`${lista.length} crachá(s) gerado(s)`, { id: idToast });
     } catch (err: any) {
-      toast.error(err?.message ?? "Erro ao gerar crachás");
+      toast.error(err?.message ?? "Erro ao gerar crachás", { id: idToast });
     } finally {
       setGerandoCrachas(false);
     }
+
   }
 
 

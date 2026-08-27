@@ -44,6 +44,8 @@ const FOTO = { x: 32, y: 158, w: 436, h: 605 };
 const QR = { x: 125, y: 870, size: 260 };
 
 
+const cacheFoto = new Map<string, Promise<string>>();
+
 async function urlParaDataUrl(url: string) {
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -54,6 +56,19 @@ async function urlParaDataUrl(url: string) {
     reader.onerror = () => reject(new Error("Falha ao ler imagem"));
     reader.readAsDataURL(blob);
   });
+}
+
+/** Mesma URL só é baixada e convertida uma vez por sessão */
+function urlParaDataUrlCache(url: string) {
+  let p = cacheFoto.get(url);
+  if (!p) {
+    p = urlParaDataUrl(url).catch((e) => {
+      cacheFoto.delete(url);
+      throw e;
+    });
+    cacheFoto.set(url, p);
+  }
+  return p;
 }
 
 let modeloCache: string | null = null;
@@ -69,6 +84,7 @@ async function qrDataUrl(texto: string) {
   // ECC alto + módulos grandes garantem leitura mesmo impresso em ~9 mm
   return await QRCode.toDataURL(texto, { margin: 0, width: 640, errorCorrectionLevel: "H", color: { dark: "#000000", light: "#FFFFFF" } });
 }
+
 
 function textoAjustado(doc: jsPDF, texto: string, larguraMm: number, tamanhoBase = 11) {
   let tamanho = tamanhoBase;
@@ -194,7 +210,39 @@ function carregarImagem(src: string) {
   });
 }
 
+const cacheImagem = new Map<string, Promise<HTMLImageElement>>();
+function carregarImagemCache(src: string) {
+  let p = cacheImagem.get(src);
+  if (!p) {
+    p = carregarImagem(src).catch((e) => {
+      cacheImagem.delete(src);
+      throw e;
+    });
+    cacheImagem.set(src, p);
+  }
+  return p;
+}
+
+const cacheQr = new Map<string, Promise<HTMLImageElement>>();
+function carregarQr(texto: string) {
+  let p = cacheQr.get(texto);
+  if (!p) {
+    p = qrDataUrl(texto)
+      .then(carregarImagem)
+      .catch((e) => {
+        cacheQr.delete(texto);
+        throw e;
+      });
+    cacheQr.set(texto, p);
+  }
+  return p;
+}
+
+/** Devolve o controle ao navegador para a interface não travar */
+const respirar = () => new Promise<void>((r) => setTimeout(r, 0));
+
 const PX_POR_MM = ARTE.altura / CR80.altura;
+
 
 export type OpcoesRender = {
   /** Desenha uma grade de guias por cima para conferir posições */
@@ -250,21 +298,30 @@ function desenharGuias(ctx: CanvasRenderingContext2D) {
 }
 
 /** Desenha o crachá num canvas — mesma fonte de verdade do preview e da exportação fiel */
-export async function renderizarCrachaCanvas(dados: DadosCracha, opcoes: OpcoesRender = {}) {
+export async function renderizarCrachaCanvas(
+  dados: DadosCracha,
+  opcoes: OpcoesRender & { canvas?: HTMLCanvasElement } = {},
+) {
   const escala = opcoes.escala ?? 1;
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(ARTE.largura * escala);
-  canvas.height = Math.round(ARTE.altura * escala);
+  const canvas = opcoes.canvas ?? document.createElement("canvas");
+  const largura = Math.round(ARTE.largura * escala);
+  const altura = Math.round(ARTE.altura * escala);
+  if (canvas.width !== largura || canvas.height !== altura) {
+    canvas.width = largura;
+    canvas.height = altura;
+  }
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas indisponível");
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, largura, altura);
   ctx.scale(escala, escala);
 
-  const modelo = await carregarImagem(await obterModelo());
+  const modelo = await carregarImagemCache(await obterModelo());
   ctx.drawImage(modelo, 0, 0, ARTE.largura, ARTE.altura);
 
   if (dados.fotoUrl) {
     try {
-      const foto = await carregarImagem(await urlParaDataUrl(dados.fotoUrl));
+      const foto = await carregarImagemCache(await urlParaDataUrlCache(dados.fotoUrl));
       ctx.drawImage(foto, FOTO.x, FOTO.y, FOTO.w, FOTO.h);
     } catch {
       // segue sem foto
@@ -273,7 +330,7 @@ export async function renderizarCrachaCanvas(dados: DadosCracha, opcoes: OpcoesR
 
   if (dados.codigo) {
     try {
-      const qr = await carregarImagem(await qrDataUrl(dados.codigo));
+      const qr = await carregarQr(dados.codigo);
       ctx.imageSmoothingEnabled = false;
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(QR.x - 10, QR.y - 10, QR.size + 20, QR.size + 20);
@@ -283,6 +340,7 @@ export async function renderizarCrachaCanvas(dados: DadosCracha, opcoes: OpcoesR
       // segue sem QR
     }
   }
+
 
   ctx.fillStyle = "#141428";
   ctx.textBaseline = "middle";
@@ -320,36 +378,38 @@ export async function gerarCrachaPreviewImagem(dados: DadosCracha, opcoes: Opcoe
   return canvas.toDataURL("image/png");
 }
 
+/** Baixa as fotos em paralelo (com limite) antes de renderizar — evita travar no meio do lote */
+async function prepararFotos(lista: DadosCracha[], limite = 6) {
+  const urls = Array.from(new Set(lista.map((d) => d.fotoUrl).filter(Boolean) as string[]));
+  let i = 0;
+  const trabalhador = async () => {
+    while (i < urls.length) {
+      const url = urls[i++]!;
+      try {
+        await carregarImagemCache(await urlParaDataUrlCache(url));
+      } catch {
+        // segue sem foto
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limite, urls.length) }, trabalhador));
+}
+
 // ---- Exportação fiel ao preview: usa exatamente a mesma renderização em canvas ----
 export async function gerarCrachasPdfFielAoPreview(
   lista: DadosCracha[],
   nomeArquivo: string,
-  opcoes: { formato?: "cartao" | "folha"; guias?: boolean } = {},
+  opcoes: {
+    formato?: "cartao" | "folha";
+    guias?: boolean;
+    /** Recebe (feitos, total) a cada crachá renderizado */
+    aoProgredir?: (feitos: number, total: number) => void;
+  } = {},
 ) {
   if (!lista.length) throw new Error("Nenhum aluno selecionado");
   const formato = opcoes.formato ?? "cartao";
-  const escala = 2; // ~1140 dpi no cartão CR-80
+  const escala = 1.5; // ~850 dpi no cartão CR-80 — nítido e muito mais leve que 2x PNG
 
-  const imagens: string[] = [];
-  for (const dados of lista) {
-    const canvas = await renderizarCrachaCanvas(dados, { escala, guias: !!opcoes.guias });
-    imagens.push(canvas.toDataURL("image/png"));
-  }
-
-  const salvar = (doc: jsPDF) =>
-    doc.save(nomeArquivo.endsWith(".pdf") ? nomeArquivo : `${nomeArquivo}.pdf`);
-
-  if (formato === "cartao") {
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [CR80.largura, CR80.altura] });
-    imagens.forEach((img, i) => {
-      if (i > 0) doc.addPage([CR80.largura, CR80.altura], "landscape");
-      doc.addImage(img, "PNG", 0, 0, CR80.largura, CR80.altura, undefined, "FAST");
-    });
-    salvar(doc);
-    return;
-  }
-
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const colunas = 2;
   const linhas = 5;
   const margemX = 10;
@@ -358,17 +418,40 @@ export async function gerarCrachasPdfFielAoPreview(
   const espacoY = 3;
   const porPagina = colunas * linhas;
 
-  imagens.forEach((img, i) => {
-    const indice = i % porPagina;
-    if (i > 0 && indice === 0) doc.addPage();
-    const col = indice % colunas;
-    const lin = Math.floor(indice / colunas);
-    const ox = margemX + col * (CR80.largura + espacoX);
-    const oy = margemY + lin * (CR80.altura + espacoY);
-    doc.addImage(img, "PNG", ox, oy, CR80.largura, CR80.altura, undefined, "FAST");
-    doc.setDrawColor(200);
-    doc.rect(ox, oy, CR80.largura, CR80.altura);
-  });
-  salvar(doc);
+  const doc =
+    formato === "cartao"
+      ? new jsPDF({ orientation: "landscape", unit: "mm", format: [CR80.largura, CR80.altura] })
+      : new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  // Fotos baixadas em paralelo e um único canvas reaproveitado em todo o lote
+  await prepararFotos(lista);
+  const canvas = document.createElement("canvas");
+
+  for (let i = 0; i < lista.length; i++) {
+    await renderizarCrachaCanvas(lista[i]!, { escala, guias: !!opcoes.guias, canvas });
+    // JPEG é ordens de grandeza mais rápido/leve que PNG para arte fotográfica
+    const img = canvas.toDataURL("image/jpeg", 0.92);
+
+    if (formato === "cartao") {
+      if (i > 0) doc.addPage([CR80.largura, CR80.altura], "landscape");
+      doc.addImage(img, "JPEG", 0, 0, CR80.largura, CR80.altura, undefined, "FAST");
+    } else {
+      const indice = i % porPagina;
+      if (i > 0 && indice === 0) doc.addPage();
+      const col = indice % colunas;
+      const lin = Math.floor(indice / colunas);
+      const ox = margemX + col * (CR80.largura + espacoX);
+      const oy = margemY + lin * (CR80.altura + espacoY);
+      doc.addImage(img, "JPEG", ox, oy, CR80.largura, CR80.altura, undefined, "FAST");
+      doc.setDrawColor(200);
+      doc.rect(ox, oy, CR80.largura, CR80.altura);
+    }
+
+    opcoes.aoProgredir?.(i + 1, lista.length);
+    await respirar(); // mantém a interface responsiva
+  }
+
+  doc.save(nomeArquivo.endsWith(".pdf") ? nomeArquivo : `${nomeArquivo}.pdf`);
 }
+
 

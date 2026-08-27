@@ -210,7 +210,39 @@ function carregarImagem(src: string) {
   });
 }
 
+const cacheImagem = new Map<string, Promise<HTMLImageElement>>();
+function carregarImagemCache(src: string) {
+  let p = cacheImagem.get(src);
+  if (!p) {
+    p = carregarImagem(src).catch((e) => {
+      cacheImagem.delete(src);
+      throw e;
+    });
+    cacheImagem.set(src, p);
+  }
+  return p;
+}
+
+const cacheQr = new Map<string, Promise<HTMLImageElement>>();
+function carregarQr(texto: string) {
+  let p = cacheQr.get(texto);
+  if (!p) {
+    p = qrDataUrl(texto)
+      .then(carregarImagem)
+      .catch((e) => {
+        cacheQr.delete(texto);
+        throw e;
+      });
+    cacheQr.set(texto, p);
+  }
+  return p;
+}
+
+/** Devolve o controle ao navegador para a interface não travar */
+const respirar = () => new Promise<void>((r) => setTimeout(r, 0));
+
 const PX_POR_MM = ARTE.altura / CR80.altura;
+
 
 export type OpcoesRender = {
   /** Desenha uma grade de guias por cima para conferir posições */

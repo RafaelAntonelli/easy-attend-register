@@ -571,7 +571,7 @@ export function ImportarAlunos({
             Use um arquivo Excel (.xlsx) ou CSV com a primeira linha de cabeçalho. As colunas são detectadas
             automaticamente; apenas <strong>Nome</strong> é obrigatória. As colunas <strong>Turma</strong> e
             <strong> Modalidade</strong> definem a matrícula (Natação e Hidroginástica têm turmas distintas no mesmo
-            horário) e a coluna <strong>Foto</strong> aceita o link da imagem, que é baixada automaticamente.
+            horário). A coluna <strong>Foto</strong> aceita o link da imagem (inclusive Google Drive) e também imagens coladas direto na célula.
           </p>
 
           <div className="space-y-2">

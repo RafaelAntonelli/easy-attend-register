@@ -639,27 +639,29 @@ function AlunosPage() {
   }
 
 
-  const filtrados = alunos.filter((a) => {
-    if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
-    if (filtroSexo !== "todos" && (a.sexo ?? "") !== filtroSexo) return false;
-    if (idadeMin && (a.idade ?? -1) < Number(idadeMin)) return false;
-    if (idadeMax && (a.idade ?? 999) > Number(idadeMax)) return false;
-    const turma = turmaDoAluno(a.id);
-    const modalidade = matriculaDoAluno(a.id)?.modalidade ?? turma?.modalidade ?? "";
-    if (filtroModalidade !== "todas" && modalidade !== filtroModalidade) return false;
-    if (filtroHorario !== "todos" && turma?.horario !== filtroHorario) return false;
-    if (filtroDias !== "todos") {
-      const grupo = listaGrupos.find((g) => g.label === filtroDias);
-      const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
-      const diasTurma = turma?.dias_semana ?? [];
-      if (!diasEsperados.length || !diasEsperados.every((d) => diasTurma.includes(d))) return false;
-    }
-    if (filtroTurno !== "todos" && turnoDoHorario(turma?.horario) !== filtroTurno) return false;
-    if (filtroPcd === "todos") return true;
-    if (filtroPcd === "sem") return !a.pcd;
-    if (filtroPcd === "com") return a.pcd;
-    return (a.pcd_condicoes ?? []).includes(filtroPcd);
-  });
+  const filtrados = alunos
+    .filter((a) => {
+      if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+      if (filtroSexo !== "todos" && (a.sexo ?? "") !== filtroSexo) return false;
+      if (idadeMin && (a.idade ?? -1) < Number(idadeMin)) return false;
+      if (idadeMax && (a.idade ?? 999) > Number(idadeMax)) return false;
+      const turma = turmaDoAluno(a.id);
+      const modalidade = matriculaDoAluno(a.id)?.modalidade ?? turma?.modalidade ?? "";
+      if (filtroModalidade !== "todas" && modalidade !== filtroModalidade) return false;
+      if (filtroHorario !== "todos" && turma?.horario !== filtroHorario) return false;
+      if (filtroDias !== "todos") {
+        const grupo = listaGrupos.find((g) => g.label === filtroDias);
+        const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
+        const diasTurma = turma?.dias_semana ?? [];
+        if (!diasEsperados.length || !diasEsperados.every((d) => diasTurma.includes(d))) return false;
+      }
+      if (filtroTurno !== "todos" && turnoDoHorario(turma?.horario) !== filtroTurno) return false;
+      if (filtroPcd === "todos") return true;
+      if (filtroPcd === "sem") return !a.pcd;
+      if (filtroPcd === "com") return a.pcd;
+      return (a.pcd_condicoes ?? []).includes(filtroPcd);
+    })
+    .sort((a, b) => a.nome.localeCompare(b.nome));
 
 
   async function exportarPlanilha() {

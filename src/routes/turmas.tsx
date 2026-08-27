@@ -260,15 +260,18 @@ function TurmasPage() {
     const hoje = new Date().toISOString().slice(0, 10);
     const pres = await supabase
       .from("presencas")
-      .select("aluno_id,status")
+      .select("aluno_id,status,observacoes")
       .eq("data", hoje)
       .in("aluno_id", lista.map((a) => a.id));
     if (pres.data) {
       const mapa: Record<string, StatusPresenca> = {};
-      for (const r of pres.data as { aluno_id: string; status: string }[]) {
+      const mapaObs: Record<string, string> = {};
+      for (const r of pres.data as { aluno_id: string; status: string; observacoes: string | null }[]) {
         mapa[r.aluno_id] = (r.status as StatusPresenca) ?? "presente";
+        mapaObs[r.aluno_id] = r.observacoes ?? "";
       }
       setStatusPresenca(mapa);
+      setObservacoesPresenca(mapaObs);
     }
   }
 

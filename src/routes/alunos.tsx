@@ -796,6 +796,15 @@ function AlunosPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={filtroDias} onValueChange={setFiltroDias}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent className="max-h-80">
+            <SelectItem value="todos">Todos os dias</SelectItem>
+            {listaGrupos.map((g) => (
+              <SelectItem key={g.id} value={g.label}>{g.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={filtroSexo} onValueChange={setFiltroSexo}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>

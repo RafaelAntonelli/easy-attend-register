@@ -9,7 +9,7 @@ import { useHorarios } from "@/lib/horarios";
 import { useGruposDias } from "@/lib/dias";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, apenasDigitos } from "@/lib/formatacao";
 import { TURNOS, turnoDoHorario, idadePorNascimento } from "@/lib/turnos";
-import { gerarCrachasPdf, gerarFolhaA4Crachas, gerarCrachaPreviewImagem, type DadosCracha } from "@/lib/cracha";
+import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";
@@ -148,6 +148,7 @@ function AlunosPage() {
   const [excluindoTodos, setExcluindoTodos] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
+  const [mostrarGuias, setMostrarGuias] = useState(false);
 
   const [idadeMin, setIdadeMin] = useState("");
   const [idadeMax, setIdadeMax] = useState("");
@@ -558,16 +559,21 @@ function AlunosPage() {
     };
   }
 
-  async function abrirPreviewCracha(a: Aluno) {
+  async function abrirPreviewCracha(a: Aluno, guias = mostrarGuias) {
     setQrAluno(a);
     setPreviewUrl(null);
     try {
-      const url = await gerarCrachaPreviewImagem(dadosCracha(a));
+      const url = await gerarCrachaPreviewImagem(dadosCracha(a), { guias });
       setPreviewUrl(url);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível gerar o crachá");
       setQrAluno(null);
     }
+  }
+
+  async function alternarGuias(valor: boolean) {
+    setMostrarGuias(valor);
+    if (qrAluno) await abrirPreviewCracha(qrAluno, valor);
   }
 
   async function exportarCrachas(lista: Aluno[], formato: "cartao" | "folha") {
@@ -579,8 +585,8 @@ function AlunosPage() {
     try {
       const dados = lista.map(dadosCracha);
       const nome = lista.length === 1 ? `cracha-${lista[0]!.nome.replace(/\s+/g, "-").toLowerCase()}` : "crachas-arena-aquatica";
-      if (formato === "folha") await gerarFolhaA4Crachas(dados, `${nome}-a4`);
-      else await gerarCrachasPdf(dados, nome);
+      // Exportação fiel: mesma renderização (margens e escala) da pré-visualização
+      await gerarCrachasPdfFielAoPreview(dados, formato === "folha" ? `${nome}-a4` : nome, { formato });
       toast.success(`${lista.length} crachá(s) gerado(s)`);
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao gerar crachás");
@@ -588,6 +594,7 @@ function AlunosPage() {
       setGerandoCrachas(false);
     }
   }
+
 
   const filtrados = alunos.filter((a) => {
     if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
@@ -1422,11 +1429,18 @@ function AlunosPage() {
             <DialogTitle className="font-display">Crachá de {qrAluno?.nome}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-2">
+            <div className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2">
+              <Label htmlFor="guias-cracha" className="text-sm">
+                Guias de alinhamento (grade)
+              </Label>
+              <Switch id="guias-cracha" checked={mostrarGuias} onCheckedChange={(v) => void alternarGuias(v)} />
+            </div>
             {previewUrl ? (
               <img alt="Pré-visualização do crachá" src={previewUrl} className="w-full rounded-lg border border-border" />
             ) : (
               <p className="py-12 text-sm text-muted-foreground">Gerando pré-visualização...</p>
             )}
+
             <Button
               variant="outline"
               disabled={!qrAluno || gerandoCrachas}

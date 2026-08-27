@@ -347,8 +347,8 @@ function AlunosPage() {
         return;
       }
       // Verificação por CPF: mesmo CPF não pode ocupar outra turma
-      if (form.cpf) {
-        const cpfDigitos = apenasDigitos(form.cpf);
+      const cpfDigitos = apenasDigitos(form.cpf);
+      if (cpfDigitos.length === 11) {
         const duplicado = alunos.find(
           (a) => a.id !== editando?.id && apenasDigitos(a.cpf) === cpfDigitos && matriculas.some((m) => m.aluno_id === a.id),
         );
@@ -357,6 +357,7 @@ function AlunosPage() {
           return;
         }
       }
+
     }
     setSalvando(true);
 

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload } from "lucide-react";
+import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { useHorarios } from "@/lib/horarios";
 import { useGruposDias } from "@/lib/dias";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, apenasDigitos } from "@/lib/formatacao";
 import { TURNOS, turnoDoHorario, idadePorNascimento } from "@/lib/turnos";
+import { gerarCrachasPdf, gerarFolhaA4Crachas, type DadosCracha } from "@/lib/cracha";
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";
@@ -146,6 +147,7 @@ function AlunosPage() {
   const [turnoForm, setTurnoForm] = useState("todos");
   const [excluindoTodos, setExcluindoTodos] = useState(false);
   const [exportando, setExportando] = useState(false);
+  const [gerandoCrachas, setGerandoCrachas] = useState(false);
 
   const [idadeMin, setIdadeMin] = useState("");
   const [idadeMax, setIdadeMax] = useState("");

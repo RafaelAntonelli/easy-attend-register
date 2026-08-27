@@ -3,10 +3,16 @@ import { z } from "zod";
 
 function idDoDrive(url: string) {
   return (
+    url.match(/\/(?:file|d)\/d?\/?([\w-]{15,})/)?.[1] ??
     url.match(/drive\.google\.com\/file\/d\/([\w-]+)/)?.[1] ??
-    url.match(/[?&]id=([\w-]+)/)?.[1] ??
-    (/drive\.google\.com|googleusercontent/.test(url) ? undefined : undefined)
+    url.match(/lh3\.googleusercontent\.com\/d\/([\w-]+)/)?.[1] ??
+    url.match(/[?&]id=([\w-]+)/)?.[1]
   );
+}
+
+/** Link para pasta do Drive (não é uma imagem). */
+export function ehPastaDrive(url: string) {
+  return /drive\.google\.com\/drive\/folders\//.test(url);
 }
 
 /** Converte links de compartilhamento (Drive, Dropbox, OneDrive) em link direto da imagem. */
@@ -16,18 +22,21 @@ export function linkDiretoImagem(url: string) {
 
 /** Lista de URLs a tentar, da mais confiável para a menos. */
 export function candidatosImagem(url: string): string[] {
+  if (ehPastaDrive(url)) return [];
   const id = idDoDrive(url);
   if (id)
     return [
-      `https://drive.google.com/thumbnail?id=${id}&sz=w1600`,
+      `https://drive.google.com/thumbnail?id=${id}&sz=w1600&authuser=0`,
       `https://lh3.googleusercontent.com/d/${id}=w1600`,
-      `https://drive.usercontent.google.com/download?id=${id}&export=view`,
+      `https://drive.usercontent.google.com/download?id=${id}&export=view&authuser=0`,
+      `https://drive.google.com/uc?export=view&id=${id}`,
       `https://drive.google.com/uc?export=download&id=${id}`,
     ];
   if (/dropbox\.com/.test(url))
     return [url.replace(/[?&]dl=0/, "").concat(url.includes("?") ? "&raw=1" : "?raw=1")];
   return [url];
 }
+
 
 /**
  * Baixa a imagem no servidor (o navegador bloqueia por CORS) e devolve em base64.

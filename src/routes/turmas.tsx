@@ -295,8 +295,10 @@ function TurmasPage() {
     (t) =>
       (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
       (filtroHorario === "todos" || t.horario === filtroHorario) &&
+      (filtroTurno === "todos" || turnoDoHorario(t.horario) === filtroTurno) &&
       (filtroDias === "todos" || grupoDosDias(t.dias_semana) === filtroDias),
   );
+
 
   return (
     <AppShell title="Turmas" subtitle="Modalidades, horários e professores">

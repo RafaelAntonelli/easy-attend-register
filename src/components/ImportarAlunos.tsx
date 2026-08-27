@@ -494,6 +494,8 @@ export function ImportarAlunos({
         rede_ensino: d.rede_ensino || null,
         escola: d.escola || null,
         pcd: d.pcd === "sim",
+        atestado_entregue: d.atestado === "sim",
+        atestado_data: d.atestado_data || null,
         observacoes: d.observacoes || null,
       };
 

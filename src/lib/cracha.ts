@@ -27,16 +27,16 @@ export type DadosCracha = {
   codigo?: string | null;
 };
 
-// Valores alinhados na MESMA linha do rótulo, logo ao lado dele
+// Valores desenhados ABAIXO do rótulo correspondente
 const CAMPOS = {
-  nome: { x: 720, y: 207, w: 720 },
-  pcd: { x: 1652, y: 207, w: 190 },
-  documento: { x: 775, y: 425, w: 1065 },
-  responsavel: { x: 1155, y: 572, w: 685 },
-  celular: { x: 760, y: 731, w: 490 },
-  modalidade: { x: 1615, y: 731, w: 205 },
-  horario: { x: 770, y: 896, w: 470 },
-  dias: { x: 1420, y: 896, w: 420 },
+  nome: { x: 720, y: 240, w: 720 },
+  pcd: { x: 1652, y: 240, w: 190 },
+  documento: { x: 775, y: 460, w: 1065 },
+  responsavel: { x: 1155, y: 607, w: 685 },
+  celular: { x: 760, y: 766, w: 490 },
+  modalidade: { x: 1615, y: 766, w: 205 },
+  horario: { x: 770, y: 931, w: 470 },
+  dias: { x: 1420, y: 931, w: 420 },
 } as const;
 
 const FOTO = { x: 32, y: 158, w: 436, h: 605 };

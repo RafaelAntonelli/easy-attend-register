@@ -558,16 +558,21 @@ function AlunosPage() {
     };
   }
 
-  async function abrirPreviewCracha(a: Aluno) {
+  async function abrirPreviewCracha(a: Aluno, guias = mostrarGuias) {
     setQrAluno(a);
     setPreviewUrl(null);
     try {
-      const url = await gerarCrachaPreviewImagem(dadosCracha(a));
+      const url = await gerarCrachaPreviewImagem(dadosCracha(a), { guias });
       setPreviewUrl(url);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível gerar o crachá");
       setQrAluno(null);
     }
+  }
+
+  async function alternarGuias(valor: boolean) {
+    setMostrarGuias(valor);
+    if (qrAluno) await abrirPreviewCracha(qrAluno, valor);
   }
 
   async function exportarCrachas(lista: Aluno[], formato: "cartao" | "folha") {
@@ -579,8 +584,8 @@ function AlunosPage() {
     try {
       const dados = lista.map(dadosCracha);
       const nome = lista.length === 1 ? `cracha-${lista[0]!.nome.replace(/\s+/g, "-").toLowerCase()}` : "crachas-arena-aquatica";
-      if (formato === "folha") await gerarFolhaA4Crachas(dados, `${nome}-a4`);
-      else await gerarCrachasPdf(dados, nome);
+      // Exportação fiel: mesma renderização (margens e escala) da pré-visualização
+      await gerarCrachasPdfFielAoPreview(dados, formato === "folha" ? `${nome}-a4` : nome, { formato });
       toast.success(`${lista.length} crachá(s) gerado(s)`);
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao gerar crachás");
@@ -588,6 +593,7 @@ function AlunosPage() {
       setGerandoCrachas(false);
     }
   }
+
 
   const filtrados = alunos.filter((a) => {
     if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;

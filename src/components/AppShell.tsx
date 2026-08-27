@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { StatusOffline } from "@/components/StatusOffline";
+
 
 const baseNav = [
   { to: "/", label: "Painel", icon: LayoutDashboard },

@@ -584,6 +584,23 @@ function TurmasPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={!!editandoObservacao} onOpenChange={(o) => !o && setEditandoObservacao(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Observação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{editandoObservacao?.nome}</p>
+            <Textarea
+              value={editandoObservacao?.texto ?? ""}
+              onChange={(e) => setEditandoObservacao((prev) => (prev ? { ...prev, texto: e.target.value } : null))}
+              placeholder="Motivo da falta justificada..."
+              rows={4}
+            />
+            <Button onClick={() => void salvarObservacao()} className="w-full">Salvar observação</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={gerenciarDias} onOpenChange={setGerenciarDias}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
           <DialogHeader><DialogTitle className="font-display">Dias disponíveis</DialogTitle></DialogHeader>

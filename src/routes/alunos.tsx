@@ -9,7 +9,7 @@ import { useHorarios } from "@/lib/horarios";
 import { useGruposDias } from "@/lib/dias";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, apenasDigitos } from "@/lib/formatacao";
 import { TURNOS, turnoDoHorario, idadePorNascimento } from "@/lib/turnos";
-import { gerarCrachasPdf, gerarFolhaA4Crachas, gerarCrachaPreviewUrl, type DadosCracha } from "@/lib/cracha";
+import { gerarCrachasPdf, gerarFolhaA4Crachas, gerarCrachaPreviewImagem, type DadosCracha } from "@/lib/cracha";
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";
@@ -562,7 +562,7 @@ function AlunosPage() {
     setQrAluno(a);
     setPreviewUrl(null);
     try {
-      const url = await gerarCrachaPreviewUrl(dadosCracha(a));
+      const url = await gerarCrachaPreviewImagem(dadosCracha(a));
       setPreviewUrl(url);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível gerar o crachá");
@@ -1423,7 +1423,7 @@ function AlunosPage() {
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-2">
             {previewUrl ? (
-              <iframe title="Pré-visualização do crachá" src={previewUrl} className="h-[380px] w-full rounded-lg border border-border" />
+              <img alt="Pré-visualização do crachá" src={previewUrl} className="w-full rounded-lg border border-border" />
             ) : (
               <p className="py-12 text-sm text-muted-foreground">Gerando pré-visualização...</p>
             )}

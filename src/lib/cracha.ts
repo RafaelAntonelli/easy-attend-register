@@ -29,7 +29,7 @@ export type DadosCracha = {
 
 // Valores alinhados na MESMA linha do rótulo, logo ao lado dele
 const CAMPOS = {
-  nome: { x: 720, y: 207, w: 880 },
+  nome: { x: 720, y: 207, w: 720 },
   pcd: { x: 1652, y: 207, w: 190 },
   documento: { x: 775, y: 425, w: 1065 },
   responsavel: { x: 1155, y: 572, w: 685 },

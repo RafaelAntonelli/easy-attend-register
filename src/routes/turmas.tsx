@@ -105,6 +105,8 @@ function TurmasPage() {
   const [capacidade, setCapacidade] = useState("40");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
   const [filtroHorario, setFiltroHorario] = useState("todos");
+  const [filtroTurno, setFiltroTurno] = useState("todos");
+
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [statusPresenca, setStatusPresenca] = useState<Record<string, StatusPresenca>>({});
   const [turmaAberta, setTurmaAberta] = useState<Turma | null>(null);

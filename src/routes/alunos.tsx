@@ -606,6 +606,12 @@ function AlunosPage() {
     const modalidade = matriculaDoAluno(a.id)?.modalidade ?? turma?.modalidade ?? "";
     if (filtroModalidade !== "todas" && modalidade !== filtroModalidade) return false;
     if (filtroHorario !== "todos" && turma?.horario !== filtroHorario) return false;
+    if (filtroDias !== "todos") {
+      const grupo = listaGrupos.find((g) => g.label === filtroDias);
+      const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
+      const diasTurma = turma?.dias_semana ?? [];
+      if (!diasEsperados.length || !diasEsperados.every((d) => diasTurma.includes(d))) return false;
+    }
     if (filtroTurno !== "todos" && turnoDoHorario(turma?.horario) !== filtroTurno) return false;
     if (filtroPcd === "todos") return true;
     if (filtroPcd === "sem") return !a.pcd;

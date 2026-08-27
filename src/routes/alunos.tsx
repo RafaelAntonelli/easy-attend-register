@@ -9,7 +9,7 @@ import { useHorarios } from "@/lib/horarios";
 import { useGruposDias } from "@/lib/dias";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, apenasDigitos } from "@/lib/formatacao";
 import { TURNOS, turnoDoHorario, idadePorNascimento } from "@/lib/turnos";
-import { gerarCrachasPdf, gerarFolhaA4Crachas, gerarCrachaPreviewImagem, type DadosCracha } from "@/lib/cracha";
+import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";
@@ -148,6 +148,7 @@ function AlunosPage() {
   const [excluindoTodos, setExcluindoTodos] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
+  const [mostrarGuias, setMostrarGuias] = useState(false);
 
   const [idadeMin, setIdadeMin] = useState("");
   const [idadeMax, setIdadeMax] = useState("");

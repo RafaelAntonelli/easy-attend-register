@@ -52,10 +52,10 @@ async function urlParaDataUrl(url: string) {
 
 let modeloCache: string | null = null;
 async function obterModelo() {
-  if (!modeloCache) modeloCache = await urlParaDataUrl(modeloCharUrl());
+  if (!modeloCache) modeloCache = await urlParaDataUrl(modeloUrl());
   return modeloCache;
 }
-function modeloCharUrl() {
+function modeloUrl() {
   return modeloCracha as unknown as string;
 }
 
@@ -133,9 +133,9 @@ export async function gerarFolhaA4Crachas(lista: DadosCracha[], nomeArquivo: str
   const colunas = 2;
   const linhas = 5;
   const margemX = 10;
-  const margemY = 12;
+  const margemY = 8;
   const espacoX = 5;
-  const espacoY = 4;
+  const espacoY = 3;
   const porPagina = colunas * linhas;
 
   for (let i = 0; i < lista.length; i++) {

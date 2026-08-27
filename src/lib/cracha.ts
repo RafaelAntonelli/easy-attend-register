@@ -40,7 +40,7 @@ const CAMPOS = {
 } as const;
 
 const FOTO = { x: 32, y: 158, w: 436, h: 605 };
-const QR = { x: 148, y: 790, size: 205 };
+const QR = { x: 148, y: 850, size: 205 };
 
 async function urlParaDataUrl(url: string) {
   const resp = await fetch(url);

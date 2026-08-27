@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { FileSpreadsheet, Download, Upload, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { baixarImagem } from "@/lib/fotos.functions";
+import { extrairImagensPlanilha } from "@/lib/planilha-imagens";
 import { capitalizarNome, formatarCelular, formatarCPF, apenasDigitos, cpfValido } from "@/lib/formatacao";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,9 +116,11 @@ type Dados = {
   observacoes: string;
   turmaNome: string;
   foto: string;
+  fotoEmbutida: boolean;
 };
 
 type Analise = {
+  indice: number;
   original: Linha;
   dados: Dados;
   erros: string[];
@@ -171,6 +176,8 @@ export function ImportarAlunos({
   const [arquivo, setArquivo] = useState<string>("");
   const [modo, setModo] = useState<"criar" | "atualizar">("atualizar");
   const [importando, setImportando] = useState(false);
+  const imagensRef = useRef<Map<number, Blob>>(new Map());
+  const baixar = useServerFn(baixarImagem);
 
   function baixarModelo() {
     const ws = XLSX.utils.aoa_to_sheet([
@@ -284,8 +291,9 @@ export function ImportarAlunos({
       }
 
       const fotoUrl = valor("Foto");
-      if (fotoUrl && !/^(https?:\/\/|data:image\/)/i.test(fotoUrl))
-        erros.push("Foto inválida: informe um link (https://...) da imagem");
+      const fotoEmbutida = imagensRef.current.has(indice);
+      if (fotoUrl && !fotoEmbutida && !/^(https?:\/\/|data:image\/)/i.test(fotoUrl))
+        erros.push("Foto inválida: informe um link (https://...) da imagem ou cole a imagem na célula");
 
       // Duplicidade dentro do próprio arquivo
       const chaveArquivo = `${nome.toLowerCase()}|${apenasDigitos(cpf)}`;
@@ -325,6 +333,7 @@ export function ImportarAlunos({
       }
 
       const analise: Analise = {
+        indice,
         original: l,
         dados: {
           nome,
@@ -344,6 +353,7 @@ export function ImportarAlunos({
           observacoes: valor("Observações"),
           turmaNome: turma ? `${turma.nome} · ${turma.modalidade ?? ""}` : nomeTurma,
           foto: fotoUrl,
+          fotoEmbutida,
         },
         erros,
         avisos,
@@ -359,6 +369,7 @@ export function ImportarAlunos({
     if (!file) return;
     setArquivo(file.name);
     const buf = await file.arrayBuffer();
+    imagensRef.current = /\.xlsx$/i.test(file.name) ? extrairImagensPlanilha(buf) : new Map();
     const wb = XLSX.read(buf, { type: "array" });
     const nomePlan = wb.SheetNames[0];
     if (!nomePlan) return toast.error("Planilha vazia.");
@@ -366,11 +377,36 @@ export function ImportarAlunos({
     if (!ws) return toast.error("Planilha vazia.");
     const dados = XLSX.utils.sheet_to_json<Linha>(ws, { defval: "" });
     if (!dados.length) return toast.error("Nenhuma linha encontrada na planilha.");
+    aplicarLinks(ws, dados);
     const resultado = analisar(dados, modo);
     setAnalises(resultado);
     const invalidas = resultado.filter((a) => a.erros.length).length;
     if (invalidas) toast.warning(`${invalidas} linha(s) com problema. Revise antes de confirmar.`);
     return;
+  }
+
+  /** Usa o endereço do hyperlink da célula quando a planilha traz o link "escondido" no texto. */
+  function aplicarLinks(ws: XLSX.WorkSheet, dados: Linha[]) {
+    const ref = ws["!ref"];
+    if (!ref) return;
+    const range = XLSX.utils.decode_range(ref);
+    const cabecalhos = new Map<number, string>();
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: range.s.r, c })] as XLSX.CellObject | undefined;
+      if (cell?.v != null) cabecalhos.set(c, String(cell.v).trim());
+    }
+    const colunasFoto = [...cabecalhos.entries()].filter(([, h]) =>
+      (ALIASES["Foto"] ?? []).includes(normalizarChave(h)),
+    );
+    for (let r = range.s.r + 1; r <= range.e.r; r++) {
+      const linha = dados[r - range.s.r - 1];
+      if (!linha) continue;
+      for (const [c, cabecalho] of colunasFoto) {
+        const cell = ws[XLSX.utils.encode_cell({ r, c })] as (XLSX.CellObject & { l?: { Target?: string } }) | undefined;
+        const alvo = cell?.l?.Target;
+        if (alvo) linha[cabecalho] = alvo;
+      }
+    }
   }
 
   function trocarModo(novo: "criar" | "atualizar") {
@@ -454,15 +490,25 @@ export function ImportarAlunos({
         criados++;
       }
 
-      if (d.foto && alunoId) {
+      const embutida = imagensRef.current.get(a.indice);
+      if ((embutida || d.foto) && alunoId) {
         try {
-          const resp = await fetch(d.foto);
-          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-          const blob = await resp.blob();
-          if (!blob.type.startsWith("image/")) throw new Error("arquivo não é uma imagem");
+          let blob: Blob;
+          if (embutida) blob = embutida;
+          else if (/^data:image\//i.test(d.foto)) blob = await (await fetch(d.foto)).blob();
+          else {
+            const img = await baixar({ data: { url: d.foto } });
+            const bin = atob(img.base64);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            blob = new Blob([bytes], { type: img.contentType });
+          }
           const ext = (blob.type.split("/")[1] ?? "jpg").replace("jpeg", "jpg");
           const caminho = `${alunoId}/${Date.now()}.${ext}`;
-          const up = await supabase.storage.from("fotos-alunos").upload(caminho, blob, { upsert: true });
+          const up = await supabase.storage.from("fotos-alunos").upload(caminho, blob, {
+            upsert: true,
+            contentType: blob.type || "image/jpeg",
+          });
           if (up.error) throw up.error;
           const { error } = await supabase.from("alunos").update({ foto_path: caminho }).eq("id", alunoId);
           if (error) throw error;
@@ -525,7 +571,7 @@ export function ImportarAlunos({
             Use um arquivo Excel (.xlsx) ou CSV com a primeira linha de cabeçalho. As colunas são detectadas
             automaticamente; apenas <strong>Nome</strong> é obrigatória. As colunas <strong>Turma</strong> e
             <strong> Modalidade</strong> definem a matrícula (Natação e Hidroginástica têm turmas distintas no mesmo
-            horário) e a coluna <strong>Foto</strong> aceita o link da imagem, que é baixada automaticamente.
+            horário). A coluna <strong>Foto</strong> aceita o link da imagem (inclusive Google Drive) e também imagens coladas direto na célula.
           </p>
 
           <div className="space-y-2">
@@ -595,7 +641,7 @@ export function ImportarAlunos({
                         <td className="p-2">{a.dados.cpf || texto(a.original["CPF"])}</td>
                         <td className="p-2">{a.dados.telefone || "—"}</td>
                         <td className="p-2">{a.dados.turmaNome || "—"}</td>
-                        <td className="p-2">{a.dados.foto ? "sim" : "—"}</td>
+                        <td className="p-2">{a.dados.fotoEmbutida ? "imagem" : a.dados.foto ? "link" : "—"}</td>
                         <td className="p-2">
                           {a.erros.length ? (
                             <span className="text-destructive">{a.erros.join(" · ")}</span>

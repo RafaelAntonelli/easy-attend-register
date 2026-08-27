@@ -187,13 +187,30 @@ function PresencaPage() {
     };
   }, []);
 
-  const filtrados = alunos.filter((a) => a.nome.toLowerCase().includes(busca.toLowerCase()));
-  const turmasVisiveis = turmas.filter((t) => filtroModalidade === "todas" || t.modalidade === filtroModalidade);
+  const turmaDoAluno = (id: string) => {
+    const m = matriculas.find((x) => x.aluno_id === id);
+    return m ? turmas.find((t) => t.id === m.turma_id) ?? null : null;
+  };
+
+  const filtrados = alunos.filter((a) => {
+    if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+    const t = turmaDoAluno(a.id);
+    if (turmaId && t?.id !== turmaId) return false;
+    if (filtroModalidade !== "todas" && (t?.modalidade ?? "") !== filtroModalidade) return false;
+    if (filtroTurno !== "todos" && turnoDoHorario(t?.horario) !== filtroTurno) return false;
+    return true;
+  });
+  const turmasVisiveis = turmas.filter(
+    (t) =>
+      (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
+      (filtroTurno === "todos" || turnoDoHorario(t.horario) === filtroTurno),
+  );
 
   return (
     <AppShell title="Presença" subtitle={`Registros de ${data.toLocaleDateString("pt-BR")}`}>
-      <div className="mb-6 grid max-w-4xl gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-2">
+
           <Label>Data do registro</Label>
           <Popover>
             <PopoverTrigger asChild>

@@ -196,12 +196,68 @@ function carregarImagem(src: string) {
 
 const PX_POR_MM = ARTE.altura / CR80.altura;
 
-export async function gerarCrachaPreviewImagem(dados: DadosCracha) {
+export type OpcoesRender = {
+  /** Desenha uma grade de guias por cima para conferir posições */
+  guias?: boolean;
+  /** Multiplicador de resolução (1 = 1920x1209) */
+  escala?: number;
+};
+
+function desenharGuias(ctx: CanvasRenderingContext2D) {
+  const passo = 100; // px da arte (~4,5 mm)
+  ctx.save();
+  ctx.lineWidth = 1;
+  ctx.font = "bold 22px monospace";
+  ctx.textBaseline = "top";
+
+  for (let x = 0; x <= ARTE.largura; x += passo) {
+    ctx.strokeStyle = x % 500 === 0 ? "rgba(220,38,38,0.55)" : "rgba(37,99,235,0.28)";
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, ARTE.altura);
+    ctx.stroke();
+    if (x % 500 === 0) {
+      ctx.fillStyle = "rgba(220,38,38,0.85)";
+      ctx.fillText(String(x), x + 4, 4);
+    }
+  }
+  for (let y = 0; y <= ARTE.altura; y += passo) {
+    ctx.strokeStyle = y % 500 === 0 ? "rgba(220,38,38,0.55)" : "rgba(37,99,235,0.28)";
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(ARTE.largura, y);
+    ctx.stroke();
+    if (y % 500 === 0 && y > 0) {
+      ctx.fillStyle = "rgba(220,38,38,0.85)";
+      ctx.fillText(String(y), 4, y + 4);
+    }
+  }
+
+  // Caixas dos campos, da foto e do QR Code
+  ctx.setLineDash([10, 8]);
+  ctx.strokeStyle = "rgba(16,185,129,0.9)";
+  ctx.fillStyle = "rgba(16,185,129,0.95)";
+  ctx.font = "bold 20px monospace";
+  for (const [nome, c] of Object.entries(CAMPOS)) {
+    const alturaCaixa = (c.pt ?? 11) * 0.3528 * PX_POR_MM * 1.4;
+    ctx.strokeRect(c.x, c.y - alturaCaixa / 2, c.w, alturaCaixa);
+    ctx.fillText(`${nome} ${c.x},${c.y}`, c.x + 4, c.y - alturaCaixa / 2 - 24);
+  }
+  ctx.strokeStyle = "rgba(217,119,6,0.9)";
+  ctx.strokeRect(FOTO.x, FOTO.y, FOTO.w, FOTO.h);
+  ctx.strokeRect(QR.x, QR.y, QR.size, QR.size);
+  ctx.restore();
+}
+
+/** Desenha o crachá num canvas — mesma fonte de verdade do preview e da exportação fiel */
+export async function renderizarCrachaCanvas(dados: DadosCracha, opcoes: OpcoesRender = {}) {
+  const escala = opcoes.escala ?? 1;
   const canvas = document.createElement("canvas");
-  canvas.width = ARTE.largura;
-  canvas.height = ARTE.altura;
+  canvas.width = Math.round(ARTE.largura * escala);
+  canvas.height = Math.round(ARTE.altura * escala);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas indisponível");
+  ctx.scale(escala, escala);
 
   const modelo = await carregarImagem(await obterModelo());
   ctx.drawImage(modelo, 0, 0, ARTE.largura, ARTE.altura);
@@ -218,9 +274,11 @@ export async function gerarCrachaPreviewImagem(dados: DadosCracha) {
   if (dados.codigo) {
     try {
       const qr = await carregarImagem(await qrDataUrl(dados.codigo));
+      ctx.imageSmoothingEnabled = false;
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(QR.x - 10, QR.y - 10, QR.size + 20, QR.size + 20);
       ctx.drawImage(qr, QR.x, QR.y, QR.size, QR.size);
+      ctx.imageSmoothingEnabled = true;
     } catch {
       // segue sem QR
     }
@@ -252,5 +310,65 @@ export async function gerarCrachaPreviewImagem(dados: DadosCracha) {
   put(CAMPOS.horario, dados.horario ?? "");
   put(CAMPOS.dias, (dados.dias ?? []).join(" e "));
 
+  if (opcoes.guias) desenharGuias(ctx);
+
+  return canvas;
+}
+
+export async function gerarCrachaPreviewImagem(dados: DadosCracha, opcoes: OpcoesRender = {}) {
+  const canvas = await renderizarCrachaCanvas(dados, opcoes);
   return canvas.toDataURL("image/png");
 }
+
+// ---- Exportação fiel ao preview: usa exatamente a mesma renderização em canvas ----
+export async function gerarCrachasPdfFielAoPreview(
+  lista: DadosCracha[],
+  nomeArquivo: string,
+  opcoes: { formato?: "cartao" | "folha"; guias?: boolean } = {},
+) {
+  if (!lista.length) throw new Error("Nenhum aluno selecionado");
+  const formato = opcoes.formato ?? "cartao";
+  const escala = 2; // ~1140 dpi no cartão CR-80
+
+  const imagens: string[] = [];
+  for (const dados of lista) {
+    const canvas = await renderizarCrachaCanvas(dados, { escala, guias: opcoes.guias });
+    imagens.push(canvas.toDataURL("image/png"));
+  }
+
+  const salvar = (doc: jsPDF) =>
+    doc.save(nomeArquivo.endsWith(".pdf") ? nomeArquivo : `${nomeArquivo}.pdf`);
+
+  if (formato === "cartao") {
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [CR80.largura, CR80.altura] });
+    imagens.forEach((img, i) => {
+      if (i > 0) doc.addPage([CR80.largura, CR80.altura], "landscape");
+      doc.addImage(img, "PNG", 0, 0, CR80.largura, CR80.altura, undefined, "FAST");
+    });
+    salvar(doc);
+    return;
+  }
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const colunas = 2;
+  const linhas = 5;
+  const margemX = 10;
+  const margemY = 8;
+  const espacoX = 5;
+  const espacoY = 3;
+  const porPagina = colunas * linhas;
+
+  imagens.forEach((img, i) => {
+    const indice = i % porPagina;
+    if (i > 0 && indice === 0) doc.addPage();
+    const col = indice % colunas;
+    const lin = Math.floor(indice / colunas);
+    const ox = margemX + col * (CR80.largura + espacoX);
+    const oy = margemY + lin * (CR80.altura + espacoY);
+    doc.addImage(img, "PNG", ox, oy, CR80.largura, CR80.altura, undefined, "FAST");
+    doc.setDrawColor(200);
+    doc.rect(ox, oy, CR80.largura, CR80.altura);
+  });
+  salvar(doc);
+}
+

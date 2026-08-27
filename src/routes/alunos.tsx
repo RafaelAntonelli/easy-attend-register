@@ -143,6 +143,7 @@ function AlunosPage() {
   const [filtroSexo, setFiltroSexo] = useState("todos");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
   const [filtroHorario, setFiltroHorario] = useState("todos");
+  const [filtroDias, setFiltroDias] = useState("todos");
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [turnoForm, setTurnoForm] = useState("todos");
   const [excluindoTodos, setExcluindoTodos] = useState(false);
@@ -605,6 +606,12 @@ function AlunosPage() {
     const modalidade = matriculaDoAluno(a.id)?.modalidade ?? turma?.modalidade ?? "";
     if (filtroModalidade !== "todas" && modalidade !== filtroModalidade) return false;
     if (filtroHorario !== "todos" && turma?.horario !== filtroHorario) return false;
+    if (filtroDias !== "todos") {
+      const grupo = listaGrupos.find((g) => g.label === filtroDias);
+      const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
+      const diasTurma = turma?.dias_semana ?? [];
+      if (!diasEsperados.length || !diasEsperados.every((d) => diasTurma.includes(d))) return false;
+    }
     if (filtroTurno !== "todos" && turnoDoHorario(turma?.horario) !== filtroTurno) return false;
     if (filtroPcd === "todos") return true;
     if (filtroPcd === "sem") return !a.pcd;
@@ -786,6 +793,15 @@ function AlunosPage() {
             <SelectItem value="todos">Todos os horários</SelectItem>
             {listaHorarios.map((h) => (
               <SelectItem key={h} value={h}>{h}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filtroDias} onValueChange={setFiltroDias}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent className="max-h-80">
+            <SelectItem value="todos">Todos os dias</SelectItem>
+            {listaGrupos.map((g) => (
+              <SelectItem key={g.id} value={g.label}>{g.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>

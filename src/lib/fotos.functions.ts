@@ -1,13 +1,32 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+function idDoDrive(url: string) {
+  return (
+    url.match(/drive\.google\.com\/file\/d\/([\w-]+)/)?.[1] ??
+    url.match(/[?&]id=([\w-]+)/)?.[1] ??
+    (/drive\.google\.com|googleusercontent/.test(url) ? undefined : undefined)
+  );
+}
+
 /** Converte links de compartilhamento (Drive, Dropbox, OneDrive) em link direto da imagem. */
 export function linkDiretoImagem(url: string) {
-  const drive =
-    url.match(/drive\.google\.com\/file\/d\/([\w-]+)/) ?? url.match(/drive\.google\.com\/open\?id=([\w-]+)/);
-  if (drive?.[1]) return `https://drive.google.com/uc?export=download&id=${drive[1]}`;
-  if (/dropbox\.com/.test(url)) return url.replace(/[?&]dl=0/, "").concat(url.includes("?") ? "&raw=1" : "?raw=1");
-  return url;
+  return candidatosImagem(url)[0] ?? url;
+}
+
+/** Lista de URLs a tentar, da mais confiável para a menos. */
+export function candidatosImagem(url: string): string[] {
+  const id = idDoDrive(url);
+  if (id)
+    return [
+      `https://drive.google.com/thumbnail?id=${id}&sz=w1600`,
+      `https://lh3.googleusercontent.com/d/${id}=w1600`,
+      `https://drive.usercontent.google.com/download?id=${id}&export=view`,
+      `https://drive.google.com/uc?export=download&id=${id}`,
+    ];
+  if (/dropbox\.com/.test(url))
+    return [url.replace(/[?&]dl=0/, "").concat(url.includes("?") ? "&raw=1" : "?raw=1")];
+  return [url];
 }
 
 /**

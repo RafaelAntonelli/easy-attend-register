@@ -41,7 +41,7 @@ const CAMPOS = {
 } as const;
 
 const FOTO = { x: 32, y: 158, w: 436, h: 605 };
-const QR = { x: 125, y: 870, size: 260 };
+const QR = { x: 88, y: 920, size: 320 };
 
 
 const cacheFoto = new Map<string, Promise<string>>();

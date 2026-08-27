@@ -737,6 +737,15 @@ function AlunosPage() {
             <SelectItem value="Feminino">Feminino</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={filtroTurno} onValueChange={setFiltroTurno}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os turnos</SelectItem>
+            {TURNOS.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2">
@@ -748,9 +757,13 @@ function AlunosPage() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
-        <Button variant="outline" onClick={exportarPlanilha}>
-          <Download className="size-4" /> Exportar planilha
+        <Button variant="outline" disabled={exportando} onClick={() => void exportarPlanilha()}>
+          <Download className="size-4" /> {exportando ? "Exportando..." : "Exportar planilha"}
         </Button>
+        <Button variant="destructive" disabled={!alunos.length} onClick={() => setExcluindoTodos(true)}>
+          <Trash2 className="size-4" /> Excluir todos
+        </Button>
+
         <ImportarAlunos turmas={turmas} matriculas={matriculas} onImportado={() => void carregar()} />
 
 

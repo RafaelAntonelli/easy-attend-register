@@ -1429,11 +1429,18 @@ function AlunosPage() {
             <DialogTitle className="font-display">Crachá de {qrAluno?.nome}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-2">
+            <div className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2">
+              <Label htmlFor="guias-cracha" className="text-sm">
+                Guias de alinhamento (grade)
+              </Label>
+              <Switch id="guias-cracha" checked={mostrarGuias} onCheckedChange={(v) => void alternarGuias(v)} />
+            </div>
             {previewUrl ? (
               <img alt="Pré-visualização do crachá" src={previewUrl} className="w-full rounded-lg border border-border" />
             ) : (
               <p className="py-12 text-sm text-muted-foreground">Gerando pré-visualização...</p>
             )}
+
             <Button
               variant="outline"
               disabled={!qrAluno || gerandoCrachas}

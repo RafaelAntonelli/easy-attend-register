@@ -297,20 +297,25 @@ function AlunosPage() {
       toast.error("CPF inválido. Verifique os números digitados.");
       return;
     }
-    // Não permitir matrícula duplicada (nome, CPF ou celular já cadastrados)
+    // Evitar cadastro duplicado: mesmo CPF, ou mesmo nome + mesma data de nascimento.
+    // (Telefone não é usado: irmãos/famílias compartilham o mesmo número.)
     const nomeNormalizado = capitalizarNome(form.nome).trim().toLowerCase();
     const cpfDigitosForm = apenasDigitos(form.cpf);
-    const celularDigitos = apenasDigitos(form.telefone);
     const duplicado = alunos.find((a) => {
       if (a.id === editando?.id) return false;
-      if (cpfDigitosForm && apenasDigitos(a.cpf) === cpfDigitosForm) return true;
-      if (celularDigitos && apenasDigitos(a.telefone) === celularDigitos) return true;
-      return a.nome.trim().toLowerCase() === nomeNormalizado;
+      const cpfA = apenasDigitos(a.cpf);
+      if (cpfDigitosForm && cpfA && cpfA === cpfDigitosForm) return true;
+      const mesmoNome = a.nome.trim().toLowerCase() === nomeNormalizado;
+      if (!mesmoNome) return false;
+      // Sem CPF informado, só considera duplicado se a data de nascimento também bater
+      if (form.data_nascimento && a.data_nascimento) return a.data_nascimento === form.data_nascimento;
+      return !cpfDigitosForm && !cpfA;
     });
     if (duplicado) {
-      toast.error(`Matrícula duplicada: ${duplicado.nome} já está cadastrado(a) com o mesmo nome, CPF ou celular.`);
+      toast.error(`Aluno já cadastrado: ${duplicado.nome}.`);
       return;
     }
+
 
     const payload = {
       nome: capitalizarNome(form.nome),

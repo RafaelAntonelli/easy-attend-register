@@ -376,6 +376,8 @@ export function ImportarAlunos({
           rede_ensino: valor("Rede de ensino"),
           escola: valor("Escola"),
           pcd: sim(mapa["PCD"] ? l[mapa["PCD"] as string] : "") ? "sim" : "",
+          atestado: atestadoEntregue ? "sim" : "",
+          atestado_data: atestadoData ?? "",
           modalidade: turma?.modalidade ?? modalidade,
           observacoes: valor("Observações"),
           turmaNome: turma ? `${turma.nome} · ${turma.modalidade ?? ""}` : nomeTurma,

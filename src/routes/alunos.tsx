@@ -1199,7 +1199,7 @@ function AlunosPage() {
                   <p>{detalhe.email ?? "Sem e-mail"}</p>
                   <p>{detalhe.responsavel ? `Responsável: ${detalhe.responsavel}` : "Sem responsável"}</p>
                   <p>
-                    Idade: {detalhe.idade ?? idadePorNascimento(detalhe.data_nascimento) || "-"}
+                    Idade: {detalhe.idade ?? (idadePorNascimento(detalhe.data_nascimento) || "-")}
                     {turmaDoAluno(detalhe.id)?.horario
                       ? ` · Turno: ${turnoDoHorario(turmaDoAluno(detalhe.id)?.horario)}`
                       : ""}

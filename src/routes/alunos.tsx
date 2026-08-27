@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+
 import { supabase } from "@/integrations/supabase/client";
 import { CONDICOES_PCD } from "@/lib/pcd";
 import { useHorarios } from "@/lib/horarios";

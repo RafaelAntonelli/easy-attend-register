@@ -179,3 +179,75 @@ export async function gerarCrachaPreviewUrl(dados: DadosCracha) {
   await desenharCracha(doc, dados, modelo);
   return doc.output("bloburl").toString();
 }
+
+// ---- Pré-visualização em imagem (PNG) — mais confiável que embutir PDF em iframe ----
+function carregarImagem(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Falha ao carregar imagem"));
+    img.src = src;
+  });
+}
+
+const PX_POR_MM = ARTE.altura / CR80.altura;
+
+export async function gerarCrachaPreviewImagem(dados: DadosCracha) {
+  const canvas = document.createElement("canvas");
+  canvas.width = ARTE.largura;
+  canvas.height = ARTE.altura;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas indisponível");
+
+  const modelo = await carregarImagem(await obterModelo());
+  ctx.drawImage(modelo, 0, 0, ARTE.largura, ARTE.altura);
+
+  if (dados.fotoUrl) {
+    try {
+      const foto = await carregarImagem(await urlParaDataUrl(dados.fotoUrl));
+      ctx.drawImage(foto, FOTO.x, FOTO.y, FOTO.w, FOTO.h);
+    } catch {
+      // segue sem foto
+    }
+  }
+
+  if (dados.codigo) {
+    try {
+      const qr = await carregarImagem(await qrDataUrl(dados.codigo));
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(QR.x - 8, QR.y - 8, QR.size + 16, QR.size + 16);
+      ctx.drawImage(qr, QR.x, QR.y, QR.size, QR.size);
+    } catch {
+      // segue sem QR
+    }
+  }
+
+  ctx.fillStyle = "#141428";
+  ctx.textBaseline = "middle";
+
+  const put = (campo: { x: number; y: number; w: number }, texto: string, base = 9) => {
+    if (!texto) return;
+    let tamanhoPt = base;
+    const aplicar = () => {
+      ctx.font = `bold ${(tamanhoPt * 0.3528 * PX_POR_MM).toFixed(1)}px Helvetica, Arial, sans-serif`;
+    };
+    aplicar();
+    while (tamanhoPt > 5 && ctx.measureText(texto).width > campo.w) {
+      tamanhoPt -= 0.5;
+      aplicar();
+    }
+    ctx.fillText(texto, campo.x, campo.y);
+  };
+
+  put(CAMPOS.nome, dados.nome ?? "");
+  put(CAMPOS.pcd, dados.pcd ? "Sim" : "Não");
+  put(CAMPOS.documento, documentoFormatado(dados));
+  put(CAMPOS.responsavel, dados.responsavel ?? "");
+  put(CAMPOS.celular, dados.telefone ?? "");
+  put(CAMPOS.modalidade, dados.modalidade ?? "");
+  put(CAMPOS.horario, dados.horario ?? "");
+  put(CAMPOS.dias, (dados.dias ?? []).join(" e "), 8);
+
+  return canvas.toDataURL("image/png");
+}

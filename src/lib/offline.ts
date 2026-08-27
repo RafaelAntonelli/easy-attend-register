@@ -98,7 +98,9 @@ export async function listarFila(): Promise<OperacaoFila[]> {
   }
 }
 
-export async function enfileirar(op: Omit<OperacaoFila, "id" | "criado_em"> & { id?: string }): Promise<string> {
+type SemMeta<T> = T extends unknown ? Omit<T, "id" | "criado_em"> & { id?: string } : never;
+
+export async function enfileirar(op: SemMeta<OperacaoFila>): Promise<string> {
   const id = op.id ?? crypto.randomUUID();
   const registro = { ...op, id, criado_em: Date.now() } as OperacaoFila;
   await comStore(STORE_FILA, "readwrite", (s) => s.put(registro));

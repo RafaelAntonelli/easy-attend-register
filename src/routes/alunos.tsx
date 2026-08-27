@@ -538,6 +538,41 @@ function AlunosPage() {
     return m ? turmas.find((t) => t.id === m.turma_id) : undefined;
   }
 
+  function dadosCracha(a: Aluno): DadosCracha {
+    const t = turmaDoAluno(a.id);
+    return {
+      nome: a.nome,
+      rg: a.rg,
+      cpf: a.cpf,
+      responsavel: a.responsavel,
+      telefone: a.telefone,
+      pcd: a.pcd,
+      modalidade: matriculaDoAluno(a.id)?.modalidade ?? t?.modalidade ?? "",
+      horario: t?.horario ?? "",
+      dias: t?.dias_semana ?? [],
+      fotoUrl: fotos[a.id] ?? null,
+    };
+  }
+
+  async function exportarCrachas(lista: Aluno[], formato: "cartao" | "folha") {
+    if (!lista.length) {
+      toast.error("Nenhum aluno para gerar crachá");
+      return;
+    }
+    setGerandoCrachas(true);
+    try {
+      const dados = lista.map(dadosCracha);
+      const nome = lista.length === 1 ? `cracha-${lista[0]!.nome.replace(/\s+/g, "-").toLowerCase()}` : "crachas-arena-aquatica";
+      if (formato === "folha") await gerarFolhaA4Crachas(dados, `${nome}-a4`);
+      else await gerarCrachasPdf(dados, nome);
+      toast.success(`${lista.length} crachá(s) gerado(s)`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao gerar crachás");
+    } finally {
+      setGerandoCrachas(false);
+    }
+  }
+
   const filtrados = alunos.filter((a) => {
     if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
     if (filtroSexo !== "todos" && (a.sexo ?? "") !== filtroSexo) return false;

@@ -44,6 +44,8 @@ const FOTO = { x: 32, y: 158, w: 436, h: 605 };
 const QR = { x: 125, y: 870, size: 260 };
 
 
+const cacheFoto = new Map<string, Promise<string>>();
+
 async function urlParaDataUrl(url: string) {
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -54,6 +56,19 @@ async function urlParaDataUrl(url: string) {
     reader.onerror = () => reject(new Error("Falha ao ler imagem"));
     reader.readAsDataURL(blob);
   });
+}
+
+/** Mesma URL só é baixada e convertida uma vez por sessão */
+function urlParaDataUrlCache(url: string) {
+  let p = cacheFoto.get(url);
+  if (!p) {
+    p = urlParaDataUrl(url).catch((e) => {
+      cacheFoto.delete(url);
+      throw e;
+    });
+    cacheFoto.set(url, p);
+  }
+  return p;
 }
 
 let modeloCache: string | null = null;
@@ -69,6 +84,7 @@ async function qrDataUrl(texto: string) {
   // ECC alto + módulos grandes garantem leitura mesmo impresso em ~9 mm
   return await QRCode.toDataURL(texto, { margin: 0, width: 640, errorCorrectionLevel: "H", color: { dark: "#000000", light: "#FFFFFF" } });
 }
+
 
 function textoAjustado(doc: jsPDF, texto: string, larguraMm: number, tamanhoBase = 11) {
   let tamanho = tamanhoBase;

@@ -16,6 +16,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { TURNOS, turnoDoHorario } from "@/lib/turnos";
+
 
 export const Route = createFileRoute("/presenca")({
   component: PresencaPage,
@@ -48,8 +50,10 @@ const GRUPOS_DIAS = [
 function PresencaPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [matriculas, setMatriculas] = useState<{ aluno_id: string; turma_id: string }[]>([]);
   const [turmaId, setTurmaId] = useState("");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
+  const [filtroTurno, setFiltroTurno] = useState("todos");
   const [scanning, setScanning] = useState(false);
   const [busca, setBusca] = useState("");
   const [statusPorAluno, setStatusPorAluno] = useState<Record<string, StatusPresenca>>({});
@@ -63,14 +67,17 @@ function PresencaPage() {
 
   useEffect(() => {
     void (async () => {
-      const [t, a] = await Promise.all([
+      const [t, a, m] = await Promise.all([
         supabase.from("turmas").select("id,nome,horario,modalidade").order("nome"),
         supabase.from("alunos").select("id,nome,codigo").eq("ativo", true).order("nome"),
+        supabase.from("matriculas").select("aluno_id,turma_id").eq("status", "ativa"),
       ]);
       if (t.data) setTurmas(t.data as Turma[]);
       if (a.data) setAlunos(a.data as Aluno[]);
+      if (m.data) setMatriculas(m.data as { aluno_id: string; turma_id: string }[]);
     })();
   }, []);
+
 
   async function carregarPresencasDoDia() {
     const { data } = await supabase
@@ -182,13 +189,30 @@ function PresencaPage() {
     };
   }, []);
 
-  const filtrados = alunos.filter((a) => a.nome.toLowerCase().includes(busca.toLowerCase()));
-  const turmasVisiveis = turmas.filter((t) => filtroModalidade === "todas" || t.modalidade === filtroModalidade);
+  const turmaDoAluno = (id: string) => {
+    const m = matriculas.find((x) => x.aluno_id === id);
+    return m ? turmas.find((t) => t.id === m.turma_id) ?? null : null;
+  };
+
+  const filtrados = alunos.filter((a) => {
+    if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+    const t = turmaDoAluno(a.id);
+    if (turmaId && t?.id !== turmaId) return false;
+    if (filtroModalidade !== "todas" && (t?.modalidade ?? "") !== filtroModalidade) return false;
+    if (filtroTurno !== "todos" && turnoDoHorario(t?.horario) !== filtroTurno) return false;
+    return true;
+  });
+  const turmasVisiveis = turmas.filter(
+    (t) =>
+      (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
+      (filtroTurno === "todos" || turnoDoHorario(t.horario) === filtroTurno),
+  );
 
   return (
     <AppShell title="Presença" subtitle={`Registros de ${data.toLocaleDateString("pt-BR")}`}>
-      <div className="mb-6 grid max-w-4xl gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-2">
+
           <Label>Data do registro</Label>
           <Popover>
             <PopoverTrigger asChild>
@@ -210,6 +234,25 @@ function PresencaPage() {
           </Popover>
         </div>
         <div className="space-y-2">
+          <Label>Turno</Label>
+          <Select
+            value={filtroTurno}
+            onValueChange={(v) => {
+              setFiltroTurno(v);
+              setTurmaId("");
+            }}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os turnos</SelectItem>
+              {TURNOS.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+
           <Label>Modalidade</Label>
           <Select
             value={filtroModalidade}

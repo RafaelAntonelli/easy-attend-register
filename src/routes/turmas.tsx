@@ -4,6 +4,8 @@ import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays }
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useHorarios } from "@/lib/horarios";
+import { TURNOS, turnoDoHorario } from "@/lib/turnos";
+
 import { useGruposDias, diasDoLabel } from "@/lib/dias";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -105,6 +107,8 @@ function TurmasPage() {
   const [capacidade, setCapacidade] = useState("40");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
   const [filtroHorario, setFiltroHorario] = useState("todos");
+  const [filtroTurno, setFiltroTurno] = useState("todos");
+
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [statusPresenca, setStatusPresenca] = useState<Record<string, StatusPresenca>>({});
   const [turmaAberta, setTurmaAberta] = useState<Turma | null>(null);
@@ -295,8 +299,10 @@ function TurmasPage() {
     (t) =>
       (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
       (filtroHorario === "todos" || t.horario === filtroHorario) &&
+      (filtroTurno === "todos" || turnoDoHorario(t.horario) === filtroTurno) &&
       (filtroDias === "todos" || grupoDosDias(t.dias_semana) === filtroDias),
   );
+
 
   return (
     <AppShell title="Turmas" subtitle="Modalidades, horários e professores">
@@ -319,7 +325,17 @@ function TurmasPage() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={filtroTurno} onValueChange={setFiltroTurno}>
+            <SelectTrigger className="sm:w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os turnos</SelectItem>
+              {TURNOS.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={filtroHorario} onValueChange={setFiltroHorario}>
+
             <SelectTrigger className="sm:w-52"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-80">
               <SelectItem value="todos">Todos os horários</SelectItem>
@@ -411,7 +427,11 @@ function TurmasPage() {
                   <h3 className="font-display text-lg font-semibold">{t.nome}</h3>
                   <p className="text-sm text-muted-foreground">{t.modalidade}{t.professor ? ` · ${t.professor}` : ""}</p>
                 </div>
-                <Badge variant="secondary">{t.horario ?? "s/ horário"}</Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant="secondary">{t.horario ?? "s/ horário"}</Badge>
+                  {turnoDoHorario(t.horario) ? <Badge variant="outline">{turnoDoHorario(t.horario)}</Badge> : null}
+                </div>
+
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {t.dias_semana.map((d) => (

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+
 import { supabase } from "@/integrations/supabase/client";
 import { CONDICOES_PCD } from "@/lib/pcd";
 import { useHorarios } from "@/lib/horarios";
@@ -737,6 +737,15 @@ function AlunosPage() {
             <SelectItem value="Feminino">Feminino</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={filtroTurno} onValueChange={setFiltroTurno}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os turnos</SelectItem>
+            {TURNOS.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2">
@@ -748,9 +757,13 @@ function AlunosPage() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
-        <Button variant="outline" onClick={exportarPlanilha}>
-          <Download className="size-4" /> Exportar planilha
+        <Button variant="outline" disabled={exportando} onClick={() => void exportarPlanilha()}>
+          <Download className="size-4" /> {exportando ? "Exportando..." : "Exportar planilha"}
         </Button>
+        <Button variant="destructive" disabled={!alunos.length} onClick={() => setExcluindoTodos(true)}>
+          <Trash2 className="size-4" /> Excluir todos
+        </Button>
+
         <ImportarAlunos turmas={turmas} matriculas={matriculas} onImportado={() => void carregar()} />
 
 
@@ -1185,8 +1198,23 @@ function AlunosPage() {
                   <p>{detalhe.telefone ?? "Sem telefone"}</p>
                   <p>{detalhe.email ?? "Sem e-mail"}</p>
                   <p>{detalhe.responsavel ? `Responsável: ${detalhe.responsavel}` : "Sem responsável"}</p>
+                  <p>
+                    Idade: {detalhe.idade ?? (idadePorNascimento(detalhe.data_nascimento) || "-")}
+                    {turmaDoAluno(detalhe.id)?.horario
+                      ? ` · Turno: ${turnoDoHorario(turmaDoAluno(detalhe.id)?.horario)}`
+                      : ""}
+                  </p>
                 </div>
               </div>
+
+              {detalhe.observacoes ? (
+                <div className="rounded-lg border border-border/70 p-3 text-sm">
+                  <p className="mb-1 font-medium">Observações</p>
+                  <p className="whitespace-pre-wrap text-muted-foreground">{detalhe.observacoes}</p>
+                </div>
+              ) : null}
+
+
 
               <div className="rounded-lg border border-border/70 p-3 text-sm">
                 <p className="mb-1 font-medium">Documentos</p>
@@ -1324,6 +1352,23 @@ function AlunosPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={excluindoTodos} onOpenChange={setExcluindoTodos}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir TODOS os alunos?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os {alunos.length} alunos cadastrados serão removidos junto com matrículas, presenças e fotos. Esta ação não
+              pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void excluirTodos()}>Excluir todos</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </AppShell>
   );
 }

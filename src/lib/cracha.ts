@@ -332,7 +332,7 @@ export async function gerarCrachasPdfFielAoPreview(
 
   const imagens: string[] = [];
   for (const dados of lista) {
-    const canvas = await renderizarCrachaCanvas(dados, { escala, guias: opcoes.guias });
+    const canvas = await renderizarCrachaCanvas(dados, { escala, guias: !!opcoes.guias });
     imagens.push(canvas.toDataURL("image/png"));
   }
 

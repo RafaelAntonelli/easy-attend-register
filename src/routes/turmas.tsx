@@ -11,6 +11,7 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -111,6 +112,8 @@ function TurmasPage() {
 
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [statusPresenca, setStatusPresenca] = useState<Record<string, StatusPresenca>>({});
+  const [observacoesPresenca, setObservacoesPresenca] = useState<Record<string, string>>({});
+  const [editandoObservacao, setEditandoObservacao] = useState<{ alunoId: string; nome: string; texto: string } | null>(null);
   const [turmaAberta, setTurmaAberta] = useState<Turma | null>(null);
   const [alunosTurma, setAlunosTurma] = useState<AlunoTurma[] | null>(null);
   const [confirmarExclusao, setConfirmarExclusao] = useState<Turma | null>(null);

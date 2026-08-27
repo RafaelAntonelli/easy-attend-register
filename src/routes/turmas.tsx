@@ -4,6 +4,8 @@ import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays }
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useHorarios } from "@/lib/horarios";
+import { TURNOS, turnoDoHorario } from "@/lib/turnos";
+
 import { useGruposDias, diasDoLabel } from "@/lib/dias";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";

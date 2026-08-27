@@ -48,8 +48,10 @@ const GRUPOS_DIAS = [
 function PresencaPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [matriculas, setMatriculas] = useState<{ aluno_id: string; turma_id: string }[]>([]);
   const [turmaId, setTurmaId] = useState("");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
+  const [filtroTurno, setFiltroTurno] = useState("todos");
   const [scanning, setScanning] = useState(false);
   const [busca, setBusca] = useState("");
   const [statusPorAluno, setStatusPorAluno] = useState<Record<string, StatusPresenca>>({});
@@ -63,14 +65,17 @@ function PresencaPage() {
 
   useEffect(() => {
     void (async () => {
-      const [t, a] = await Promise.all([
+      const [t, a, m] = await Promise.all([
         supabase.from("turmas").select("id,nome,horario,modalidade").order("nome"),
         supabase.from("alunos").select("id,nome,codigo").eq("ativo", true).order("nome"),
+        supabase.from("matriculas").select("aluno_id,turma_id").eq("status", "ativa"),
       ]);
       if (t.data) setTurmas(t.data as Turma[]);
       if (a.data) setAlunos(a.data as Aluno[]);
+      if (m.data) setMatriculas(m.data as { aluno_id: string; turma_id: string }[]);
     })();
   }, []);
+
 
   async function carregarPresencasDoDia() {
     const { data } = await supabase

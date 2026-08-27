@@ -36,7 +36,7 @@ const CAMPOS = {
   dias: { x: 1278, y: 974, w: 580 },
 } as const;
 
-const FOTO = { x: 42, y: 168, w: 415, h: 585 };
+const FOTO = { x: 32, y: 170, w: 432, h: 588 };
 
 async function urlParaDataUrl(url: string) {
   const resp = await fetch(url);

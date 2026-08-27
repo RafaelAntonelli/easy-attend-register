@@ -27,20 +27,22 @@ export type DadosCracha = {
   codigo?: string | null;
 };
 
-// Valores desenhados ABAIXO do rótulo correspondente
+// Valores desenhados na faixa cinza ABAIXO de cada rótulo, alinhados à esquerda do rótulo
+// (coordenadas em px da arte 1920x1209, medidas sobre o modelo)
 const CAMPOS = {
-  nome: { x: 720, y: 240, w: 720 },
-  pcd: { x: 1652, y: 240, w: 190 },
-  documento: { x: 775, y: 460, w: 1065 },
-  responsavel: { x: 1155, y: 607, w: 685 },
-  celular: { x: 760, y: 766, w: 490 },
-  modalidade: { x: 1615, y: 766, w: 205 },
-  horario: { x: 770, y: 931, w: 470 },
-  dias: { x: 1420, y: 931, w: 420 },
+  nome: { x: 526, y: 312, w: 890, pt: 13 },
+  pcd: { x: 1474, y: 312, w: 350, pt: 13 },
+  documento: { x: 526, y: 498, w: 1300, pt: 11 },
+  responsavel: { x: 526, y: 650, w: 1300, pt: 11 },
+  celular: { x: 526, y: 807, w: 700, pt: 11 },
+  modalidade: { x: 1269, y: 807, w: 555, pt: 11 },
+  horario: { x: 526, y: 974, w: 700, pt: 11 },
+  dias: { x: 1269, y: 974, w: 555, pt: 10.5 },
 } as const;
 
 const FOTO = { x: 32, y: 158, w: 436, h: 605 };
-const QR = { x: 148, y: 850, size: 205 };
+const QR = { x: 145, y: 800, size: 210 };
+
 
 async function urlParaDataUrl(url: string) {
   const resp = await fetch(url);
@@ -64,20 +66,21 @@ function modeloUrl() {
 }
 
 async function qrDataUrl(texto: string) {
-  return await QRCode.toDataURL(texto, { margin: 1, width: 400, errorCorrectionLevel: "M" });
+  // ECC alto + módulos grandes garantem leitura mesmo impresso em ~9 mm
+  return await QRCode.toDataURL(texto, { margin: 0, width: 640, errorCorrectionLevel: "H", color: { dark: "#000000", light: "#FFFFFF" } });
 }
 
-function textoAjustado(doc: jsPDF, texto: string, larguraMm: number, tamanhoBase = 9) {
+function textoAjustado(doc: jsPDF, texto: string, larguraMm: number, tamanhoBase = 11) {
   let tamanho = tamanhoBase;
   doc.setFontSize(tamanho);
-  while (tamanho > 5 && doc.getTextWidth(texto) > larguraMm) {
+  while (tamanho > 7 && doc.getTextWidth(texto) > larguraMm) {
     tamanho -= 0.5;
     doc.setFontSize(tamanho);
   }
   return tamanho;
 }
 
-function escrever(doc: jsPDF, campo: { x: number; y: number; w: number }, texto: string, tamanhoBase = 9) {
+function escrever(doc: jsPDF, campo: { x: number; y: number; w: number }, texto: string, tamanhoBase = 11) {
   if (!texto) return;
   textoAjustado(doc, texto, mmX(campo.w), tamanhoBase);
   doc.text(texto, mmX(campo.x), mmY(campo.y), { baseline: "middle" });
@@ -103,8 +106,8 @@ async function desenharCracha(doc: jsPDF, dados: DadosCracha, modelo: string, ox
     try {
       const qr = await qrDataUrl(dados.codigo);
       doc.setFillColor(255, 255, 255);
-      doc.rect(ox + mmX(QR.x) - 1, oy + mmY(QR.y) - 1, mmX(QR.size) + 2, mmY(QR.size) + 2, "F");
-      doc.addImage(qr, "PNG", ox + mmX(QR.x), oy + mmY(QR.y), mmX(QR.size), mmY(QR.size), undefined, "FAST");
+      doc.rect(ox + mmX(QR.x) - 0.8, oy + mmY(QR.y) - 0.8, mmX(QR.size) + 1.6, mmY(QR.size) + 1.6, "F");
+      doc.addImage(qr, "PNG", ox + mmX(QR.x), oy + mmY(QR.y), mmX(QR.size), mmY(QR.size), undefined, "NONE");
     } catch {
       // segue sem QR
     }
@@ -113,9 +116,9 @@ async function desenharCracha(doc: jsPDF, dados: DadosCracha, modelo: string, ox
   doc.setTextColor(20, 20, 40);
   doc.setFont("helvetica", "bold");
 
-  const put = (campo: { x: number; y: number; w: number }, texto: string, base = 9) => {
+  const put = (campo: { x: number; y: number; w: number; pt?: number }, texto: string) => {
     if (!texto) return;
-    textoAjustado(doc, texto, mmX(campo.w), base);
+    textoAjustado(doc, texto, mmX(campo.w), campo.pt ?? 11);
     doc.text(texto, ox + mmX(campo.x), oy + mmY(campo.y), { baseline: "middle" });
   };
 
@@ -126,7 +129,7 @@ async function desenharCracha(doc: jsPDF, dados: DadosCracha, modelo: string, ox
   put(CAMPOS.celular, dados.telefone ?? "");
   put(CAMPOS.modalidade, dados.modalidade ?? "");
   put(CAMPOS.horario, dados.horario ?? "");
-  put(CAMPOS.dias, (dados.dias ?? []).join(" e "), 8);
+  put(CAMPOS.dias, (dados.dias ?? []).join(" e "));
 }
 
 // Um crachá por página, no tamanho exato CR-80 (impressoras de cartão)
@@ -216,7 +219,7 @@ export async function gerarCrachaPreviewImagem(dados: DadosCracha) {
     try {
       const qr = await carregarImagem(await qrDataUrl(dados.codigo));
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(QR.x - 8, QR.y - 8, QR.size + 16, QR.size + 16);
+      ctx.fillRect(QR.x - 10, QR.y - 10, QR.size + 20, QR.size + 20);
       ctx.drawImage(qr, QR.x, QR.y, QR.size, QR.size);
     } catch {
       // segue sem QR
@@ -226,14 +229,14 @@ export async function gerarCrachaPreviewImagem(dados: DadosCracha) {
   ctx.fillStyle = "#141428";
   ctx.textBaseline = "middle";
 
-  const put = (campo: { x: number; y: number; w: number }, texto: string, base = 9) => {
+  const put = (campo: { x: number; y: number; w: number; pt?: number }, texto: string) => {
     if (!texto) return;
-    let tamanhoPt = base;
+    let tamanhoPt = campo.pt ?? 11;
     const aplicar = () => {
       ctx.font = `bold ${(tamanhoPt * 0.3528 * PX_POR_MM).toFixed(1)}px Helvetica, Arial, sans-serif`;
     };
     aplicar();
-    while (tamanhoPt > 5 && ctx.measureText(texto).width > campo.w) {
+    while (tamanhoPt > 7 && ctx.measureText(texto).width > campo.w) {
       tamanhoPt -= 0.5;
       aplicar();
     }
@@ -247,7 +250,7 @@ export async function gerarCrachaPreviewImagem(dados: DadosCracha) {
   put(CAMPOS.celular, dados.telefone ?? "");
   put(CAMPOS.modalidade, dados.modalidade ?? "");
   put(CAMPOS.horario, dados.horario ?? "");
-  put(CAMPOS.dias, (dados.dias ?? []).join(" e "), 8);
+  put(CAMPOS.dias, (dados.dias ?? []).join(" e "));
 
   return canvas.toDataURL("image/png");
 }

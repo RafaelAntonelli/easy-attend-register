@@ -143,6 +143,7 @@ function AlunosPage() {
   const [filtroSexo, setFiltroSexo] = useState("todos");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
   const [filtroHorario, setFiltroHorario] = useState("todos");
+  const [filtroDias, setFiltroDias] = useState("todos");
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [turnoForm, setTurnoForm] = useState("todos");
   const [excluindoTodos, setExcluindoTodos] = useState(false);

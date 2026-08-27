@@ -325,7 +325,17 @@ function TurmasPage() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={filtroTurno} onValueChange={setFiltroTurno}>
+            <SelectTrigger className="sm:w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os turnos</SelectItem>
+              {TURNOS.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={filtroHorario} onValueChange={setFiltroHorario}>
+
             <SelectTrigger className="sm:w-52"><SelectValue /></SelectTrigger>
             <SelectContent className="max-h-80">
               <SelectItem value="todos">Todos os horários</SelectItem>

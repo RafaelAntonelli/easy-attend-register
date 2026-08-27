@@ -262,10 +262,12 @@ function AlunosPage() {
     setFoto(null);
     limparDocs();
     setFotoPreview(fotos[aluno.id] ?? null);
-    const m = matriculas.find((x) => x.aluno_id === aluno.id);
+    const m = matriculas.find((x) => x.aluno_id === aluno.id && x.status === "ativa") ?? matriculas.find((x) => x.aluno_id === aluno.id);
     setTurmaId(m?.turma_id ?? "");
     setTurnoForm("todos");
-    setForm((f) => ({ ...f, modalidade: m?.modalidade ?? turmas.find((t) => t.id === m?.turma_id)?.modalidade ?? "Natação" }));
+    // A modalidade da turma é a fonte de verdade (há turmas de Natação e Hidroginástica no mesmo horário)
+    setForm((f) => ({ ...f, modalidade: turmas.find((t) => t.id === m?.turma_id)?.modalidade ?? m?.modalidade ?? "Natação" }));
+
 
     setAberto(true);
   }

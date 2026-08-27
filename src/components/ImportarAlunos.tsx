@@ -11,7 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-type Turma = { id: string; nome: string; horario: string | null; modalidade: string | null; capacidade: number | null };
+type Turma = {
+  id: string;
+  nome: string;
+  horario: string | null;
+  modalidade: string | null;
+  capacidade: number | null;
+  dias_semana?: string[] | null;
+};
 type Matricula = { aluno_id: string; turma_id: string; status: string };
 type AlunoExistente = { id: string; nome: string; cpf: string | null; telefone: string | null };
 
@@ -31,6 +38,7 @@ const COLUNAS = [
   "PCD",
   "Modalidade",
   "Turma",
+  "Foto",
   "Observações",
 ] as const;
 
@@ -52,7 +60,38 @@ const ALIASES: Record<string, string[]> = {
   Modalidade: ["modalidade", "atividade", "esporte"],
   Turma: ["turma", "turma horario", "horario", "classe", "grupo"],
   Observações: ["observacoes", "observacao", "obs", "anotacoes"],
+  Foto: ["foto", "foto url", "url da foto", "link da foto", "imagem", "url foto", "foto do aluno"],
 };
+
+function normalizarModalidade(v: string) {
+  const t = v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  if (/hidro/.test(t)) return "Hidroginástica";
+  if (/nata|nataca|swim/.test(t)) return "Natação";
+  return "";
+}
+
+function extrairHora(v: string) {
+  const m = v.match(/(\d{1,2})\s*(?::|h|hs|hrs|\.)?\s*(\d{2})?/i);
+  if (!m || m[1] == null) return "";
+  const h = Number(m[1]);
+  if (Number.isNaN(h) || h < 0 || h > 23) return "";
+  return String(h).padStart(2, "0");
+}
+
+function extrairDias(v: string) {
+  const t = v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const tq = /\bterca?\b|\bter\b|\bquinta\b|\bqui\b|\bt\/q\b/.test(t);
+  const qs = /\bquarta\b|\bqua\b|\bsexta\b|\bsex\b|\bq\/s\b/.test(t);
+  if (tq && !qs) return ["Ter", "Qui"];
+  if (qs && !tq) return ["Qua", "Sex"];
+  return null;
+}
 
 type Linha = Record<string, unknown>;
 
@@ -73,6 +112,7 @@ type Dados = {
   modalidade: string;
   observacoes: string;
   turmaNome: string;
+  foto: string;
 };
 
 type Analise = {
@@ -138,7 +178,7 @@ export function ImportarAlunos({
       [
         "Maria da Silva", "Feminino", 12, "2014-03-25", "000.000.000-00", "12.345.678-9",
         "(11) 99999-9999", "", "maria@email.com", "João da Silva", "Pública", "Escola Municipal",
-        "Não", "Natação", turmas[0]?.nome ?? "", "",
+        "Não", "Natação", turmas[0]?.nome ?? "", "https://exemplo.com/foto-maria.jpg", "",
       ],
     ]);
     ws["!cols"] = COLUNAS.map((c) => ({ wch: Math.max(c.length + 4, 14) }));
@@ -207,17 +247,45 @@ export function ImportarAlunos({
       }
 
       const nomeTurma = valor("Turma");
+      const modalidadeTexto = valor("Modalidade");
+      // A modalidade pode vir na própria coluna Turma ("Natação - Terça e Quinta 08h")
+      const modalidade = normalizarModalidade(modalidadeTexto) || normalizarModalidade(nomeTurma);
       let turma: Turma | undefined;
       if (nomeTurma) {
-        turma = turmas.find(
-          (t) =>
-            t.nome.toLowerCase() === nomeTurma.toLowerCase() ||
-            `${t.nome} ${t.horario ?? ""}`.trim().toLowerCase() === nomeTurma.toLowerCase(),
-        );
-        if (!turma) erros.push(`Turma "${nomeTurma}" não encontrada`);
+        const alvo = `${nomeTurma} ${modalidadeTexto}`;
+        const hora = extrairHora(nomeTurma);
+        const dias = extrairDias(alvo);
+
+        let candidatas = turmas;
+        if (modalidade) candidatas = candidatas.filter((t) => (t.modalidade ?? "") === modalidade);
+        if (dias) candidatas = candidatas.filter((t) => dias.every((d) => (t.dias_semana ?? []).includes(d)));
+        if (hora) candidatas = candidatas.filter((t) => extrairHora(t.horario ?? "") === hora);
+
+        if (candidatas.length === 1) turma = candidatas[0];
+        else if (candidatas.length > 1) {
+          const exata = candidatas.find(
+            (t) =>
+              t.nome.toLowerCase() === nomeTurma.toLowerCase() ||
+              `${t.nome} ${t.horario ?? ""}`.trim().toLowerCase() === nomeTurma.toLowerCase(),
+          );
+          if (exata) turma = exata;
+          else if (!modalidade && candidatas.some((t) => t.modalidade !== candidatas[0]?.modalidade))
+            erros.push(`Informe a modalidade (Natação ou Hidroginástica) para a turma "${nomeTurma}"`);
+          else erros.push(`Turma "${nomeTurma}" ambígua: informe os dias e o horário (ex.: Terça e Quinta 08:00)`);
+        } else {
+          erros.push(
+            modalidade
+              ? `Turma "${nomeTurma}" não encontrada em ${modalidade}`
+              : `Turma "${nomeTurma}" não encontrada`,
+          );
+        }
       } else {
         avisos.push("Sem turma: o aluno será cadastrado sem matrícula");
       }
+
+      const fotoUrl = valor("Foto");
+      if (fotoUrl && !/^(https?:\/\/|data:image\/)/i.test(fotoUrl))
+        erros.push("Foto inválida: informe um link (https://...) da imagem");
 
       // Duplicidade dentro do próprio arquivo
       const chaveArquivo = `${nome.toLowerCase()}|${apenasDigitos(cpf)}`;
@@ -272,9 +340,10 @@ export function ImportarAlunos({
           rede_ensino: valor("Rede de ensino"),
           escola: valor("Escola"),
           pcd: sim(mapa["PCD"] ? l[mapa["PCD"] as string] : "") ? "sim" : "",
-          modalidade: valor("Modalidade"),
+          modalidade: turma?.modalidade ?? modalidade,
           observacoes: valor("Observações"),
-          turmaNome: nomeTurma,
+          turmaNome: turma ? `${turma.nome} · ${turma.modalidade ?? ""}` : nomeTurma,
+          foto: fotoUrl,
         },
         erros,
         avisos,
@@ -385,8 +454,25 @@ export function ImportarAlunos({
         criados++;
       }
 
+      if (d.foto && alunoId) {
+        try {
+          const resp = await fetch(d.foto);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const blob = await resp.blob();
+          if (!blob.type.startsWith("image/")) throw new Error("arquivo não é uma imagem");
+          const ext = (blob.type.split("/")[1] ?? "jpg").replace("jpeg", "jpg");
+          const caminho = `${alunoId}/${Date.now()}.${ext}`;
+          const up = await supabase.storage.from("fotos-alunos").upload(caminho, blob, { upsert: true });
+          if (up.error) throw up.error;
+          const { error } = await supabase.from("alunos").update({ foto_path: caminho }).eq("id", alunoId);
+          if (error) throw error;
+        } catch (err) {
+          falhas.push(`${d.nome}: foto não importada (${err instanceof Error ? err.message : "erro"})`);
+        }
+      }
+
       if (!a.turmaId || !alunoId) continue;
-      const modalidade = d.modalidade || turmas.find((t) => t.id === a.turmaId)?.modalidade || "Natação";
+      const modalidade = turmas.find((t) => t.id === a.turmaId)?.modalidade || d.modalidade || "Natação";
       const jaMatriculado = matriculas.some(
         (m) => m.aluno_id === alunoId && m.turma_id === a.turmaId && m.status === "ativa",
       );
@@ -437,7 +523,9 @@ export function ImportarAlunos({
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Use um arquivo Excel (.xlsx) ou CSV com a primeira linha de cabeçalho. As colunas são detectadas
-            automaticamente; apenas <strong>Nome</strong> é obrigatória e <strong>Turma</strong> matricula o aluno.
+            automaticamente; apenas <strong>Nome</strong> é obrigatória. As colunas <strong>Turma</strong> e
+            <strong> Modalidade</strong> definem a matrícula (Natação e Hidroginástica têm turmas distintas no mesmo
+            horário) e a coluna <strong>Foto</strong> aceita o link da imagem, que é baixada automaticamente.
           </p>
 
           <div className="space-y-2">
@@ -492,6 +580,7 @@ export function ImportarAlunos({
                       <th className="p-2">CPF</th>
                       <th className="p-2">Celular</th>
                       <th className="p-2">Turma</th>
+                      <th className="p-2">Foto</th>
                       <th className="p-2">Situação</th>
                     </tr>
                   </thead>
@@ -506,6 +595,7 @@ export function ImportarAlunos({
                         <td className="p-2">{a.dados.cpf || texto(a.original["CPF"])}</td>
                         <td className="p-2">{a.dados.telefone || "—"}</td>
                         <td className="p-2">{a.dados.turmaNome || "—"}</td>
+                        <td className="p-2">{a.dados.foto ? "sim" : "—"}</td>
                         <td className="p-2">
                           {a.erros.length ? (
                             <span className="text-destructive">{a.erros.join(" · ")}</span>

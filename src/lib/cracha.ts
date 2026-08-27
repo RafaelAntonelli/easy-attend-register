@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import QRCode from "qrcode";
 import modeloCracha from "@/assets/cracha-modelo.jpg";
 
 // Cartão CR-80 (padrão de crachá): 85,6 x 54 mm
@@ -23,20 +24,23 @@ export type DadosCracha = {
   horario: string | null;
   dias: string[] | null;
   fotoUrl?: string | null;
+  codigo?: string | null;
 };
 
+// Valores alinhados na MESMA linha do rótulo, logo ao lado dele
 const CAMPOS = {
-  nome: { x: 525, y: 312, w: 900 },
-  pcd: { x: 1478, y: 312, w: 380 },
-  documento: { x: 525, y: 498, w: 1330 },
-  responsavel: { x: 525, y: 650, w: 1330 },
-  celular: { x: 525, y: 807, w: 700 },
-  modalidade: { x: 1278, y: 807, w: 580 },
-  horario: { x: 525, y: 974, w: 700 },
-  dias: { x: 1278, y: 974, w: 580 },
+  nome: { x: 720, y: 207, w: 720 },
+  pcd: { x: 1652, y: 207, w: 190 },
+  documento: { x: 775, y: 425, w: 1065 },
+  responsavel: { x: 1155, y: 572, w: 685 },
+  celular: { x: 760, y: 731, w: 490 },
+  modalidade: { x: 1615, y: 731, w: 205 },
+  horario: { x: 770, y: 896, w: 470 },
+  dias: { x: 1420, y: 896, w: 420 },
 } as const;
 
-const FOTO = { x: 32, y: 170, w: 432, h: 588 };
+const FOTO = { x: 32, y: 158, w: 436, h: 605 };
+const QR = { x: 148, y: 790, size: 205 };
 
 async function urlParaDataUrl(url: string) {
   const resp = await fetch(url);
@@ -57,6 +61,10 @@ async function obterModelo() {
 }
 function modeloUrl() {
   return modeloCracha as unknown as string;
+}
+
+async function qrDataUrl(texto: string) {
+  return await QRCode.toDataURL(texto, { margin: 1, width: 400, errorCorrectionLevel: "M" });
 }
 
 function textoAjustado(doc: jsPDF, texto: string, larguraMm: number, tamanhoBase = 9) {
@@ -88,6 +96,17 @@ async function desenharCracha(doc: jsPDF, dados: DadosCracha, modelo: string, ox
       doc.addImage(foto, ox + mmX(FOTO.x), oy + mmY(FOTO.y), mmX(FOTO.w), mmY(FOTO.h), undefined, "FAST");
     } catch {
       // segue sem foto
+    }
+  }
+
+  if (dados.codigo) {
+    try {
+      const qr = await qrDataUrl(dados.codigo);
+      doc.setFillColor(255, 255, 255);
+      doc.rect(ox + mmX(QR.x) - 1, oy + mmY(QR.y) - 1, mmX(QR.size) + 2, mmY(QR.size) + 2, "F");
+      doc.addImage(qr, "PNG", ox + mmX(QR.x), oy + mmY(QR.y), mmX(QR.size), mmY(QR.size), undefined, "FAST");
+    } catch {
+      // segue sem QR
     }
   }
 
@@ -151,4 +170,12 @@ export async function gerarFolhaA4Crachas(lista: DadosCracha[], nomeArquivo: str
   }
 
   doc.save(nomeArquivo.endsWith(".pdf") ? nomeArquivo : `${nomeArquivo}.pdf`);
+}
+
+// Gera um PDF de um único crachá e devolve uma URL de blob para pré-visualização
+export async function gerarCrachaPreviewUrl(dados: DadosCracha) {
+  const modelo = await obterModelo();
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [CR80.largura, CR80.altura] });
+  await desenharCracha(doc, dados, modelo);
+  return doc.output("bloburl").toString();
 }

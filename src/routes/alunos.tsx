@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
-import { Plus, QrCode, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard } from "lucide-react";
+import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +9,7 @@ import { useHorarios } from "@/lib/horarios";
 import { useGruposDias } from "@/lib/dias";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, apenasDigitos } from "@/lib/formatacao";
 import { TURNOS, turnoDoHorario, idadePorNascimento } from "@/lib/turnos";
-import { gerarCrachasPdf, gerarFolhaA4Crachas, type DadosCracha } from "@/lib/cracha";
+import { gerarCrachasPdf, gerarFolhaA4Crachas, gerarCrachaPreviewUrl, type DadosCracha } from "@/lib/cracha";
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";
@@ -163,6 +162,7 @@ function AlunosPage() {
   const [form, setForm] = useState(vazio);
   const [turmaId, setTurmaId] = useState<string>("");
   const [qrAluno, setQrAluno] = useState<Aluno | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [foto, setFoto] = useState<File | null>(null);
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [fotos, setFotos] = useState<Record<string, string>>({});
@@ -554,7 +554,20 @@ function AlunosPage() {
       horario: t?.horario ?? "",
       dias: t?.dias_semana ?? [],
       fotoUrl: fotos[a.id] ?? null,
+      codigo: a.codigo,
     };
+  }
+
+  async function abrirPreviewCracha(a: Aluno) {
+    setQrAluno(a);
+    setPreviewUrl(null);
+    try {
+      const url = await gerarCrachaPreviewUrl(dadosCracha(a));
+      setPreviewUrl(url);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível gerar o crachá");
+      setQrAluno(null);
+    }
   }
 
   async function exportarCrachas(lista: Aluno[], formato: "cartao" | "folha") {
@@ -1229,7 +1242,7 @@ function AlunosPage() {
                 {aluno.pcd ? <Badge variant="outline">PCD</Badge> : null}
                 <Badge variant={aluno.ativo ? "default" : "secondary"}>{aluno.ativo ? "Ativo" : "Inativo"}</Badge>
                 <Button variant="ghost" size="icon" onClick={() => abrirEdicao(aluno)}><Pencil className="size-4" /></Button>
-                <Button variant="outline" size="icon" onClick={() => setQrAluno(aluno)}><QrCode className="size-4" /></Button>
+                <Button variant="outline" size="icon" title="Visualizar crachá" onClick={() => void abrirPreviewCracha(aluno)}><IdCard className="size-4" /></Button>
                 <Button variant="ghost" size="icon" title={aluno.ativo ? "Inativar" : "Reativar"} onClick={() => void alternarAtivo([aluno], !aluno.ativo)}>
                   {aluno.ativo ? <UserX className="size-4" /> : <UserCheck className="size-4" />}
                 </Button>
@@ -1395,20 +1408,32 @@ function AlunosPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!qrAluno} onOpenChange={(o) => !o && setQrAluno(null)}>
-        <DialogContent className="sm:max-w-sm">
+      <Dialog
+        open={!!qrAluno}
+        onOpenChange={(o) => {
+          if (!o) {
+            setQrAluno(null);
+            setPreviewUrl(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="font-display">Carteirinha de {qrAluno?.nome}</DialogTitle>
+            <DialogTitle className="font-display">Crachá de {qrAluno?.nome}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-2">
-            {qrAluno ? (
-              <div className="rounded-2xl bg-card p-5 shadow-pool">
-                <QRCodeSVG value={qrAluno.codigo} size={200} level="M" />
-              </div>
-            ) : null}
-            <p className="text-center text-xs text-muted-foreground">
-              Mostre este QR Code na recepção para registrar a presença.
-            </p>
+            {previewUrl ? (
+              <iframe title="Pré-visualização do crachá" src={previewUrl} className="h-[380px] w-full rounded-lg border border-border" />
+            ) : (
+              <p className="py-12 text-sm text-muted-foreground">Gerando pré-visualização...</p>
+            )}
+            <Button
+              variant="outline"
+              disabled={!qrAluno || gerandoCrachas}
+              onClick={() => qrAluno && void exportarCrachas([qrAluno], "cartao")}
+            >
+              <IdCard className="size-4" /> Baixar crachá (PDF)
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

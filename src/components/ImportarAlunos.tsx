@@ -178,7 +178,7 @@ export function ImportarAlunos({
       [
         "Maria da Silva", "Feminino", 12, "2014-03-25", "000.000.000-00", "12.345.678-9",
         "(11) 99999-9999", "", "maria@email.com", "João da Silva", "Pública", "Escola Municipal",
-        "Não", "Natação", turmas[0]?.nome ?? "", "",
+        "Não", "Natação", turmas[0]?.nome ?? "", "https://exemplo.com/foto-maria.jpg", "",
       ],
     ]);
     ws["!cols"] = COLUNAS.map((c) => ({ wch: Math.max(c.length + 4, 14) }));
@@ -454,8 +454,25 @@ export function ImportarAlunos({
         criados++;
       }
 
+      if (d.foto && alunoId) {
+        try {
+          const resp = await fetch(d.foto);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const blob = await resp.blob();
+          if (!blob.type.startsWith("image/")) throw new Error("arquivo não é uma imagem");
+          const ext = (blob.type.split("/")[1] ?? "jpg").replace("jpeg", "jpg");
+          const caminho = `${alunoId}/${Date.now()}.${ext}`;
+          const up = await supabase.storage.from("fotos-alunos").upload(caminho, blob, { upsert: true });
+          if (up.error) throw up.error;
+          const { error } = await supabase.from("alunos").update({ foto_path: caminho }).eq("id", alunoId);
+          if (error) throw error;
+        } catch (err) {
+          falhas.push(`${d.nome}: foto não importada (${err instanceof Error ? err.message : "erro"})`);
+        }
+      }
+
       if (!a.turmaId || !alunoId) continue;
-      const modalidade = d.modalidade || turmas.find((t) => t.id === a.turmaId)?.modalidade || "Natação";
+      const modalidade = turmas.find((t) => t.id === a.turmaId)?.modalidade || d.modalidade || "Natação";
       const jaMatriculado = matriculas.some(
         (m) => m.aluno_id === alunoId && m.turma_id === a.turmaId && m.status === "ativa",
       );
@@ -506,7 +523,9 @@ export function ImportarAlunos({
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Use um arquivo Excel (.xlsx) ou CSV com a primeira linha de cabeçalho. As colunas são detectadas
-            automaticamente; apenas <strong>Nome</strong> é obrigatória e <strong>Turma</strong> matricula o aluno.
+            automaticamente; apenas <strong>Nome</strong> é obrigatória. As colunas <strong>Turma</strong> e
+            <strong> Modalidade</strong> definem a matrícula (Natação e Hidroginástica têm turmas distintas no mesmo
+            horário) e a coluna <strong>Foto</strong> aceita o link da imagem, que é baixada automaticamente.
           </p>
 
           <div className="space-y-2">
@@ -561,6 +580,7 @@ export function ImportarAlunos({
                       <th className="p-2">CPF</th>
                       <th className="p-2">Celular</th>
                       <th className="p-2">Turma</th>
+                      <th className="p-2">Foto</th>
                       <th className="p-2">Situação</th>
                     </tr>
                   </thead>
@@ -575,6 +595,7 @@ export function ImportarAlunos({
                         <td className="p-2">{a.dados.cpf || texto(a.original["CPF"])}</td>
                         <td className="p-2">{a.dados.telefone || "—"}</td>
                         <td className="p-2">{a.dados.turmaNome || "—"}</td>
+                        <td className="p-2">{a.dados.foto ? "sim" : "—"}</td>
                         <td className="p-2">
                           {a.erros.length ? (
                             <span className="text-destructive">{a.erros.join(" · ")}</span>

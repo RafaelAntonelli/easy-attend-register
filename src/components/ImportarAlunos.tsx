@@ -197,7 +197,7 @@ export function ImportarAlunos({
       [
         "Maria da Silva", "Feminino", 12, "2014-03-25", "000.000.000-00", "12.345.678-9",
         "(11) 99999-9999", "", "maria@email.com", "João da Silva", "Pública", "Escola Municipal",
-        "Não", "Natação", turmas[0]?.nome ?? "", "https://exemplo.com/foto-maria.jpg", "",
+        "Não", "Sim", "2026-02-10", "Natação", turmas[0]?.nome ?? "", "https://exemplo.com/foto-maria.jpg", "",
       ],
     ]);
     ws["!cols"] = COLUNAS.map((c) => ({ wch: Math.max(c.length + 4, 14) }));

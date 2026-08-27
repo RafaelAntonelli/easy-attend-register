@@ -27,20 +27,22 @@ export type DadosCracha = {
   codigo?: string | null;
 };
 
-// Valores desenhados ABAIXO do rótulo correspondente
+// Valores desenhados na faixa cinza ABAIXO de cada rótulo, alinhados à esquerda do rótulo
+// (coordenadas em px da arte 1920x1209, medidas sobre o modelo)
 const CAMPOS = {
-  nome: { x: 720, y: 240, w: 720 },
-  pcd: { x: 1652, y: 240, w: 190 },
-  documento: { x: 775, y: 460, w: 1065 },
-  responsavel: { x: 1155, y: 607, w: 685 },
-  celular: { x: 760, y: 766, w: 490 },
-  modalidade: { x: 1615, y: 766, w: 205 },
-  horario: { x: 770, y: 931, w: 470 },
-  dias: { x: 1420, y: 931, w: 420 },
+  nome: { x: 526, y: 312, w: 890, pt: 13 },
+  pcd: { x: 1474, y: 312, w: 350, pt: 13 },
+  documento: { x: 526, y: 498, w: 1300, pt: 11 },
+  responsavel: { x: 526, y: 650, w: 1300, pt: 11 },
+  celular: { x: 526, y: 807, w: 700, pt: 11 },
+  modalidade: { x: 1269, y: 807, w: 555, pt: 11 },
+  horario: { x: 526, y: 974, w: 700, pt: 11 },
+  dias: { x: 1269, y: 974, w: 555, pt: 10.5 },
 } as const;
 
 const FOTO = { x: 32, y: 158, w: 436, h: 605 };
-const QR = { x: 148, y: 850, size: 205 };
+const QR = { x: 145, y: 800, size: 210 };
+
 
 async function urlParaDataUrl(url: string) {
   const resp = await fetch(url);

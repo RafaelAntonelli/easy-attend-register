@@ -56,9 +56,28 @@ const ALIASES: Record<string, string[]> = {
 
 type Linha = Record<string, unknown>;
 
+type Dados = {
+  nome: string;
+  sexo: string;
+  idade: string;
+  data_nascimento: string;
+  cpf: string;
+  rg: string;
+  telefone: string;
+  telefone2: string;
+  email: string;
+  responsavel: string;
+  rede_ensino: string;
+  escola: string;
+  pcd: string;
+  modalidade: string;
+  observacoes: string;
+  turmaNome: string;
+};
+
 type Analise = {
   original: Linha;
-  dados: Record<string, string>;
+  dados: Dados;
   erros: string[];
   avisos: string[];
   acao: "criar" | "atualizar";
@@ -292,7 +311,10 @@ export function ImportarAlunos({
 
   function baixarErros() {
     const invalidas = analises.filter((a) => a.erros.length);
-    if (!invalidas.length) return toast.info("Nenhuma linha com erro para exportar.");
+    if (!invalidas.length) {
+      toast.info("Nenhuma linha com erro para exportar.");
+      return;
+    }
     const colunasOriginais = Object.keys(invalidas[0]?.original ?? {});
     const cabecalho = ["Linha da planilha", ...colunasOriginais, "Motivo do erro"];
     const linhas = invalidas.map((a) => {
@@ -312,7 +334,10 @@ export function ImportarAlunos({
 
   async function importar() {
     const validas = analises.filter((a) => !a.erros.length);
-    if (!validas.length) return toast.error("Nenhuma linha válida para importar.");
+    if (!validas.length) {
+      toast.error("Nenhuma linha válida para importar.");
+      return;
+    }
     setImportando(true);
     let criados = 0;
     let atualizados = 0;
@@ -322,7 +347,7 @@ export function ImportarAlunos({
     for (const a of validas) {
       const d = a.dados;
       const payload = {
-        nome: d.nome as string,
+        nome: d.nome,
         sexo: d.sexo || null,
         idade: d.idade ? Number(d.idade) : null,
         data_nascimento: d.data_nascimento || null,
@@ -340,9 +365,10 @@ export function ImportarAlunos({
 
       let alunoId = a.alunoId;
       if (a.acao === "atualizar" && alunoId) {
-        const limpo = Object.fromEntries(
-          Object.entries(payload).filter(([, v]) => v !== null && v !== "" && v !== false),
-        );
+        const limpo: Partial<typeof payload> = {};
+        for (const [k, v] of Object.entries(payload)) {
+          if (v !== null && v !== "" && v !== false) (limpo as Record<string, unknown>)[k] = v;
+        }
         const { error } = await supabase.from("alunos").update(limpo).eq("id", alunoId);
         if (error) {
           falhas.push(`${d.nome}: ${error.message}`);

@@ -231,14 +231,16 @@ function PresencaPage() {
     return m ? turmas.find((t) => t.id === m.turma_id) ?? null : null;
   };
 
-  const filtrados = alunos.filter((a) => {
-    if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
-    const t = turmaDoAluno(a.id);
-    if (turmaId && t?.id !== turmaId) return false;
-    if (filtroModalidade !== "todas" && (t?.modalidade ?? "") !== filtroModalidade) return false;
-    if (filtroTurno !== "todos" && turnoDoHorario(t?.horario) !== filtroTurno) return false;
-    return true;
-  });
+  const filtrados = alunos
+    .filter((a) => {
+      if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+      const t = turmaDoAluno(a.id);
+      if (turmaId && t?.id !== turmaId) return false;
+      if (filtroModalidade !== "todas" && (t?.modalidade ?? "") !== filtroModalidade) return false;
+      if (filtroTurno !== "todos" && turnoDoHorario(t?.horario) !== filtroTurno) return false;
+      return true;
+    })
+    .sort((a, b) => a.nome.localeCompare(b.nome));
   const turmasVisiveis = turmas.filter(
     (t) =>
       (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&

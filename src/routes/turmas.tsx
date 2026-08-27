@@ -301,6 +301,36 @@ function TurmasPage() {
     return;
   }
 
+  async function salvarObservacao() {
+    if (!editandoObservacao) return;
+    const { alunoId, texto } = editandoObservacao;
+    const hoje = new Date().toISOString().slice(0, 10);
+    const existente = await supabase
+      .from("presencas")
+      .select("id")
+      .eq("aluno_id", alunoId)
+      .eq("data", hoje)
+      .maybeSingle();
+    const { error } = existente.data
+      ? await supabase
+          .from("presencas")
+          .update({ observacoes: texto || null, metodo: "manual", turma_id: turmaAberta?.id ?? null, horario: new Date().toISOString() })
+          .eq("id", existente.data.id)
+      : await supabase.from("presencas").insert({
+          aluno_id: alunoId,
+          turma_id: turmaAberta?.id ?? null,
+          data: hoje,
+          metodo: "manual",
+          status: "falta_justificada",
+          observacoes: texto || null,
+        });
+    if (error) return toast.error(error.message);
+    setObservacoesPresenca((o) => ({ ...o, [alunoId]: texto }));
+    setEditandoObservacao(null);
+    toast.success("Observação salva");
+    return;
+  }
+
   const visiveis = turmas.filter(
     (t) =>
       (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&

@@ -234,6 +234,25 @@ function PresencaPage() {
           </Popover>
         </div>
         <div className="space-y-2">
+          <Label>Turno</Label>
+          <Select
+            value={filtroTurno}
+            onValueChange={(v) => {
+              setFiltroTurno(v);
+              setTurmaId("");
+            }}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os turnos</SelectItem>
+              {TURNOS.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+
           <Label>Modalidade</Label>
           <Select
             value={filtroModalidade}

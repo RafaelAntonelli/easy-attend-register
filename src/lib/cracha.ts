@@ -41,7 +41,7 @@ const CAMPOS = {
 } as const;
 
 const FOTO = { x: 32, y: 158, w: 436, h: 605 };
-const QR = { x: 125, y: 870, size: 260 };
+const QR = { x: 88, y: 920, size: 320 };
 
 
 const cacheFoto = new Map<string, Promise<string>>();
@@ -122,7 +122,7 @@ async function desenharCracha(doc: jsPDF, dados: DadosCracha, modelo: string, ox
     try {
       const qr = await qrDataUrl(dados.codigo);
       doc.setFillColor(255, 255, 255);
-      doc.rect(ox + mmX(QR.x) - 0.8, oy + mmY(QR.y) - 0.8, mmX(QR.size) + 1.6, mmY(QR.size) + 1.6, "F");
+      doc.rect(ox + mmX(QR.x) - 1.2, oy + mmY(QR.y) - 1.2, mmX(QR.size) + 2.4, mmY(QR.size) + 2.4, "F");
       doc.addImage(qr, "PNG", ox + mmX(QR.x), oy + mmY(QR.y), mmX(QR.size), mmY(QR.size), undefined, "NONE");
     } catch {
       // segue sem QR
@@ -333,7 +333,7 @@ export async function renderizarCrachaCanvas(
       const qr = await carregarQr(dados.codigo);
       ctx.imageSmoothingEnabled = false;
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(QR.x - 10, QR.y - 10, QR.size + 20, QR.size + 20);
+      ctx.fillRect(QR.x - 12, QR.y - 12, QR.size + 24, QR.size + 24);
       ctx.drawImage(qr, QR.x, QR.y, QR.size, QR.size);
       ctx.imageSmoothingEnabled = true;
     } catch {

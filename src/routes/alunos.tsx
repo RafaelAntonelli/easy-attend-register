@@ -764,7 +764,7 @@ function AlunosPage() {
           <Trash2 className="size-4" /> Excluir todos
         </Button>
 
-        <ImportarAlunos turmas={turmas} matriculas={matriculas} onImportado={() => void carregar()} />
+        <ImportarAlunos turmas={turmas} matriculas={matriculas} alunos={alunos} onImportado={() => void carregar()} />
 
 
         <Dialog open={aberto} onOpenChange={setAberto}>

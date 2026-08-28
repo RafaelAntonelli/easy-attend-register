@@ -1,5 +1,3 @@
-import { apenasDigitos } from "@/lib/formatacao";
-
 export type AlunoBasico = {
   id: string;
   nome: string;
@@ -19,8 +17,8 @@ function normalizarNome(nome: string) {
 
 /**
  * Critério único de duplicidade (mesmo usado pelo banco de dados):
- * - mesmo CPF (comparando apenas dígitos), ou
- * - mesmo nome + mesma data de nascimento.
+ * mesmo nome + mesma data de nascimento.
+ * CPF NUNCA é considerado: famílias usam o CPF do responsável para vários alunos.
  * Telefone NUNCA é considerado: irmãos/famílias compartilham o número.
  * Retorna o aluno duplicado ou null.
  */
@@ -29,18 +27,14 @@ export function encontrarAlunoDuplicado<T extends AlunoBasico>(
   alunos: T[],
   ignorarId?: string | null,
 ): T | null {
-  const cpfNovo = apenasDigitos(dados.cpf ?? "");
   const nomeNovo = normalizarNome(dados.nome ?? "");
+  if (!nomeNovo || !dados.data_nascimento) return null;
 
   for (const a of alunos) {
     if (ignorarId && a.id === ignorarId) continue;
-
-    const cpfA = apenasDigitos(a.cpf ?? "");
-    if (cpfNovo.length === 11 && cpfA.length === 11 && cpfA === cpfNovo) return a;
-
-    if (nomeNovo && normalizarNome(a.nome) === nomeNovo) {
-      if (dados.data_nascimento && a.data_nascimento && a.data_nascimento === dados.data_nascimento) return a;
-    }
+    if (normalizarNome(a.nome) !== nomeNovo) continue;
+    if (a.data_nascimento && a.data_nascimento === dados.data_nascimento) return a;
   }
   return null;
 }
+

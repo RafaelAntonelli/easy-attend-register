@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CONDICOES_PCD } from "@/lib/pcd";
 import { useHorarios } from "@/lib/horarios";
 import { useGruposDias } from "@/lib/dias";
-import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, apenasDigitos } from "@/lib/formatacao";
+import { capitalizarNome, formatarCelular, formatarCPF, cpfValido } from "@/lib/formatacao";
 import { encontrarAlunoDuplicado } from "@/lib/duplicidade";
 import { TURNOS, turnoDoHorario, idadePorNascimento } from "@/lib/turnos";
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
@@ -339,17 +339,8 @@ function AlunosPage() {
         toast.error(`Turma lotada (${capacidade} vagas por horário).`);
         return;
       }
-      // Verificação por CPF: mesmo CPF não pode ocupar outra turma
-      const cpfDigitos = apenasDigitos(form.cpf);
-      if (cpfDigitos.length === 11) {
-        const duplicado = alunos.find(
-          (a) => a.id !== editando?.id && apenasDigitos(a.cpf) === cpfDigitos && matriculas.some((m) => m.aluno_id === a.id),
-        );
-        if (duplicado) {
-          toast.error(`Este CPF já está matriculado em outra turma (${duplicado.nome}).`);
-          return;
-        }
-      }
+      // CPF não bloqueia: famílias usam o CPF do responsável para vários alunos.
+
 
     }
     setSalvando(true);

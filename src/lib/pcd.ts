@@ -3,7 +3,7 @@ export const CONDICOES_PCD = [
   "Parkinson CID-10 G20",
   "Artrite reumatoide soropositiva CID-10 M05",
   "Artropatias psoriásicas e enteropáticas CID-10 M07",
-  "Retardo mental CID-10 F70",
+  "Deficiência Intelectual CID-10 F70",
   "TEA Nível 01 de Suporte CID-11 6A02.0",
   "TEA Nível 02 de Suporte CID-11 6A02.1 ou 6A02.2",
   "TEA Nível 03 de Suporte CID-11 6A02.3 ou 6A02.5",

@@ -297,20 +297,12 @@ function AlunosPage() {
       toast.error("CPF inválido. Verifique os números digitados.");
       return;
     }
-    // Evitar cadastro duplicado: mesmo CPF, ou mesmo nome + mesma data de nascimento.
-    // (Telefone não é usado: irmãos/famílias compartilham o mesmo número.)
-    const nomeNormalizado = capitalizarNome(form.nome).trim().toLowerCase();
-    const cpfDigitosForm = apenasDigitos(form.cpf);
-    const duplicado = alunos.find((a) => {
-      if (a.id === editando?.id) return false;
-      const cpfA = apenasDigitos(a.cpf);
-      if (cpfDigitosForm && cpfA && cpfA === cpfDigitosForm) return true;
-      const mesmoNome = a.nome.trim().toLowerCase() === nomeNormalizado;
-      if (!mesmoNome) return false;
-      // Sem CPF informado, só considera duplicado se a data de nascimento também bater
-      if (form.data_nascimento && a.data_nascimento) return a.data_nascimento === form.data_nascimento;
-      return !cpfDigitosForm && !cpfA;
-    });
+    // Critério único (mesmo aplicado no banco de dados): CPF ou nome + data de nascimento.
+    const duplicado = encontrarAlunoDuplicado(
+      { nome: capitalizarNome(form.nome), cpf: form.cpf, data_nascimento: form.data_nascimento },
+      alunos,
+      editando?.id ?? null,
+    );
     if (duplicado) {
       toast.error(`Aluno já cadastrado: ${duplicado.nome}.`);
       return;

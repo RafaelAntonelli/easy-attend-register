@@ -7,15 +7,15 @@ const base: AlunoBasico[] = [
 ];
 
 describe("encontrarAlunoDuplicado", () => {
-  it("bloqueia CPF igual mesmo com nome diferente", () => {
-    const dup = encontrarAlunoDuplicado({ nome: "Outro Nome", cpf: "52998224725" }, base);
-    expect(dup?.id).toBe("1");
+  it("permite CPF igual (CPF do responsável usado por vários alunos)", () => {
+    expect(encontrarAlunoDuplicado({ nome: "Outro Nome", cpf: "52998224725" }, base)).toBeNull();
   });
 
-  it("ignora formatação do CPF", () => {
-    const dup = encontrarAlunoDuplicado({ nome: "Maria Silva", cpf: "529 982 247 25" }, base);
-    expect(dup?.id).toBe("1");
+  it("permite irmãos com o mesmo CPF do responsável e datas diferentes", () => {
+    const dados = { nome: "Maria Silva", cpf: "529 982 247 25", data_nascimento: "2014-02-02" };
+    expect(encontrarAlunoDuplicado(dados, base)).toBeNull();
   });
+
 
   it("bloqueia nome + data de nascimento iguais sem CPF", () => {
     const dup = encontrarAlunoDuplicado({ nome: "joão souza", data_nascimento: "2012-03-01" }, base);

@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.check_aluno_duplicado() FROM PUBLIC, anon, authenticated;

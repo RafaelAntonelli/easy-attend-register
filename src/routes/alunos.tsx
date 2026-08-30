@@ -9,7 +9,7 @@ import { useHorarios } from "@/lib/horarios";
 import { useGruposDias } from "@/lib/dias";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido } from "@/lib/formatacao";
 import { encontrarAlunoDuplicado } from "@/lib/duplicidade";
-import { TURNOS, turnoDoHorario, idadePorNascimento } from "@/lib/turnos";
+import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/lib/turnos";
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 
 import { AppShell } from "@/components/AppShell";
@@ -89,11 +89,33 @@ const DOCUMENTOS = [
 type CampoDoc = (typeof DOCUMENTOS)[number]["campo"];
 
 
-function atestadoVencido(data: string | null | undefined) {
-  if (!data) return false;
+function vencimentoAtestado(data: string | null | undefined) {
+  if (!data) return null;
   const limite = new Date(`${data}T00:00:00`);
+  if (Number.isNaN(limite.getTime())) return null;
   limite.setFullYear(limite.getFullYear() + 1);
-  return limite < new Date();
+  return limite;
+}
+
+function atestadoVencido(data: string | null | undefined) {
+  const limite = vencimentoAtestado(data);
+  return limite ? limite < new Date() : false;
+}
+
+/** Vence em até 30 dias (ainda válido). */
+function atestadoVencendo(data: string | null | undefined) {
+  const limite = vencimentoAtestado(data);
+  if (!limite) return false;
+  const hoje = new Date();
+  const aviso = new Date(hoje);
+  aviso.setDate(aviso.getDate() + 30);
+  return limite >= hoje && limite <= aviso;
+}
+
+function diasParaVencer(data: string | null | undefined) {
+  const limite = vencimentoAtestado(data);
+  if (!limite) return 0;
+  return Math.max(0, Math.ceil((limite.getTime() - Date.now()) / 86400000));
 }
 
 const CAPACIDADE_TURMA = 40;
@@ -284,7 +306,7 @@ function AlunosPage() {
     setFotoPreview(fotos[aluno.id] ?? null);
     const m = matriculas.find((x) => x.aluno_id === aluno.id && x.status === "ativa") ?? matriculas.find((x) => x.aluno_id === aluno.id);
     setTurmaId(m?.turma_id ?? "");
-    setTurnoForm("todos");
+    setTurnoForm(turnoDoHorario(turmas.find((t) => t.id === m?.turma_id)?.horario) || "todos");
     // A modalidade da turma é a fonte de verdade (há turmas de Natação e Hidroginástica no mesmo horário)
     setForm((f) => ({ ...f, modalidade: turmas.find((t) => t.id === m?.turma_id)?.modalidade ?? m?.modalidade ?? "Natação" }));
 
@@ -746,6 +768,7 @@ function AlunosPage() {
 
 
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
+  const proximosVencimento = alunos.filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data));
   const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
   const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
@@ -769,6 +792,30 @@ function AlunosPage() {
                   <span>{a.nome}</span>
                   <span className="text-xs text-muted-foreground">
                     Atestado de {a.atestado_data ? new Date(`${a.atestado_data}T00:00:00`).toLocaleDateString("pt-BR") : "-"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+      {proximosVencimento.length ? (
+        <Card className="mb-6 border-orange-500/40 bg-orange-500/5">
+          <CardContent className="space-y-2 py-4">
+            <p className="flex items-center gap-2 font-medium text-orange-600">
+              <Bell className="size-4" /> Notificações · {proximosVencimento.length} atestado(s) vencendo em até 1 mês
+            </p>
+            <div className="space-y-1">
+              {proximosVencimento.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => abrirEdicao(a)}
+                  className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                >
+                  <span>{a.nome}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Vence em {diasParaVencer(a.atestado_data)} dia(s)
                   </span>
                 </button>
               ))}
@@ -989,6 +1036,13 @@ function AlunosPage() {
                 </div>
               </div>
               <div className="space-y-2">
+                <Label>Faixa etária</Label>
+                <Input readOnly value={faixaEtariaECA(form.data_nascimento, form.idade) || "—"} />
+                <p className="text-xs text-muted-foreground">
+                  Preenchido automaticamente (ECA): criança até 11 anos, adolescente de 12 a 17, adulto a partir de 18.
+                </p>
+              </div>
+              <div className="space-y-2">
                 <Label>Sexo</Label>
                 <Select value={form.sexo} onValueChange={(v) => setForm({ ...form, sexo: v })}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -1061,28 +1115,18 @@ function AlunosPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Turno</Label>
-                <Select
-                  value={turnoForm}
-                  onValueChange={(v) => {
-                    const selecionada = turmas.find((t) => t.id === turmaId);
-                    if (selecionada && v !== "todos" && turnoDoHorario(selecionada.horario) !== v) setTurmaId("");
-                    setTurnoForm(v);
-                  }}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os turnos</SelectItem>
-                    {TURNOS.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
 
                 <Label>Turma</Label>
-                <Select value={turmaId} onValueChange={setTurmaId} required={!editando}>
+                <Select
+                  value={turmaId}
+                  onValueChange={(v) => {
+                    setTurmaId(v);
+                    const selecionada = turmas.find((t) => t.id === v);
+                    const turno = turnoDoHorario(selecionada?.horario);
+                    if (turno) setTurnoForm(turno);
+                  }}
+                  required={!editando}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={
                       carregando
@@ -1118,6 +1162,26 @@ function AlunosPage() {
                     )}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Turno</Label>
+                <Select
+                  value={turnoForm}
+                  onValueChange={(v) => {
+                    const selecionada = turmas.find((t) => t.id === turmaId);
+                    if (selecionada && v !== "todos" && turnoDoHorario(selecionada.horario) !== v) setTurmaId("");
+                    setTurnoForm(v);
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os turnos</SelectItem>
+                    {TURNOS.map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Selecionado automaticamente pelo horário da turma.</p>
               </div>
               <div className="space-y-3 rounded-lg border border-border/70 p-3">
                 <div className="flex items-center justify-between">

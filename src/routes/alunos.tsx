@@ -306,7 +306,7 @@ function AlunosPage() {
     setFotoPreview(fotos[aluno.id] ?? null);
     const m = matriculas.find((x) => x.aluno_id === aluno.id && x.status === "ativa") ?? matriculas.find((x) => x.aluno_id === aluno.id);
     setTurmaId(m?.turma_id ?? "");
-    setTurnoForm("todos");
+    setTurnoForm(turnoDoHorario(turmas.find((t) => t.id === m?.turma_id)?.horario) || "todos");
     // A modalidade da turma é a fonte de verdade (há turmas de Natação e Hidroginástica no mesmo horário)
     setForm((f) => ({ ...f, modalidade: turmas.find((t) => t.id === m?.turma_id)?.modalidade ?? m?.modalidade ?? "Natação" }));
 
@@ -792,6 +792,30 @@ function AlunosPage() {
                   <span>{a.nome}</span>
                   <span className="text-xs text-muted-foreground">
                     Atestado de {a.atestado_data ? new Date(`${a.atestado_data}T00:00:00`).toLocaleDateString("pt-BR") : "-"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+      {proximosVencimento.length ? (
+        <Card className="mb-6 border-orange-500/40 bg-orange-500/5">
+          <CardContent className="space-y-2 py-4">
+            <p className="flex items-center gap-2 font-medium text-orange-600">
+              <Bell className="size-4" /> Notificações · {proximosVencimento.length} atestado(s) vencendo em até 1 mês
+            </p>
+            <div className="space-y-1">
+              {proximosVencimento.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => abrirEdicao(a)}
+                  className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                >
+                  <span>{a.nome}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Vence em {diasParaVencer(a.atestado_data)} dia(s)
                   </span>
                 </button>
               ))}

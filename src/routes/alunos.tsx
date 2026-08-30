@@ -1090,28 +1090,18 @@ function AlunosPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Turno</Label>
-                <Select
-                  value={turnoForm}
-                  onValueChange={(v) => {
-                    const selecionada = turmas.find((t) => t.id === turmaId);
-                    if (selecionada && v !== "todos" && turnoDoHorario(selecionada.horario) !== v) setTurmaId("");
-                    setTurnoForm(v);
-                  }}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os turnos</SelectItem>
-                    {TURNOS.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
 
                 <Label>Turma</Label>
-                <Select value={turmaId} onValueChange={setTurmaId} required={!editando}>
+                <Select
+                  value={turmaId}
+                  onValueChange={(v) => {
+                    setTurmaId(v);
+                    const selecionada = turmas.find((t) => t.id === v);
+                    const turno = turnoDoHorario(selecionada?.horario);
+                    if (turno) setTurnoForm(turno);
+                  }}
+                  required={!editando}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={
                       carregando

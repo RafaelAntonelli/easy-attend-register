@@ -768,6 +768,7 @@ function AlunosPage() {
 
 
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
+  const proximosVencimento = alunos.filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data));
   const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
   const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
@@ -1137,6 +1138,26 @@ function AlunosPage() {
                     )}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Turno</Label>
+                <Select
+                  value={turnoForm}
+                  onValueChange={(v) => {
+                    const selecionada = turmas.find((t) => t.id === turmaId);
+                    if (selecionada && v !== "todos" && turnoDoHorario(selecionada.horario) !== v) setTurmaId("");
+                    setTurnoForm(v);
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os turnos</SelectItem>
+                    {TURNOS.map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Selecionado automaticamente pelo horário da turma.</p>
               </div>
               <div className="space-y-3 rounded-lg border border-border/70 p-3">
                 <div className="flex items-center justify-between">

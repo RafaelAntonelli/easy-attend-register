@@ -29,6 +29,7 @@ export type Database = {
           doc_residencia_path: string | null
           email: string | null
           escola: string | null
+          faixa_etaria: string | null
           foto_path: string | null
           id: string
           idade: number | null
@@ -58,6 +59,7 @@ export type Database = {
           doc_residencia_path?: string | null
           email?: string | null
           escola?: string | null
+          faixa_etaria?: string | null
           foto_path?: string | null
           id?: string
           idade?: number | null
@@ -87,6 +89,7 @@ export type Database = {
           doc_residencia_path?: string | null
           email?: string | null
           escola?: string | null
+          faixa_etaria?: string | null
           foto_path?: string | null
           id?: string
           idade?: number | null
@@ -101,6 +104,27 @@ export type Database = {
           sexo?: string | null
           telefone?: string | null
           telefone2?: string | null
+        }
+        Relationships: []
+      }
+      configuracoes: {
+        Row: {
+          chave: string
+          created_at: string
+          updated_at: string
+          valor: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          updated_at?: string
+          valor: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          updated_at?: string
+          valor?: string
         }
         Relationships: []
       }
@@ -331,6 +355,7 @@ export type Database = {
           modalidade: string
           nome: string
           professor: string | null
+          turno: string | null
         }
         Insert: {
           ativa?: boolean
@@ -342,6 +367,7 @@ export type Database = {
           modalidade?: string
           nome: string
           professor?: string | null
+          turno?: string | null
         }
         Update: {
           ativa?: boolean
@@ -353,6 +379,7 @@ export type Database = {
           modalidade?: string
           nome?: string
           professor?: string | null
+          turno?: string | null
         }
         Relationships: []
       }
@@ -382,6 +409,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calc_faixa_etaria: {
+        Args: { _idade: number; _nascimento: string }
+        Returns: string
+      }
+      calc_turno: { Args: { _horario: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -62,14 +62,62 @@ export const validarPastasDriveFn = createServerFn({ method: "POST" })
 /** Registra o resultado do último backup manual. */
 export const registrarBackupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ resumo: z.string() }).parse(data))
+  .inputValidator((data: unknown) =>
+    z.object({ resumo: z.string(), status: z.enum(["sucesso", "falha"]).optional() }).parse(data),
+  )
   .handler(async ({ context, data }) => {
     await garantirAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const quando = new Date().toISOString();
     await supabaseAdmin
       .from("backup_cron")
-      .update({ ultimo_backup: quando, ultimo_resultado: data.resumo })
+      .update({ ultimo_backup: quando, ultimo_resultado: data.resumo, ultimo_status: data.status ?? "sucesso" })
       .eq("id", true);
     return { ultimo_backup: quando };
   });
+
+/** Lê o estado do backup automático (último resultado + agendamento). Somente administradores. */
+export const statusBackupFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await garantirAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("backup_cron")
+      .select("ultimo_backup,ultimo_resultado,ultimo_status,dia_semana,hora,minuto,ativo")
+      .maybeSingle();
+    return (data ?? null) as {
+      ultimo_backup: string | null;
+      ultimo_resultado: string | null;
+      ultimo_status: string | null;
+      dia_semana: number;
+      hora: number;
+      minuto: number;
+      ativo: boolean;
+    } | null;
+  });
+
+const agendamentoSchema = z.object({
+  dia_semana: z.number().int().min(0).max(6),
+  hora: z.number().int().min(0).max(23),
+  minuto: z.number().int().min(0).max(59),
+  ativo: z.boolean(),
+});
+
+/** Salva o dia/horário do backup automático e reprograma o agendador. Somente administradores. */
+export const salvarAgendamentoFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => agendamentoSchema.parse(data))
+  .handler(async ({ context, data }) => {
+    await garantirAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.rpc("agendar_backup", {
+      _dia: data.dia_semana,
+      _hora: data.hora,
+      _minuto: data.minuto,
+      _ativo: data.ativo,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+

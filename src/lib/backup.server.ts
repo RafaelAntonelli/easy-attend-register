@@ -95,9 +95,9 @@ export type ChecagemPasta = {
   id: string;
   padrao: boolean;
   ok: boolean;
-  nome?: string;
-  podeEscrever?: boolean;
-  erro?: string;
+  nome?: string | undefined;
+  podeEscrever?: boolean | undefined;
+  erro?: string | undefined;
 };
 
 /** Verifica se uma pasta do Drive existe, não está na lixeira e aceita novos arquivos. */
@@ -193,9 +193,9 @@ export async function enviarParaDrive(opcoes: {
   conteudo: ArrayBuffer | Uint8Array;
   tipo: string;
   /** Marcador único do aluno + tipo de arquivo, usado para achar versões antigas. */
-  marcador?: string;
+  marcador?: string | undefined;
   /** Arquivos já existentes na pasta (evita uma busca por arquivo). */
-  existentes?: ArquivoDrive[];
+  existentes?: ArquivoDrive[] | undefined;
 }) {
   const nome = nomeArquivoSeguro(opcoes.nome);
   const lista = opcoes.existentes ?? (await listarPasta(opcoes.pasta));

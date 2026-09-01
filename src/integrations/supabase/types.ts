@@ -109,27 +109,42 @@ export type Database = {
       }
       backup_cron: {
         Row: {
+          ativo: boolean
           created_at: string
+          dia_semana: number
+          hora: number
           id: boolean
+          minuto: number
           token: string
           ultimo_backup: string | null
           ultimo_resultado: string | null
+          ultimo_status: string | null
           updated_at: string
         }
         Insert: {
+          ativo?: boolean
           created_at?: string
+          dia_semana?: number
+          hora?: number
           id?: boolean
+          minuto?: number
           token?: string
           ultimo_backup?: string | null
           ultimo_resultado?: string | null
+          ultimo_status?: string | null
           updated_at?: string
         }
         Update: {
+          ativo?: boolean
           created_at?: string
+          dia_semana?: number
+          hora?: number
           id?: boolean
+          minuto?: number
           token?: string
           ultimo_backup?: string | null
           ultimo_resultado?: string | null
+          ultimo_status?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -436,6 +451,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      agendar_backup: {
+        Args: { _ativo: boolean; _dia: number; _hora: number; _minuto: number }
+        Returns: undefined
+      }
       calc_faixa_etaria: {
         Args: { _idade: number; _nascimento: string }
         Returns: string

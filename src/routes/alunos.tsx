@@ -11,6 +11,8 @@ import { capitalizarNome, formatarCelular, formatarCPF, cpfValido } from "@/lib/
 import { encontrarAlunoDuplicado } from "@/lib/duplicidade";
 import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/lib/turnos";
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
+import { atestadoVencido, atestadoVencendo, diasParaVencer } from "@/lib/atestado";
+import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";

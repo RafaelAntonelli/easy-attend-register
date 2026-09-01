@@ -29,7 +29,40 @@ import {
   enviarLoteBackupFn,
   registrarBackupFn,
   validarPastasDriveFn,
+  statusBackupFn,
+  salvarAgendamentoFn,
 } from "@/lib/backup.functions";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+/** Dias da semana no formato usado pelo agendador (0 = domingo). */
+const DIAS_SEMANA = [
+  { valor: 0, rotulo: "Domingo" },
+  { valor: 1, rotulo: "Segunda-feira" },
+  { valor: 2, rotulo: "Terça-feira" },
+  { valor: 3, rotulo: "Quarta-feira" },
+  { valor: 4, rotulo: "Quinta-feira" },
+  { valor: 5, rotulo: "Sexta-feira" },
+  { valor: 6, rotulo: "Sábado" },
+] as const;
+
+/** Avisa o administrador por notificação do navegador (quando permitido) e por aviso na tela. */
+function notificar(titulo: string, corpo: string, erro = false) {
+  if (erro) toast.error(`${titulo}${corpo ? `: ${corpo}` : ""}`);
+  else toast.success(`${titulo}${corpo ? `: ${corpo}` : ""}`);
+  try {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "granted") new Notification(titulo, { body: corpo });
+    else if (Notification.permission === "default") {
+      void Notification.requestPermission().then((p) => {
+        if (p === "granted") new Notification(titulo, { body: corpo });
+      });
+    }
+  } catch {
+    /* notificação do navegador é opcional */
+  }
+}
+
 
 type ChecagemPasta = {
   chave: string;

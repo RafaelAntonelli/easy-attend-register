@@ -68,7 +68,7 @@ const PARAMETROS = [
 ] as const;
 
 type ParametroId = (typeof PARAMETROS)[number]["id"];
-type PontoGrafico = { nome: string; total: number };
+type PontoGrafico = { nome: string; total: number; alunos: Aluno[] };
 
 function RelatoriosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
@@ -349,7 +349,10 @@ function RelatoriosPage() {
   }
 
   function exportarGraficosCsv() {
-    if (!parametros.length) return toast.error("Selecione ao menos um parâmetro");
+    if (!parametros.length) {
+      toast.error("Selecione ao menos um parâmetro");
+      return;
+    }
     const linhas = [["Parâmetro", "Categoria", "Alunos"]];
     for (const id of parametros) {
       const rotulo = PARAMETROS.find((p) => p.id === id)?.rotulo ?? id;
@@ -399,7 +402,10 @@ function RelatoriosPage() {
   }
 
   async function exportarGraficosPdf() {
-    if (!parametros.length) return toast.error("Selecione ao menos um parâmetro");
+    if (!parametros.length) {
+      toast.error("Selecione ao menos um parâmetro");
+      return;
+    }
     const idToast = toast.loading("Gerando PDF dos gráficos…");
     try {
       const { jsPDF } = await import("jspdf");

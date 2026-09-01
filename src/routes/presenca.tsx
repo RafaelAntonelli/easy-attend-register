@@ -206,7 +206,7 @@ function PresencaPage() {
       toast.error("QR Code não reconhecido.");
       return;
     }
-    setConfirmacao((atual) => atual ?? aluno);
+    setConfirmacao((atual) => atual ?? { aluno, jaRegistrado: statusRef.current[aluno.id] ?? null });
   }
 
 

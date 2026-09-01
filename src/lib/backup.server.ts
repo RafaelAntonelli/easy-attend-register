@@ -236,10 +236,10 @@ export async function enviarLoteBackup(
         }
         await enviarParaDrive({
           nome: arquivo.nome,
-          pasta: pastaImagens,
+          pasta: arquivo.destino === "documentos" ? pastas.documentos : pastas.fotos,
           conteudo,
           tipo: tipoPorExtensao(arquivo.caminho),
-          existentes: indice,
+          existentes: indices[arquivo.destino],
         });
         enviados++;
       } catch (err) {

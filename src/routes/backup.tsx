@@ -1,14 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CloudUpload, ShieldAlert } from "lucide-react";
+import { CloudUpload, FolderCog, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { useConfiguracaoTexto } from "@/lib/configuracoes";
+import { CHAVE_PASTA_IMAGENS, CHAVE_PASTA_PLANILHAS, extrairIdPastaDrive } from "@/lib/configuracoes-chaves";
 import { useAuth } from "@/lib/auth";
 import { prepararBackupFn, enviarLoteBackupFn, registrarBackupFn } from "@/lib/backup.functions";
 
@@ -49,6 +53,44 @@ function BackupPage() {
   const preparar = useServerFn(prepararBackupFn);
   const enviarLote = useServerFn(enviarLoteBackupFn);
   const registrar = useServerFn(registrarBackupFn);
+  const pastaPlanilhas = useConfiguracaoTexto(CHAVE_PASTA_PLANILHAS);
+  const pastaImagens = useConfiguracaoTexto(CHAVE_PASTA_IMAGENS);
+  const [formPlanilhas, setFormPlanilhas] = useState("");
+  const [formImagens, setFormImagens] = useState("");
+  const [salvandoPastas, setSalvandoPastas] = useState(false);
+
+  useEffect(() => {
+    if (!pastaPlanilhas.carregando) setFormPlanilhas(pastaPlanilhas.valor);
+  }, [pastaPlanilhas.carregando, pastaPlanilhas.valor]);
+
+  useEffect(() => {
+    if (!pastaImagens.carregando) setFormImagens(pastaImagens.valor);
+  }, [pastaImagens.carregando, pastaImagens.valor]);
+
+  async function salvarPastas() {
+    const idPlanilhas = extrairIdPastaDrive(formPlanilhas);
+    const idImagens = extrairIdPastaDrive(formImagens);
+    if (formPlanilhas.trim() && !idPlanilhas) {
+      toast.error("Link ou ID inválido para a pasta da planilha.");
+      return;
+    }
+    if (formImagens.trim() && !idImagens) {
+      toast.error("Link ou ID inválido para a pasta das imagens.");
+      return;
+    }
+    setSalvandoPastas(true);
+    try {
+      await pastaPlanilhas.salvar(idPlanilhas);
+      await pastaImagens.salvar(idImagens);
+      setFormPlanilhas(idPlanilhas);
+      setFormImagens(idImagens);
+      toast.success("Pastas de destino atualizadas.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível salvar as pastas.");
+    } finally {
+      setSalvandoPastas(false);
+    }
+  }
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -165,6 +207,40 @@ function BackupPage() {
 
           <Button disabled={backupando} onClick={() => void backupAgora()}>
             <CloudUpload className="size-4" /> {backupando ? "Enviando..." : "Fazer Backup"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 max-w-2xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <FolderCog className="size-4" /> Pastas de destino no Drive
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Cole o link (ou o ID) da pasta do Google Drive. Deixe em branco para usar as pastas padrão.
+          </p>
+          <div className="space-y-2">
+            <Label htmlFor="pasta-planilha">Pasta da planilha</Label>
+            <Input
+              id="pasta-planilha"
+              value={formPlanilhas}
+              onChange={(e) => setFormPlanilhas(e.target.value)}
+              placeholder="https://drive.google.com/drive/folders/..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="pasta-imagens">Pasta das fotos e documentos</Label>
+            <Input
+              id="pasta-imagens"
+              value={formImagens}
+              onChange={(e) => setFormImagens(e.target.value)}
+              placeholder="https://drive.google.com/drive/folders/..."
+            />
+          </div>
+          <Button variant="secondary" disabled={salvandoPastas} onClick={() => void salvarPastas()}>
+            {salvandoPastas ? "Salvando..." : "Salvar pastas"}
           </Button>
         </CardContent>
       </Card>

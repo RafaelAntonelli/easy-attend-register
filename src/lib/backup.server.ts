@@ -5,7 +5,7 @@ const GATEWAY = "https://connector-gateway.lovable.dev/google_drive";
 /** Pasta do Drive para as planilhas de exportação. */
 export const PASTA_PLANILHAS = "1xCkat_TA0nT_zOW2yzw0myflN8jBO65n";
 /** Pasta do Drive para fotos e documentos dos alunos. */
-export const PASTA_IMAGENS = "1j7Llm91Q2Zp0JfFg1afhPRADDO_KmoOz";
+export const PASTA_IMAGENS = "1o-dAKikn44JlISnEK7IwUNrv-apownZ3";
 
 function cabecalhosDrive() {
   const lovable = process.env["LOVABLE_API_KEY"];

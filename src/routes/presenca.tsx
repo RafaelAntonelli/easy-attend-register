@@ -450,10 +450,23 @@ function PresencaPage() {
       <AlertDialog open={Boolean(confirmacao)} onOpenChange={(aberto) => !aberto && setConfirmacao(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar presença?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirmacao?.jaRegistrado ? "Presença já registrada hoje" : "Confirmar presença?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Registrar presença de <strong>{confirmacao?.nome}</strong> em{" "}
-              {format(data, "dd/MM/yyyy", { locale: ptBR })}?
+              {confirmacao?.jaRegistrado ? (
+                <>
+                  <strong>{confirmacao.aluno.nome}</strong> já tem registro de{" "}
+                  {rotuloStatus[confirmacao.jaRegistrado].toLowerCase()} em{" "}
+                  {format(data, "dd/MM/yyyy", { locale: ptBR })}. Deseja registrar novamente (o registro anterior será
+                  substituído)?
+                </>
+              ) : (
+                <>
+                  Registrar presença de <strong>{confirmacao?.aluno.nome}</strong> em{" "}
+                  {format(data, "dd/MM/yyyy", { locale: ptBR })}?
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -467,14 +480,15 @@ function PresencaPage() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                const aluno = confirmacao;
+                const alvo = confirmacao;
                 setConfirmacao(null);
-                if (aluno) void registrar(aluno, "qrcode");
+                if (alvo) void registrar(alvo.aluno, "qrcode");
               }}
             >
-              Sim
+              {confirmacao?.jaRegistrado ? "Registrar mesmo assim" : "Sim"}
             </AlertDialogAction>
           </AlertDialogFooter>
+
         </AlertDialogContent>
       </AlertDialog>
     </AppShell>

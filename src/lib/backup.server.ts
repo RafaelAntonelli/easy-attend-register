@@ -96,8 +96,28 @@ type Resultado = {
   falhas: string[];
 };
 
-/** Exporta a planilha do dia e todas as fotos/documentos para as pastas do Google Drive. */
-export async function executarBackupCompleto(): Promise<Resultado> {
+export type ArquivoBackup = { caminho: string; nome: string };
+
+function tipoPorExtensao(caminho: string) {
+  const ext = (caminho.split(".").pop() ?? "").toLowerCase();
+  if (ext === "png") return "image/png";
+  if (ext === "pdf") return "application/pdf";
+  if (ext === "webp") return "image/webp";
+  return "image/jpeg";
+}
+
+async function baixarArquivoStorage(caminho: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin.storage.from("fotos-alunos").download(caminho);
+  return data ? await data.arrayBuffer() : null;
+}
+
+/** Gera e envia a planilha do dia e devolve a relação de fotos/documentos a enviar. */
+export async function prepararBackup(): Promise<{
+  planilha: string;
+  arquivos: ArquivoBackup[];
+  existentes: Record<string, string>;
+}> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const [{ data: alunos, error: erroAlunos }, { data: turmas }, { data: matriculas }] = await Promise.all([
@@ -114,16 +134,11 @@ export async function executarBackupCompleto(): Promise<Resultado> {
     return m ? (turmas ?? []).find((t) => t.id === m.turma_id) : undefined;
   };
 
-  const baixar = async (caminho: string) => {
-    const { data } = await supabaseAdmin.storage.from("fotos-alunos").download(caminho);
-    return data ? await data.arrayBuffer() : null;
-  };
-
   const buffer = await montarPlanilhaAlunos({
     alunos: lista,
     turmaDoAluno,
     modalidadeDoAluno: (id) => matriculaDoAluno(id)?.modalidade ?? turmaDoAluno(id)?.modalidade ?? "",
-    baixarArquivo: baixar,
+    baixarArquivo: baixarArquivoStorage,
   });
 
   const data = new Date().toISOString().slice(0, 10);
@@ -134,10 +149,7 @@ export async function executarBackupCompleto(): Promise<Resultado> {
     tipo: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
 
-  const falhas: string[] = [];
-  let imagens = 0;
-
-  const arquivos: { caminho: string; nome: string }[] = [];
+  const arquivos: ArquivoBackup[] = [];
   for (const aluno of lista) {
     const registro = aluno as AlunoPlanilha & { foto_path?: string | null };
     if (registro.foto_path) {
@@ -152,7 +164,18 @@ export async function executarBackupCompleto(): Promise<Resultado> {
     }
   }
 
-  const existentes = await listarPasta(PASTA_IMAGENS);
+  const existentes = Object.fromEntries(await listarPasta(PASTA_IMAGENS));
+  return { planilha: planilha.nome, arquivos, existentes };
+}
+
+/** Envia um lote de fotos/documentos para a pasta de imagens do Drive. */
+export async function enviarLoteBackup(
+  arquivos: ArquivoBackup[],
+  existentes?: Record<string, string>,
+): Promise<{ enviados: number; falhas: string[] }> {
+  const indice = new Map(Object.entries(existentes ?? {}));
+  const falhas: string[] = [];
+  let enviados = 0;
   const CONCORRENCIA = 8;
   let proximo = 0;
 
@@ -161,22 +184,19 @@ export async function executarBackupCompleto(): Promise<Resultado> {
       const arquivo = arquivos[proximo++];
       if (!arquivo) return;
       try {
-        const conteudo = await baixar(arquivo.caminho);
+        const conteudo = await baixarArquivoStorage(arquivo.caminho);
         if (!conteudo) {
           falhas.push(arquivo.nome);
           continue;
         }
-        const ext = (arquivo.caminho.split(".").pop() ?? "").toLowerCase();
-        const tipo =
-          ext === "png"
-            ? "image/png"
-            : ext === "pdf"
-              ? "application/pdf"
-              : ext === "webp"
-                ? "image/webp"
-                : "image/jpeg";
-        await enviarParaDrive({ nome: arquivo.nome, pasta: PASTA_IMAGENS, conteudo, tipo, existentes });
-        imagens++;
+        await enviarParaDrive({
+          nome: arquivo.nome,
+          pasta: PASTA_IMAGENS,
+          conteudo,
+          tipo: tipoPorExtensao(arquivo.caminho),
+          existentes: indice,
+        });
+        enviados++;
       } catch (err) {
         console.error("[backup] falha ao enviar arquivo", arquivo.nome, err);
         falhas.push(arquivo.nome);
@@ -185,7 +205,13 @@ export async function executarBackupCompleto(): Promise<Resultado> {
   }
 
   await Promise.all(Array.from({ length: Math.min(CONCORRENCIA, arquivos.length) }, trabalhador));
-
-
-  return { planilha: planilha.nome, imagens, falhas };
+  return { enviados, falhas };
 }
+
+/** Exporta a planilha do dia e todas as fotos/documentos para as pastas do Google Drive. */
+export async function executarBackupCompleto(): Promise<Resultado> {
+  const { planilha, arquivos, existentes } = await prepararBackup();
+  const { enviados, falhas } = await enviarLoteBackup(arquivos, existentes);
+  return { planilha, imagens: enviados, falhas };
+}
+

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CloudUpload, FolderCog, ShieldAlert } from "lucide-react";
+import { CheckCircle2, CloudUpload, FolderCog, FolderTree, ShieldAlert, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -16,10 +16,68 @@ import {
   CHAVE_PASTA_DOCUMENTOS,
   CHAVE_PASTA_IMAGENS,
   CHAVE_PASTA_PLANILHAS,
+  TIPOS_DOCUMENTO,
+  chaveSubpastaDocumento,
   extrairIdPastaDrive,
+  limparNomeSubpasta,
 } from "@/lib/configuracoes-chaves";
 import { useAuth } from "@/lib/auth";
-import { prepararBackupFn, enviarLoteBackupFn, registrarBackupFn } from "@/lib/backup.functions";
+import {
+  prepararBackupFn,
+  enviarLoteBackupFn,
+  registrarBackupFn,
+  validarPastasDriveFn,
+} from "@/lib/backup.functions";
+
+type ChecagemPasta = {
+  chave: string;
+  rotulo: string;
+  id: string;
+  padrao: boolean;
+  ok: boolean;
+  nome?: string | undefined;
+  erro?: string | undefined;
+};
+
+/** Campo de subpasta (dentro da pasta de documentos) para um tipo de documento. */
+function CampoSubpasta({ campo, rotulo, padrao }: { campo: string; rotulo: string; padrao: string }) {
+  const config = useConfiguracaoTexto(chaveSubpastaDocumento(campo));
+  const [texto, setTexto] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    if (!config.carregando) setTexto(config.valor);
+  }, [config.carregando, config.valor]);
+
+  async function salvar() {
+    const limpo = limparNomeSubpasta(texto);
+    if (limpo === config.valor) return;
+    setSalvando(true);
+    try {
+      await config.salvar(limpo);
+      setTexto(limpo);
+      toast.success(`Subpasta de ${rotulo.toLowerCase()} atualizada.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível salvar a subpasta.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={`sub-${campo}`}>{rotulo}</Label>
+      <Input
+        id={`sub-${campo}`}
+        value={texto}
+        disabled={salvando}
+        onChange={(e) => setTexto(e.target.value)}
+        onBlur={() => void salvar()}
+        placeholder={`Ex.: ${padrao} (em branco = pasta principal)`}
+      />
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/backup")({
   component: BackupPage,
@@ -65,6 +123,26 @@ function BackupPage() {
   const [formImagens, setFormImagens] = useState("");
   const [formDocumentos, setFormDocumentos] = useState("");
   const [salvandoPastas, setSalvandoPastas] = useState(false);
+  const [checagens, setChecagens] = useState<ChecagemPasta[] | null>(null);
+  const [verificando, setVerificando] = useState(false);
+  const validarPastas = useServerFn(validarPastasDriveFn);
+
+  async function verificarPastas() {
+    setVerificando(true);
+    try {
+      const resultado = (await validarPastas({ data: undefined })) as ChecagemPasta[];
+      setChecagens(resultado);
+      const ruins = resultado.filter((c) => !c.ok);
+      if (ruins.length === 0) toast.success("Todas as pastas do Drive estão acessíveis.");
+      else toast.error(`${ruins.length} pasta(s) com problema. Confira os detalhes abaixo.`);
+      return resultado;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível verificar as pastas.");
+      return null;
+    } finally {
+      setVerificando(false);
+    }
+  }
 
   useEffect(() => {
     if (!pastaPlanilhas.carregando) setFormPlanilhas(pastaPlanilhas.valor);
@@ -120,6 +198,11 @@ function BackupPage() {
   }, [isAdmin]);
 
   async function backupAgora() {
+    const checagem = await verificarPastas();
+    if (!checagem || checagem.some((c) => !c.ok)) {
+      toast.error("Corrija as pastas do Google Drive antes de rodar o backup.");
+      return;
+    }
     setBackupando(true);
     setProgresso({ etapa: "Gerando e enviando a planilha…", enviados: 0, total: 0, falhas: 0, restante: null });
     try {
@@ -223,9 +306,33 @@ function BackupPage() {
             </div>
           ) : null}
 
-          <Button disabled={backupando} onClick={() => void backupAgora()}>
-            <CloudUpload className="size-4" /> {backupando ? "Enviando..." : "Fazer Backup"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={backupando || verificando} onClick={() => void backupAgora()}>
+              <CloudUpload className="size-4" /> {backupando ? "Enviando..." : "Fazer Backup"}
+            </Button>
+            <Button variant="outline" disabled={verificando || backupando} onClick={() => void verificarPastas()}>
+              <CheckCircle2 className="size-4" /> {verificando ? "Verificando..." : "Verificar pastas"}
+            </Button>
+          </div>
+
+          {checagens ? (
+            <ul className="space-y-2 rounded-lg border border-border p-3 text-sm">
+              {checagens.map((c) => (
+                <li key={c.chave} className="flex items-start gap-2">
+                  {c.ok ? (
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  ) : (
+                    <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                  )}
+                  <span>
+                    <strong>{c.rotulo}</strong>
+                    {c.padrao ? " (padrão)" : ""}:{" "}
+                    {c.ok ? `acessível — ${c.nome ?? c.id}` : (c.erro ?? "indisponível")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -269,6 +376,22 @@ function BackupPage() {
           <Button variant="secondary" disabled={salvandoPastas} onClick={() => void salvarPastas()}>
             {salvandoPastas ? "Salvando..." : "Salvar pastas"}
           </Button>
+        </CardContent>
+      </Card>
+      <Card className="mt-4 max-w-2xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <FolderTree className="size-4" /> Subpastas por tipo de documento
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Informe o nome da subpasta (dentro da pasta de documentos) para cada tipo. As subpastas são criadas
+            automaticamente no backup. Em branco, o arquivo vai direto para a pasta de documentos.
+          </p>
+          {TIPOS_DOCUMENTO.map((tipo) => (
+            <CampoSubpasta key={tipo.campo} campo={tipo.campo} rotulo={tipo.rotulo} padrao={tipo.padrao} />
+          ))}
         </CardContent>
       </Card>
     </AppShell>

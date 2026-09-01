@@ -68,11 +68,9 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-64">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar px-4 py-6 md:flex">
         <div className="flex items-center gap-2 px-2">
-          <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-primary to-accent">
-            <Waves className="size-5 text-primary-foreground" />
-          </span>
+          <img src="/icons/icon-192x192.png" alt="Arena Aquática LF" className="size-9 rounded-xl object-cover" />
           <div className="leading-tight">
-            <p className="font-display text-base font-semibold text-sidebar-foreground">Arena Aquática</p>
+            <p className="font-display text-base font-semibold text-sidebar-foreground">Arena Aquática LF</p>
             <p className="text-xs text-muted-foreground">Gestão de alunos</p>
           </div>
         </div>

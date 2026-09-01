@@ -886,43 +886,6 @@ function AlunosPage() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
-        <Button variant="outline" disabled={exportando} onClick={() => void exportarPlanilha()}>
-          <Download className="size-4" /> {exportando ? "Exportando..." : "Exportar planilha"}
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" disabled={gerandoCrachas || !filtrados.length}>
-              <IdCard className="size-4" /> {gerandoCrachas ? "Gerando..." : "Crachás"}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            <DropdownMenuLabel>Exportar crachás CR-80 (PDF)</DropdownMenuLabel>
-            <DropdownMenuItem
-              disabled={!selecionados.length}
-              onClick={() => void exportarCrachas(filtrados.filter((a) => selecionados.includes(a.id)), "cartao")}
-            >
-              Selecionados ({selecionados.length}) — 1 por página
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              disabled={!selecionados.length}
-              onClick={() => void exportarCrachas(filtrados.filter((a) => selecionados.includes(a.id)), "folha")}
-            >
-              Selecionados ({selecionados.length}) — folha A4
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => void exportarCrachas(filtrados, "cartao")}>
-              Todos da lista ({filtrados.length}) — 1 por página
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void exportarCrachas(filtrados, "folha")}>
-              Todos da lista ({filtrados.length}) — folha A4
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button variant="destructive" disabled={!alunos.length} onClick={() => setExcluindoTodos(true)}>
-          <Trash2 className="size-4" /> Excluir todos
-        </Button>
-
-        <ImportarAlunos turmas={turmas} matriculas={matriculas} alunos={alunos} onImportado={() => void carregar()} />
 
 
         <Dialog open={aberto} onOpenChange={setAberto}>

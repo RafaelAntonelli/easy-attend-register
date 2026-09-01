@@ -48,7 +48,19 @@ export type OpcoesPlanilha = {
   modalidadeDoAluno: (id: string) => string;
   /** Baixa um arquivo do storage para embutir a imagem na planilha. */
   baixarArquivo?: (caminho: string) => Promise<ArrayBuffer | null>;
+  /** Permite cancelar a exportação no meio (o download das imagens é o passo demorado). */
+  sinal?: AbortSignal | undefined;
+  /** Progresso do processamento das linhas com imagens. */
+  aoProgredir?: ((feitos: number, total: number) => void) | undefined;
 };
+
+/** Erro lançado quando o usuário cancela a exportação. */
+export class ExportacaoCancelada extends Error {
+  constructor() {
+    super("Exportação cancelada");
+    this.name = "ExportacaoCancelada";
+  }
+}
 
 /** Monta a planilha de alunos em ordem crescente de idade, com as imagens dos documentos. */
 export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<ArrayBuffer> {
@@ -120,6 +132,8 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
 
   if (opcoes.baixarArquivo) {
     for (let li = 0; li < linhas.length; li++) {
+      if (opcoes.sinal?.aborted) throw new ExportacaoCancelada();
+      opcoes.aoProgredir?.(li, linhas.length);
       const item = linhas[li];
       if (!item) continue;
       const linhaExcel = li + 2;

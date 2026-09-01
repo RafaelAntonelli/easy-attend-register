@@ -88,36 +88,6 @@ const DOCUMENTOS = [
 
 type CampoDoc = (typeof DOCUMENTOS)[number]["campo"];
 
-
-function vencimentoAtestado(data: string | null | undefined) {
-  if (!data) return null;
-  const limite = new Date(`${data}T00:00:00`);
-  if (Number.isNaN(limite.getTime())) return null;
-  limite.setFullYear(limite.getFullYear() + 1);
-  return limite;
-}
-
-function atestadoVencido(data: string | null | undefined) {
-  const limite = vencimentoAtestado(data);
-  return limite ? limite < new Date() : false;
-}
-
-/** Vence em até 30 dias (ainda válido). */
-function atestadoVencendo(data: string | null | undefined) {
-  const limite = vencimentoAtestado(data);
-  if (!limite) return false;
-  const hoje = new Date();
-  const aviso = new Date(hoje);
-  aviso.setDate(aviso.getDate() + 30);
-  return limite >= hoje && limite <= aviso;
-}
-
-function diasParaVencer(data: string | null | undefined) {
-  const limite = vencimentoAtestado(data);
-  if (!limite) return 0;
-  return Math.max(0, Math.ceil((limite.getTime() - Date.now()) / 86400000));
-}
-
 const CAPACIDADE_TURMA = 40;
 
 const ROTULO_STATUS = {

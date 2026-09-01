@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, CloudUpload, FileSpreadsheet, FolderCog, FolderTree, KeyRound, ShieldAlert, XCircle } from "lucide-react";
+import { CalendarClock, CheckCircle2, CloudUpload, FileSpreadsheet, FolderCog, FolderTree, KeyRound, ShieldAlert, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -29,7 +29,40 @@ import {
   enviarLoteBackupFn,
   registrarBackupFn,
   validarPastasDriveFn,
+  statusBackupFn,
+  salvarAgendamentoFn,
 } from "@/lib/backup.functions";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+/** Dias da semana no formato usado pelo agendador (0 = domingo). */
+const DIAS_SEMANA = [
+  { valor: 0, rotulo: "Domingo" },
+  { valor: 1, rotulo: "Segunda-feira" },
+  { valor: 2, rotulo: "Terça-feira" },
+  { valor: 3, rotulo: "Quarta-feira" },
+  { valor: 4, rotulo: "Quinta-feira" },
+  { valor: 5, rotulo: "Sexta-feira" },
+  { valor: 6, rotulo: "Sábado" },
+] as const;
+
+/** Avisa o administrador por notificação do navegador (quando permitido) e por aviso na tela. */
+function notificar(titulo: string, corpo: string, erro = false) {
+  if (erro) toast.error(`${titulo}${corpo ? `: ${corpo}` : ""}`);
+  else toast.success(`${titulo}${corpo ? `: ${corpo}` : ""}`);
+  try {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "granted") new Notification(titulo, { body: corpo });
+    else if (Notification.permission === "default") {
+      void Notification.requestPermission().then((p) => {
+        if (p === "granted") new Notification(titulo, { body: corpo });
+      });
+    }
+  } catch {
+    /* notificação do navegador é opcional */
+  }
+}
+
 
 type ChecagemPasta = {
   chave: string;
@@ -337,14 +370,67 @@ function BackupPage() {
     }
   }
 
+  const lerStatus = useServerFn(statusBackupFn);
+  const salvarAgendamento = useServerFn(salvarAgendamentoFn);
+  const [agenda, setAgenda] = useState({ dia_semana: 1, hora: 3, minuto: 0, ativo: true });
+  const [salvandoAgenda, setSalvandoAgenda] = useState(false);
+  const ultimoAvisadoRef = useRef<string | null>(null);
+
+  const atualizarStatus = useCallback(
+    async (avisar: boolean) => {
+      try {
+        const dados = await lerStatus({ data: undefined });
+        if (!dados) return;
+        setUltimo({ ultimo_backup: dados.ultimo_backup, ultimo_resultado: dados.ultimo_resultado });
+        setAgenda({
+          dia_semana: dados.dia_semana ?? 1,
+          hora: dados.hora ?? 3,
+          minuto: dados.minuto ?? 0,
+          ativo: dados.ativo ?? true,
+        });
+        const marca = dados.ultimo_backup ?? "";
+        if (!avisar || !marca) {
+          ultimoAvisadoRef.current = marca;
+          return;
+        }
+        if (ultimoAvisadoRef.current && marca !== ultimoAvisadoRef.current) {
+          notificar(
+            dados.ultimo_status === "falha" ? "Backup automático falhou" : "Backup automático concluído",
+            dados.ultimo_resultado ?? "",
+            dados.ultimo_status === "falha",
+          );
+        }
+        ultimoAvisadoRef.current = marca;
+      } catch {
+        /* silencioso: apenas leitura de status */
+      }
+    },
+    [lerStatus],
+  );
+
   useEffect(() => {
     if (!isAdmin) return;
-    void supabase
-      .from("backup_cron")
-      .select("ultimo_backup,ultimo_resultado")
-      .maybeSingle()
-      .then(({ data }) => setUltimo(data ?? null));
-  }, [isAdmin]);
+    void atualizarStatus(false);
+    const t = window.setInterval(() => void atualizarStatus(true), 60_000);
+    return () => window.clearInterval(t);
+  }, [isAdmin, atualizarStatus]);
+
+  async function gravarAgendamento() {
+    setSalvandoAgenda(true);
+    try {
+      await salvarAgendamento({ data: agenda });
+      toast.success(
+        agenda.ativo
+          ? `Backup automático agendado para ${DIAS_SEMANA[agenda.dia_semana]?.rotulo} às ${String(agenda.hora).padStart(2, "0")}:${String(agenda.minuto).padStart(2, "0")}.`
+          : "Backup automático desativado.",
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível salvar o agendamento.");
+    } finally {
+      setSalvandoAgenda(false);
+    }
+  }
+
 
   async function backupAgora() {
     const checagem = await verificarPastas();
@@ -381,16 +467,26 @@ function BackupPage() {
       }
 
       const resumo = `${planilha} · ${enviados} arquivo(s)${falhas.length ? ` · ${falhas.length} falha(s)` : ""}`;
-      await registrar({ data: { resumo } });
-      setUltimo({ ultimo_backup: new Date().toISOString(), ultimo_resultado: resumo });
+      const status = falhas.length > 0 ? ("falha" as const) : ("sucesso" as const);
+      await registrar({ data: { resumo, status } });
+      const quando = new Date().toISOString();
+      ultimoAvisadoRef.current = quando;
+      setUltimo({ ultimo_backup: quando, ultimo_resultado: resumo });
       setProgresso({ etapa: "Backup concluído", enviados: total, total, falhas: falhas.length, restante: 0 });
-      toast.success(`Backup concluído: ${resumo}`);
+      notificar(falhas.length > 0 ? "Backup concluído com falhas" : "Backup concluído", resumo, falhas.length > 0);
     } catch (err) {
       setProgresso(null);
-      toast.error(err instanceof Error ? err.message : "Falha no backup");
+      const mensagem = err instanceof Error ? err.message : "Falha no backup";
+      try {
+        await registrar({ data: { resumo: mensagem, status: "falha" } });
+      } catch {
+        /* o erro principal já será exibido */
+      }
+      notificar("Falha no backup", mensagem, true);
     } finally {
       setBackupando(false);
     }
+
   }
 
   const jaLiberado = liberado || (typeof sessionStorage !== "undefined" && sessionStorage.getItem(CHAVE_LIBERADO) === "1");
@@ -425,7 +521,7 @@ function BackupPage() {
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
             O backup envia a planilha de alunos do dia e todas as fotos e documentos para as pastas configuradas no
-            Google Drive. Ele também roda automaticamente toda segunda-feira.
+            Google Drive. Ele também roda sozinho no dia e horário definidos abaixo.
           </p>
           <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
             <p>
@@ -490,6 +586,64 @@ function BackupPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      <Card className="mt-4 max-w-2xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <CalendarClock className="size-4" /> Backup automático
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Escolha o dia da semana e o horário (Brasília) em que o backup deve rodar sozinho. Ao terminar, você recebe
+            uma notificação com o resultado — inclusive se algo falhar.
+          </p>
+          <div className="flex items-center gap-3">
+            <Switch
+              id="backup-ativo"
+              checked={agenda.ativo}
+              onCheckedChange={(v) => setAgenda((a) => ({ ...a, ativo: v }))}
+            />
+            <Label htmlFor="backup-ativo">Backup automático ativado</Label>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Dia da semana</Label>
+              <Select
+                value={String(agenda.dia_semana)}
+                onValueChange={(v) => setAgenda((a) => ({ ...a, dia_semana: Number(v) }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIAS_SEMANA.map((d) => (
+                    <SelectItem key={d.valor} value={String(d.valor)}>
+                      {d.rotulo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="backup-hora">Horário</Label>
+              <Input
+                id="backup-hora"
+                type="time"
+                value={`${String(agenda.hora).padStart(2, "0")}:${String(agenda.minuto).padStart(2, "0")}`}
+                onChange={(e) => {
+                  const [h, m] = e.target.value.split(":");
+                  setAgenda((a) => ({ ...a, hora: Number(h ?? 0) || 0, minuto: Number(m ?? 0) || 0 }));
+                }}
+              />
+            </div>
+          </div>
+          <Button variant="secondary" disabled={salvandoAgenda} onClick={() => void gravarAgendamento()}>
+            {salvandoAgenda ? "Salvando..." : "Salvar agendamento"}
+          </Button>
+        </CardContent>
+      </Card>
+
 
       <Card className="mt-4 max-w-2xl">
         <CardHeader className="pb-3">

@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, CloudUpload, Download, FileSpreadsheet, FileText, IdCard, Settings2 } from "lucide-react";
+import { AlertTriangle, BarChart3, Download, FileSpreadsheet, FileText, IdCard, Settings2 } from "lucide-react";
 import { toast } from "sonner";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -25,7 +25,8 @@ import { atestadoVencendo, atestadoVencido, diasParaVencer, vencimentoAtestado }
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { montarPlanilhaAlunos, type AlunoPlanilha } from "@/lib/planilha-alunos";
 import { gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
-import { fazerBackup } from "@/lib/backup.functions";
+import { faixaEtariaECA, turnoDoHorario } from "@/lib/turnos";
+
 
 export const Route = createFileRoute("/relatorios")({
   component: RelatoriosPage,
@@ -56,6 +57,19 @@ type Matricula = { id: string; aluno_id: string; turma_id: string; modalidade: s
 
 const PRAZOS = [15, 30, 45, 60, 90];
 
+const PARAMETROS = [
+  { id: "pcd", rotulo: "Alunos PCD" },
+  { id: "faixa", rotulo: "Faixa etária" },
+  { id: "sexo", rotulo: "Sexo" },
+  { id: "modalidade", rotulo: "Modalidade" },
+  { id: "horario", rotulo: "Horários" },
+  { id: "dias", rotulo: "Dias" },
+  { id: "turno", rotulo: "Turno" },
+] as const;
+
+type ParametroId = (typeof PARAMETROS)[number]["id"];
+type PontoGrafico = { nome: string; total: number };
+
 function RelatoriosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -64,10 +78,10 @@ function RelatoriosPage() {
   const [carregando, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
-  const [backupando, setBackupando] = useState(false);
+  const [parametros, setParametros] = useState<ParametroId[]>(["faixa"]);
   const { valor: prazo, salvar: salvarPrazo } = usePrazoAvisoAtestado();
   const [prazoEditado, setPrazoEditado] = useState<string>("");
-  const executarBackup = useServerFn(fazerBackup);
+
 
   useEffect(() => {
     setPrazoEditado(String(prazo));
@@ -293,21 +307,37 @@ function RelatoriosPage() {
     return;
   }
 
-  async function backupAgora() {
-    setBackupando(true);
-    const idToast = toast.loading("Enviando backup para o Google Drive…");
-    try {
-      const r = await executarBackup();
-      toast.success(
-        `Backup concluído: ${r.planilha} e ${r.imagens} imagem(ns)${r.falhas.length ? ` · ${r.falhas.length} falha(s)` : ""}`,
-        { id: idToast },
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha no backup", { id: idToast });
-    } finally {
-      setBackupando(false);
-    }
-  }
+  const graficos = useMemo(() => {
+    const contar = (valorDe: (a: Aluno) => string | string[]) => {
+      const mapa = new Map<string, number>();
+      for (const a of alunos) {
+        const valores = valorDe(a);
+        for (const v of Array.isArray(valores) ? valores : [valores]) {
+          const chave = v || "Não informado";
+          mapa.set(chave, (mapa.get(chave) ?? 0) + 1);
+        }
+      }
+      return [...mapa.entries()]
+        .map(([nome, total]): PontoGrafico => ({ nome, total }))
+        .sort((x, y) => y.total - x.total);
+    };
+
+    return {
+      pcd: contar((a) => (a.pcd ? "PCD" : "Não PCD")),
+      faixa: contar((a) => a.faixa_etaria || faixaEtariaECA(a.data_nascimento, a.idade) || ""),
+      sexo: contar((a) => a.sexo ?? ""),
+      modalidade: contar((a) => modalidadeDoAluno(a.id)),
+      horario: contar((a) => turmaDoAluno(a.id)?.horario ?? ""),
+      dias: contar((a) => {
+        const dias = turmaDoAluno(a.id)?.dias_semana ?? [];
+        return dias.length ? dias.join(" e ") : "";
+      }),
+      turno: contar((a) => turnoDoHorario(turmaDoAluno(a.id)?.horario) || ""),
+    } as Record<ParametroId, PontoGrafico[]>;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alunos, turmas, matriculas]);
+
+
 
   async function aplicarPrazo(valor: string) {
     const numero = Number(valor);
@@ -379,10 +409,67 @@ function RelatoriosPage() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button disabled={backupando} onClick={() => void backupAgora()}>
-          <CloudUpload className="size-4" /> {backupando ? "Enviando..." : "Fazer Backup"}
-        </Button>
       </div>
+
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <BarChart3 className="size-4" /> Alunos por parâmetro
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex flex-wrap gap-2">
+            {PARAMETROS.map((p) => {
+              const ativo = parametros.includes(p.id);
+              return (
+                <Button
+                  key={p.id}
+                  type="button"
+                  size="sm"
+                  variant={ativo ? "default" : "outline"}
+                  onClick={() =>
+                    setParametros((atual) =>
+                      atual.includes(p.id) ? atual.filter((x) => x !== p.id) : [...atual, p.id],
+                    )
+                  }
+                >
+                  {p.rotulo}
+                </Button>
+              );
+            })}
+          </div>
+
+          {!parametros.length ? (
+            <p className="text-sm text-muted-foreground">Selecione um ou mais parâmetros para ver os gráficos.</p>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-2">
+              {parametros.map((id) => {
+                const dados = graficos[id] ?? [];
+                const rotulo = PARAMETROS.find((p) => p.id === id)?.rotulo ?? id;
+                return (
+                  <div key={id} className="rounded-xl border border-border p-3">
+                    <p className="mb-2 text-sm font-medium">{rotulo}</p>
+                    {!dados.length ? (
+                      <p className="py-8 text-center text-sm text-muted-foreground">Sem dados.</p>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={Math.max(200, dados.length * 34 + 40)}>
+                        <BarChart data={dados} layout="vertical" margin={{ left: 8, right: 24 }}>
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
+                          <XAxis type="number" allowDecimals={false} fontSize={12} />
+                          <YAxis type="category" dataKey="nome" width={130} fontSize={12} />
+                          <Tooltip formatter={(v: number) => [`${v} aluno(s)`, "Total"]} />
+                          <Bar dataKey="total" radius={[0, 6, 6, 0]} fill="hsl(var(--primary))" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">

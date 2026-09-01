@@ -24,16 +24,18 @@ export function idadePorNascimento(data: string | null | undefined) {
   return String(idade);
 }
 
-export const FAIXAS_ETARIAS = ["Criança", "Adolescente", "Adulto"] as const;
+export const FAIXAS_ETARIAS = ["Criança", "Adolescente", "Adulto", "Idoso"] as const;
 
 export type FaixaEtaria = (typeof FAIXAS_ETARIAS)[number];
 
-/** Faixa etária conforme o ECA: criança 0-11, adolescente 12-17, adulto a partir de 18. */
+/** Faixa etária conforme o ECA: criança 0-11, adolescente 12-17, adulto 18-59, idoso a partir de 60. */
 export function faixaEtariaECA(dataNascimento: string | null | undefined, idadeInformada?: string | number | null): FaixaEtaria | "" {
   const calculada = idadePorNascimento(dataNascimento);
   const idade = calculada !== "" ? Number(calculada) : Number(idadeInformada ?? NaN);
   if (!Number.isFinite(idade) || idade < 0) return "";
   if (idade < 12) return "Criança";
   if (idade < 18) return "Adolescente";
-  return "Adulto";
+  if (idade < 60) return "Adulto";
+  return "Idoso";
 }
+

@@ -13,6 +13,17 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -63,6 +74,8 @@ function PresencaPage() {
   const [registros, setRegistros] = useState<{ nome: string; hora: string; status: StatusPresenca; obs: string | null }[]>([]);
   const scannerRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
   const lastRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
+  const [confirmacao, setConfirmacao] = useState<Aluno | null>(null);
+
 
   const [data, setData] = useState<Date>(new Date());
   const hoje = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
@@ -180,8 +193,9 @@ function PresencaPage() {
   }
 
 
-  async function onScan(texto: string) {
+  function onScan(texto: string) {
     const agora = Date.now();
+    
     if (lastRef.current.code === texto && agora - lastRef.current.at < 4000) return;
     lastRef.current = { code: texto, at: agora };
     const aluno = alunos.find((a) => a.codigo === texto.trim());
@@ -189,8 +203,9 @@ function PresencaPage() {
       toast.error("QR Code não reconhecido.");
       return;
     }
-    await registrar(aluno, "qrcode");
+    setConfirmacao((atual) => atual ?? aluno);
   }
+
 
   async function iniciarScanner() {
     try {
@@ -428,6 +443,38 @@ function PresencaPage() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={Boolean(confirmacao)} onOpenChange={(aberto) => !aberto && setConfirmacao(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar presença?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Registrar presença de <strong>{confirmacao?.nome}</strong> em{" "}
+              {format(data, "dd/MM/yyyy", { locale: ptBR })}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                lastRef.current = { code: "", at: 0 };
+                setConfirmacao(null);
+              }}
+            >
+              Não
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const aluno = confirmacao;
+                setConfirmacao(null);
+                if (aluno) void registrar(aluno, "qrcode");
+              }}
+            >
+              Sim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
+
   );
 }

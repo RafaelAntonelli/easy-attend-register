@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { LayoutDashboard, Users, CalendarDays, QrCode, LogOut, Waves, ShieldCheck, FileBarChart } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, QrCode, LogOut, Waves, ShieldCheck, FileBarChart, CloudUpload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,11 @@ const baseNav = [
   { to: "/presenca", label: "Presença", icon: QrCode },
   { to: "/relatorios", label: "Relatórios", icon: FileBarChart },
 ];
-const adminNav = [{ to: "/equipe", label: "Equipe", icon: ShieldCheck }];
+const adminNav = [
+  { to: "/backup", label: "Backup", icon: CloudUpload },
+  { to: "/equipe", label: "Equipe", icon: ShieldCheck },
+];
+
 
 export function AppShell({ children, title, subtitle }: { children: ReactNode; title: string; subtitle?: string }) {
   const { session, loading, isStaff, isAdmin } = useAuth();

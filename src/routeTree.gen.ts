@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AlunosRouteImport } from './routes/alunos'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BackupRouteImport } from './routes/backup'
 import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as PresencaRouteImport } from './routes/presenca'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
@@ -31,6 +32,11 @@ const AlunosRoute = AlunosRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BackupRoute = BackupRouteImport.update({
+  id: '/backup',
+  path: '/backup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EquipeRoute = EquipeRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alunos': typeof AlunosRoute
   '/auth': typeof AuthRoute
+  '/backup': typeof BackupRoute
   '/equipe': typeof EquipeRoute
   '/presenca': typeof PresencaRoute
   '/relatorios': typeof RelatoriosRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alunos': typeof AlunosRoute
   '/auth': typeof AuthRoute
+  '/backup': typeof BackupRoute
   '/equipe': typeof EquipeRoute
   '/presenca': typeof PresencaRoute
   '/relatorios': typeof RelatoriosRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/alunos': typeof AlunosRoute
   '/auth': typeof AuthRoute
+  '/backup': typeof BackupRoute
   '/equipe': typeof EquipeRoute
   '/presenca': typeof PresencaRoute
   '/relatorios': typeof RelatoriosRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alunos'
     | '/auth'
+    | '/backup'
     | '/equipe'
     | '/presenca'
     | '/relatorios'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alunos'
     | '/auth'
+    | '/backup'
     | '/equipe'
     | '/presenca'
     | '/relatorios'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alunos'
     | '/auth'
+    | '/backup'
     | '/equipe'
     | '/presenca'
     | '/relatorios'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlunosRoute: typeof AlunosRoute
   AuthRoute: typeof AuthRoute
+  BackupRoute: typeof BackupRoute
   EquipeRoute: typeof EquipeRoute
   PresencaRoute: typeof PresencaRoute
   RelatoriosRoute: typeof RelatoriosRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/backup': {
+      id: '/backup'
+      path: '/backup'
+      fullPath: '/backup'
+      preLoaderRoute: typeof BackupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/equipe': {
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlunosRoute: AlunosRoute,
   AuthRoute: AuthRoute,
+  BackupRoute: BackupRoute,
   EquipeRoute: EquipeRoute,
   PresencaRoute: PresencaRoute,
   RelatoriosRoute: RelatoriosRoute,

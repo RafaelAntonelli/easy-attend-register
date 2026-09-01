@@ -142,8 +142,7 @@ function AlunosPage() {
   const [filtroDias, setFiltroDias] = useState("todos");
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [turnoForm, setTurnoForm] = useState("todos");
-  const [excluindoTodos, setExcluindoTodos] = useState(false);
-  const [exportando, setExportando] = useState(false);
+  const { valor: prazoAviso } = usePrazoAvisoAtestado();
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
   const [mostrarGuias, setMostrarGuias] = useState(false);
 

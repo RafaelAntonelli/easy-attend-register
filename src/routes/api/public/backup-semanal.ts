@@ -20,14 +20,27 @@ export const Route = createFileRoute("/api/public/backup-semanal")({
           const resultado = await executarBackupCompleto();
           await supabaseAdmin
             .from("backup_cron")
-            .update({ ultimo_backup: new Date().toISOString(), ultimo_resultado: `${resultado.planilha} · ${resultado.imagens} imagem(ns)` })
+            .update({
+              ultimo_backup: new Date().toISOString(),
+              ultimo_resultado: `${resultado.planilha} · ${resultado.imagens} imagem(ns)`,
+              ultimo_status: resultado.falhas.length > 0 ? "falha" : "sucesso",
+            })
             .eq("id", true);
           return Response.json({ ok: true, ...resultado });
         } catch (err) {
           const mensagem = err instanceof Error ? err.message : "Falha no backup";
           console.error("[backup-semanal]", mensagem);
+          await supabaseAdmin
+            .from("backup_cron")
+            .update({
+              ultimo_backup: new Date().toISOString(),
+              ultimo_resultado: mensagem,
+              ultimo_status: "falha",
+            })
+            .eq("id", true);
           return Response.json({ ok: false, erro: mensagem }, { status: 500 });
         }
+
       },
     },
   },

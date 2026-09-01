@@ -57,6 +57,19 @@ type Matricula = { id: string; aluno_id: string; turma_id: string; modalidade: s
 
 const PRAZOS = [15, 30, 45, 60, 90];
 
+const PARAMETROS = [
+  { id: "pcd", rotulo: "Alunos PCD" },
+  { id: "faixa", rotulo: "Faixa etária" },
+  { id: "sexo", rotulo: "Sexo" },
+  { id: "modalidade", rotulo: "Modalidade" },
+  { id: "horario", rotulo: "Horários" },
+  { id: "dias", rotulo: "Dias" },
+  { id: "turno", rotulo: "Turno" },
+] as const;
+
+type ParametroId = (typeof PARAMETROS)[number]["id"];
+type PontoGrafico = { nome: string; total: number };
+
 function RelatoriosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -65,10 +78,10 @@ function RelatoriosPage() {
   const [carregando, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
-  const [backupando, setBackupando] = useState(false);
+  const [parametros, setParametros] = useState<ParametroId[]>(["faixa"]);
   const { valor: prazo, salvar: salvarPrazo } = usePrazoAvisoAtestado();
   const [prazoEditado, setPrazoEditado] = useState<string>("");
-  const executarBackup = useServerFn(fazerBackup);
+
 
   useEffect(() => {
     setPrazoEditado(String(prazo));

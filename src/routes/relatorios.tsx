@@ -19,6 +19,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { atestadoVencendo, atestadoVencido, diasParaVencer, vencimentoAtestado } from "@/lib/atestado";
@@ -79,6 +86,7 @@ function RelatoriosPage() {
   const [exportando, setExportando] = useState(false);
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
   const [parametros, setParametros] = useState<ParametroId[]>(["faixa"]);
+  const [detalhe, setDetalhe] = useState<{ titulo: string; alunos: Aluno[] } | null>(null);
   const { valor: prazo, salvar: salvarPrazo } = usePrazoAvisoAtestado();
   const [prazoEditado, setPrazoEditado] = useState<string>("");
 

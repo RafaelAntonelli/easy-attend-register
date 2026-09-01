@@ -647,7 +647,7 @@ function AlunosPage() {
 
 
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
-  const proximosVencimento = alunos.filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data));
+  const proximosVencimento = alunos.filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso));
   const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
   const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
@@ -682,7 +682,7 @@ function AlunosPage() {
         <Card className="mb-6 border-orange-500/40 bg-orange-500/5">
           <CardContent className="space-y-2 py-4">
             <p className="flex items-center gap-2 font-medium text-orange-600">
-              <Bell className="size-4" /> Notificações · {proximosVencimento.length} atestado(s) vencendo em até 1 mês
+              <Bell className="size-4" /> Notificações · {proximosVencimento.length} atestado(s) vencendo em até {prazoAviso} dias
             </p>
             <div className="space-y-1">
               {proximosVencimento.map((a) => (

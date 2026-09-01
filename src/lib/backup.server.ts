@@ -126,7 +126,10 @@ type Resultado = {
   falhas: string[];
 };
 
-export type ArquivoBackup = { caminho: string; nome: string };
+export type DestinoArquivo = "fotos" | "documentos";
+export type ArquivoBackup = { caminho: string; nome: string; destino: DestinoArquivo };
+/** Índices de arquivos já existentes, por pasta de destino. */
+export type ExistentesBackup = Record<DestinoArquivo, Record<string, string>>;
 
 function tipoPorExtensao(caminho: string) {
   const ext = (caminho.split(".").pop() ?? "").toLowerCase();

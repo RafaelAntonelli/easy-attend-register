@@ -33,16 +33,11 @@ const loteSchema = z.object({
     z.object({
       caminho: z.string(),
       nome: z.string(),
-      destino: z.enum(["fotos", "documentos"]),
+      pasta: z.string(),
+      marcador: z.string(),
     }),
   ),
-  existentes: z
-    .object({
-      fotos: z.record(z.string(), z.string()),
-      documentos: z.record(z.string(), z.string()),
-    })
-    .partial()
-    .optional(),
+  existentes: z.record(z.string(), z.array(z.object({ id: z.string(), name: z.string() }))).optional(),
 });
 
 /** Envia um lote de fotos/documentos (usado para exibir progresso na tela). */
@@ -52,10 +47,16 @@ export const enviarLoteBackupFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await garantirAdmin(context);
     const { enviarLoteBackup } = await import("@/lib/backup.server");
-    const existentes = data.existentes
-      ? { fotos: data.existentes.fotos ?? {}, documentos: data.existentes.documentos ?? {} }
-      : undefined;
-    return await enviarLoteBackup(data.arquivos, existentes);
+    return await enviarLoteBackup(data.arquivos, data.existentes);
+  });
+
+/** Verifica se as pastas do Drive configuradas existem e aceitam novos arquivos. */
+export const validarPastasDriveFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await garantirAdmin(context);
+    const { validarPastasDrive } = await import("@/lib/backup.server");
+    return await validarPastasDrive();
   });
 
 /** Registra o resultado do último backup manual. */

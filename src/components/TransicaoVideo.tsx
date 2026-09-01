@@ -1,7 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-import abertura from "@/assets/abertura.mp4.asset.json";
+import abertura from "@/assets/abertura-video.asset.json";
 
 /** Tempo mínimo de exibição para o vídeo não "piscar" (ms). */
 const MINIMO = 900;

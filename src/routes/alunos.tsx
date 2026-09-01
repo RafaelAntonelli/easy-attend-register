@@ -237,6 +237,23 @@ function AlunosPage() {
     setDocs({ doc_atestado_path: null, doc_residencia_path: null, doc_matricula_path: null, doc_identidade_path: null });
   }
 
+  async function excluirDocumento(campo: CampoDoc, rotulo: string) {
+    const enviado = editando?.[campo] ?? null;
+    if (!confirm(`Excluir ${rotulo.toLowerCase()}?`)) return;
+    setDocs((s) => ({ ...s, [campo]: null }));
+    const input = document.getElementById(`doc-${campo}`) as HTMLInputElement | null;
+    if (input) input.value = "";
+    if (!enviado || !editando) return toast.success("Arquivo selecionado removido");
+    const patch = { [campo]: null } as Partial<Record<CampoDoc, string | null>>;
+    const { error } = await supabase.from("alunos").update(patch).eq("id", editando.id);
+    if (error) return toast.error(error.message);
+    await supabase.storage.from("fotos-alunos").remove([enviado]);
+    setEditando({ ...editando, [campo]: null });
+    toast.success("Documento excluído");
+    void carregar();
+    return;
+  }
+
   function abrirNovo() {
     setEditando(null);
     setForm(vazio);
@@ -1125,11 +1142,25 @@ function AlunosPage() {
                       {d.rotulo}
                       {editando?.[d.campo] ? " · já enviado" : ""}
                     </p>
-                    <Input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      onChange={(e) => setDocs((s) => ({ ...s, [d.campo]: e.target.files?.[0] ?? null }))}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={`doc-${d.campo}`}
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={(e) => setDocs((s) => ({ ...s, [d.campo]: e.target.files?.[0] ?? null }))}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-destructive"
+                        title="Excluir documento"
+                        disabled={!docs[d.campo] && !editando?.[d.campo]}
+                        onClick={() => void excluirDocumento(d.campo, d.rotulo)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

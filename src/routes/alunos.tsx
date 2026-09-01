@@ -538,10 +538,6 @@ function AlunosPage() {
     return;
   }
 
-  async function excluirTodos() {
-    setExcluindoTodos(false);
-    await excluirAlunos(alunos);
-  }
 
 
   async function alternarAtivo(lista: Aluno[], ativo: boolean) {

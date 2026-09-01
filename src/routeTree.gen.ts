@@ -14,6 +14,7 @@ import { Route as AlunosRouteImport } from './routes/alunos'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as PresencaRouteImport } from './routes/presenca'
+import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as TurmasRouteImport } from './routes/turmas'
 import { Route as ApiPublicBackupSemanalRouteImport } from './routes/api/public/backup-semanal'
 
@@ -42,6 +43,11 @@ const PresencaRoute = PresencaRouteImport.update({
   path: '/presenca',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RelatoriosRoute = RelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TurmasRoute = TurmasRouteImport.update({
   id: '/turmas',
   path: '/turmas',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/equipe': typeof EquipeRoute
   '/presenca': typeof PresencaRoute
+  '/relatorios': typeof RelatoriosRoute
   '/turmas': typeof TurmasRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/equipe': typeof EquipeRoute
   '/presenca': typeof PresencaRoute
+  '/relatorios': typeof RelatoriosRoute
   '/turmas': typeof TurmasRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/equipe': typeof EquipeRoute
   '/presenca': typeof PresencaRoute
+  '/relatorios': typeof RelatoriosRoute
   '/turmas': typeof TurmasRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/equipe'
     | '/presenca'
+    | '/relatorios'
     | '/turmas'
     | '/api/public/backup-semanal'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/equipe'
     | '/presenca'
+    | '/relatorios'
     | '/turmas'
     | '/api/public/backup-semanal'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/equipe'
     | '/presenca'
+    | '/relatorios'
     | '/turmas'
     | '/api/public/backup-semanal'
   fileRoutesById: FileRoutesById
@@ -117,6 +129,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   EquipeRoute: typeof EquipeRoute
   PresencaRoute: typeof PresencaRoute
+  RelatoriosRoute: typeof RelatoriosRoute
   TurmasRoute: typeof TurmasRoute
   ApiPublicBackupSemanalRoute: typeof ApiPublicBackupSemanalRoute
 }
@@ -158,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PresencaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/relatorios': {
+      id: '/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/turmas': {
       id: '/turmas'
       path: '/turmas'
@@ -181,6 +201,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   EquipeRoute: EquipeRoute,
   PresencaRoute: PresencaRoute,
+  RelatoriosRoute: RelatoriosRoute,
   TurmasRoute: TurmasRoute,
   ApiPublicBackupSemanalRoute: ApiPublicBackupSemanalRoute,
 }

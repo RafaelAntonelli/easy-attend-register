@@ -467,16 +467,26 @@ function BackupPage() {
       }
 
       const resumo = `${planilha} · ${enviados} arquivo(s)${falhas.length ? ` · ${falhas.length} falha(s)` : ""}`;
-      await registrar({ data: { resumo } });
-      setUltimo({ ultimo_backup: new Date().toISOString(), ultimo_resultado: resumo });
+      const status = falhas.length > 0 ? ("falha" as const) : ("sucesso" as const);
+      await registrar({ data: { resumo, status } });
+      const quando = new Date().toISOString();
+      ultimoAvisadoRef.current = quando;
+      setUltimo({ ultimo_backup: quando, ultimo_resultado: resumo });
       setProgresso({ etapa: "Backup concluído", enviados: total, total, falhas: falhas.length, restante: 0 });
-      toast.success(`Backup concluído: ${resumo}`);
+      notificar(falhas.length > 0 ? "Backup concluído com falhas" : "Backup concluído", resumo, falhas.length > 0);
     } catch (err) {
       setProgresso(null);
-      toast.error(err instanceof Error ? err.message : "Falha no backup");
+      const mensagem = err instanceof Error ? err.message : "Falha no backup";
+      try {
+        await registrar({ data: { resumo: mensagem, status: "falha" } });
+      } catch {
+        /* o erro principal já será exibido */
+      }
+      notificar("Falha no backup", mensagem, true);
     } finally {
       setBackupando(false);
     }
+
   }
 
   const jaLiberado = liberado || (typeof sessionStorage !== "undefined" && sessionStorage.getItem(CHAVE_LIBERADO) === "1");

@@ -1125,11 +1125,25 @@ function AlunosPage() {
                       {d.rotulo}
                       {editando?.[d.campo] ? " · já enviado" : ""}
                     </p>
-                    <Input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      onChange={(e) => setDocs((s) => ({ ...s, [d.campo]: e.target.files?.[0] ?? null }))}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={`doc-${d.campo}`}
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={(e) => setDocs((s) => ({ ...s, [d.campo]: e.target.files?.[0] ?? null }))}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-destructive"
+                        title="Excluir documento"
+                        disabled={!docs[d.campo] && !editando?.[d.campo]}
+                        onClick={() => void excluirDocumento(d.campo, d.rotulo)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

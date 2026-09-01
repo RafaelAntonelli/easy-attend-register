@@ -5,14 +5,23 @@ export const Route = createFileRoute("/api/public/backup-semanal")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const segredo = process.env["BACKUP_CRON_SECRET"];
-        const enviado = request.headers.get("x-backup-secret");
-        if (!segredo || enviado !== segredo) {
+        const enviado = request.headers.get("x-backup-secret") ?? "";
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: cron } = await supabaseAdmin
+          .from("backup_cron")
+          .select("token")
+          .maybeSingle();
+        const segredo = cron?.token ?? process.env["BACKUP_CRON_SECRET"];
+        if (!segredo || enviado.length !== segredo.length || enviado !== segredo) {
           return new Response("Não autorizado", { status: 401 });
         }
         try {
           const { executarBackupCompleto } = await import("@/lib/backup.server");
           const resultado = await executarBackupCompleto();
+          await supabaseAdmin
+            .from("backup_cron")
+            .update({ ultimo_backup: new Date().toISOString(), ultimo_resultado: `${resultado.planilha} · ${resultado.imagens} imagem(ns)` })
+            .eq("id", true);
           return Response.json({ ok: true, ...resultado });
         } catch (err) {
           const mensagem = err instanceof Error ? err.message : "Falha no backup";

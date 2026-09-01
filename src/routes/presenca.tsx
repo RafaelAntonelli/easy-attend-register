@@ -443,6 +443,38 @@ function PresencaPage() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={Boolean(confirmacao)} onOpenChange={(aberto) => !aberto && setConfirmacao(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar presença?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Registrar presença de <strong>{confirmacao?.nome}</strong> em{" "}
+              {format(data, "dd/MM/yyyy", { locale: ptBR })}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                lastRef.current = { code: "", at: 0 };
+                setConfirmacao(null);
+              }}
+            >
+              Não
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const aluno = confirmacao;
+                setConfirmacao(null);
+                if (aluno) void registrar(aluno, "qrcode");
+              }}
+            >
+              Sim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
+
   );
 }

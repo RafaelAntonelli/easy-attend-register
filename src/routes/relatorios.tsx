@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, CloudUpload, Download, FileSpreadsheet, FileText, IdCard, Settings2 } from "lucide-react";
+import { AlertTriangle, BarChart3, Download, FileSpreadsheet, FileText, IdCard, Settings2 } from "lucide-react";
 import { toast } from "sonner";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -25,7 +25,8 @@ import { atestadoVencendo, atestadoVencido, diasParaVencer, vencimentoAtestado }
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { montarPlanilhaAlunos, type AlunoPlanilha } from "@/lib/planilha-alunos";
 import { gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
-import { fazerBackup } from "@/lib/backup.functions";
+import { faixaEtariaECA, turnoDoHorario } from "@/lib/turnos";
+
 
 export const Route = createFileRoute("/relatorios")({
   component: RelatoriosPage,

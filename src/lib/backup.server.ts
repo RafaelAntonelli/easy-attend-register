@@ -188,27 +188,37 @@ export async function prepararBackup(): Promise<{
     const registro = aluno as AlunoPlanilha & { foto_path?: string | null };
     if (registro.foto_path) {
       const ext = registro.foto_path.split(".").pop() ?? "jpg";
-      arquivos.push({ caminho: registro.foto_path, nome: `${aluno.nome} - Foto.${ext}` });
+      arquivos.push({ caminho: registro.foto_path, nome: `${aluno.nome} - Foto.${ext}`, destino: "fotos" });
     }
     for (const doc of DOCUMENTOS_PLANILHA) {
       const caminho = aluno[doc.campo];
       if (!caminho) continue;
       const ext = caminho.split(".").pop() ?? "jpg";
-      arquivos.push({ caminho, nome: `${aluno.nome} - ${doc.rotulo}.${ext}` });
+      arquivos.push({ caminho, nome: `${aluno.nome} - ${doc.rotulo}.${ext}`, destino: "documentos" });
     }
   }
 
-  const existentes = Object.fromEntries(await listarPasta((await pastasDrive()).imagens));
+  const [fotosExistentes, docsExistentes] = await Promise.all([
+    listarPasta(pastas.fotos),
+    listarPasta(pastas.documentos),
+  ]);
+  const existentes: ExistentesBackup = {
+    fotos: Object.fromEntries(fotosExistentes),
+    documentos: Object.fromEntries(docsExistentes),
+  };
   return { planilha: planilha.nome, arquivos, existentes };
 }
 
-/** Envia um lote de fotos/documentos para a pasta de imagens do Drive. */
+/** Envia um lote de fotos/documentos para a pasta correspondente no Drive. */
 export async function enviarLoteBackup(
   arquivos: ArquivoBackup[],
-  existentes?: Record<string, string>,
+  existentes?: ExistentesBackup,
 ): Promise<{ enviados: number; falhas: string[] }> {
-  const indice = new Map(Object.entries(existentes ?? {}));
-  const pastaImagens = (await pastasDrive()).imagens;
+  const indices: Record<DestinoArquivo, Map<string, string>> = {
+    fotos: new Map(Object.entries(existentes?.fotos ?? {})),
+    documentos: new Map(Object.entries(existentes?.documentos ?? {})),
+  };
+  const pastas = await pastasDrive();
   const falhas: string[] = [];
   let enviados = 0;
   const CONCORRENCIA = 8;

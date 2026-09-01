@@ -237,6 +237,22 @@ function AlunosPage() {
     setDocs({ doc_atestado_path: null, doc_residencia_path: null, doc_matricula_path: null, doc_identidade_path: null });
   }
 
+  async function excluirDocumento(campo: CampoDoc, rotulo: string) {
+    const enviado = editando?.[campo] ?? null;
+    if (!confirm(`Excluir ${rotulo.toLowerCase()}?`)) return;
+    setDocs((s) => ({ ...s, [campo]: null }));
+    const input = document.getElementById(`doc-${campo}`) as HTMLInputElement | null;
+    if (input) input.value = "";
+    if (!enviado || !editando) return toast.success("Arquivo selecionado removido");
+    const { error } = await supabase.from("alunos").update({ [campo]: null }).eq("id", editando.id);
+    if (error) return toast.error(error.message);
+    await supabase.storage.from("fotos-alunos").remove([enviado]);
+    setEditando({ ...editando, [campo]: null });
+    toast.success("Documento excluído");
+    void carregar();
+    return;
+  }
+
   function abrirNovo() {
     setEditando(null);
     setForm(vazio);

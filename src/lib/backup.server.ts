@@ -38,15 +38,35 @@ async function procurarArquivo(nome: string, pasta: string) {
   return json.files?.[0]?.id ?? null;
 }
 
+/** Lista todos os arquivos de uma pasta de uma vez (evita uma busca por arquivo). */
+async function listarPasta(pasta: string) {
+  const mapa = new Map<string, string>();
+  let pageToken: string | undefined;
+  do {
+    const q = `'${pasta}' in parents and trashed = false`;
+    const url =
+      `${GATEWAY}/drive/v3/files?q=${encodeURIComponent(q)}&fields=nextPageToken,files(id,name)&pageSize=1000` +
+      (pageToken ? `&pageToken=${pageToken}` : "");
+    const resp = await fetch(url, { headers: cabecalhosDrive() });
+    if (!resp.ok) throw await erroDrive(resp);
+    const json = (await resp.json()) as { files?: { id: string; name: string }[]; nextPageToken?: string };
+    for (const f of json.files ?? []) mapa.set(f.name, f.id);
+    pageToken = json.nextPageToken;
+  } while (pageToken);
+  return mapa;
+}
+
 /** Envia (ou substitui) um arquivo dentro de uma pasta do Drive. */
 export async function enviarParaDrive(opcoes: {
   nome: string;
   pasta: string;
   conteudo: ArrayBuffer | Uint8Array;
   tipo: string;
+  /** Índice de arquivos já existentes na pasta (evita uma busca por arquivo). */
+  existentes?: Map<string, string>;
 }) {
   const nome = nomeArquivoSeguro(opcoes.nome);
-  const existente = await procurarArquivo(nome, opcoes.pasta);
+  const existente = opcoes.existentes ? (opcoes.existentes.get(nome) ?? null) : await procurarArquivo(nome, opcoes.pasta);
 
   let fileId = existente;
   if (!fileId) {
@@ -57,6 +77,7 @@ export async function enviarParaDrive(opcoes: {
     });
     if (!resp.ok) throw await erroDrive(resp);
     fileId = ((await resp.json()) as { id: string }).id;
+    opcoes.existentes?.set(nome, fileId);
   }
 
   const upload = await fetch(`${GATEWAY}/upload/drive/v3/files/${fileId}?uploadType=media&fields=id`, {
@@ -67,6 +88,7 @@ export async function enviarParaDrive(opcoes: {
   if (!upload.ok) throw await erroDrive(upload);
   return { id: fileId, nome, substituido: Boolean(existente) };
 }
+
 
 type Resultado = {
   planilha: string;

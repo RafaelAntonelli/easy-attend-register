@@ -1166,6 +1166,35 @@ function AlunosPage() {
             <Button variant="destructive" size="sm" disabled={!selecionados.length} onClick={() => setConfirmarExclusao(selecionadosAlunos)}>
               <Trash2 className="size-4" /> Excluir
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={gerandoCrachas || !filtrados.length}>
+                  <IdCard className="size-4" /> {gerandoCrachas ? "Gerando..." : "Crachás"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                <DropdownMenuLabel>Exportar crachás CR-80 (PDF)</DropdownMenuLabel>
+                <DropdownMenuItem
+                  disabled={!selecionados.length}
+                  onClick={() => void exportarCrachas(selecionadosAlunos, "cartao")}
+                >
+                  Selecionados ({selecionados.length}) — 1 por página
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!selecionados.length}
+                  onClick={() => void exportarCrachas(selecionadosAlunos, "folha")}
+                >
+                  Selecionados ({selecionados.length}) — folha A4
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => void exportarCrachas(filtrados, "cartao")}>
+                  Todos os alunos da lista ({filtrados.length}) — 1 por página
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void exportarCrachas(filtrados, "folha")}>
+                  Todos os alunos da lista ({filtrados.length}) — folha A4
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       ) : null}

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, CloudUpload, FolderCog, FolderTree, ShieldAlert, XCircle } from "lucide-react";
+import { CheckCircle2, CloudUpload, FileSpreadsheet, FolderCog, FolderTree, KeyRound, ShieldAlert, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { ImportarAlunos } from "@/components/ImportarAlunos";
+import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
 import { useConfiguracaoTexto } from "@/lib/configuracoes";
 import {
   CHAVE_PASTA_DOCUMENTOS,
@@ -108,8 +110,81 @@ function formatarTempo(segundos: number) {
 
 type Progresso = { etapa: string; enviados: number; total: number; falhas: number; restante: number | null };
 
+/** Chave de sessão: a senha só é pedida uma vez por sessão do navegador. */
+const CHAVE_LIBERADO = "arena:backup-liberado";
+
+/** Pede a senha do administrador (a mesma do login) antes de liberar a tela. */
+function SenhaAdmin({ email, onLiberar }: { email: string; onLiberar: () => void }) {
+  const [senha, setSenha] = useState("");
+  const [verificando, setVerificando] = useState(false);
+
+  async function conferir() {
+    if (!senha) {
+      toast.error("Informe a senha de administrador.");
+      return;
+    }
+    setVerificando(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+      if (error) {
+        toast.error("Senha incorreta.");
+        return;
+      }
+      sessionStorage.setItem(CHAVE_LIBERADO, "1");
+      setSenha("");
+      onLiberar();
+    } finally {
+      setVerificando(false);
+    }
+  }
+
+  return (
+    <AppShell title="Backup" subtitle="Confirmação de segurança">
+      <Card className="max-w-md">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <KeyRound className="size-4" /> Senha de administrador
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Para acessar a tela de Backup, confirme a senha da sua conta de administrador.
+          </p>
+          <div className="space-y-2">
+            <Label htmlFor="senha-backup">Senha</Label>
+            <Input
+              id="senha-backup"
+              type="password"
+              value={senha}
+              maxLength={128}
+              onChange={(e) => setSenha(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void conferir();
+              }}
+            />
+          </div>
+          <Button disabled={verificando} onClick={() => void conferir()}>
+            {verificando ? "Verificando..." : "Acessar"}
+          </Button>
+        </CardContent>
+      </Card>
+    </AppShell>
+  );
+}
+
+type Turma = {
+  id: string;
+  nome: string;
+  horario: string | null;
+  modalidade: string | null;
+  capacidade: number | null;
+  dias_semana?: string[] | null;
+};
+type Matricula = { aluno_id: string; turma_id: string; status: string; modalidade?: string | null };
+
 function BackupPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
+  const [liberado, setLiberado] = useState(false);
   const [backupando, setBackupando] = useState(false);
   const [progresso, setProgresso] = useState<Progresso | null>(null);
   const [ultimo, setUltimo] = useState<{ ultimo_backup: string | null; ultimo_resultado: string | null } | null>(null);
@@ -126,6 +201,80 @@ function BackupPage() {
   const [checagens, setChecagens] = useState<ChecagemPasta[] | null>(null);
   const [verificando, setVerificando] = useState(false);
   const validarPastas = useServerFn(validarPastasDriveFn);
+  const [alunos, setAlunos] = useState<AlunoPlanilha[]>([]);
+  const [turmas, setTurmas] = useState<Turma[]>([]);
+  const [matriculas, setMatriculas] = useState<Matricula[]>([]);
+  const [exportando, setExportando] = useState(false);
+  const [progressoPlanilha, setProgressoPlanilha] = useState<{ feitos: number; total: number } | null>(null);
+  const cancelarRef = useRef<AbortController | null>(null);
+
+  const carregarDados = useCallback(async () => {
+    const [{ data: a }, { data: t }, { data: m }] = await Promise.all([
+      supabase.from("alunos").select("*").order("nome"),
+      supabase.from("turmas").select("*").order("nome"),
+      supabase.from("matriculas").select("*"),
+    ]);
+    setAlunos((a ?? []) as AlunoPlanilha[]);
+    setTurmas((t ?? []) as Turma[]);
+    setMatriculas((m ?? []) as Matricula[]);
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin) void carregarDados();
+  }, [isAdmin, carregarDados]);
+
+  const turmaDoAluno = useCallback(
+    (id: string) => {
+      const m = matriculas.find((x) => x.aluno_id === id);
+      const t = m ? turmas.find((x) => x.id === m.turma_id) : undefined;
+      return t ? { id: t.id, nome: t.nome, modalidade: t.modalidade, horario: t.horario } : undefined;
+    },
+    [matriculas, turmas],
+  );
+
+  const modalidadeDoAluno = useCallback(
+    (id: string) => {
+      const m = matriculas.find((x) => x.aluno_id === id);
+      return m?.modalidade ?? turmaDoAluno(id)?.modalidade ?? "";
+    },
+    [matriculas, turmaDoAluno],
+  );
+
+  async function exportarPlanilha() {
+    const controle = new AbortController();
+    cancelarRef.current = controle;
+    setExportando(true);
+    setProgressoPlanilha({ feitos: 0, total: alunos.length });
+    try {
+      const buffer = await montarPlanilhaAlunos({
+        alunos,
+        turmaDoAluno,
+        modalidadeDoAluno,
+        sinal: controle.signal,
+        aoProgredir: (feitos, total) => setProgressoPlanilha({ feitos, total }),
+        baixarArquivo: async (caminho) => {
+          const { data } = await supabase.storage.from("fotos-alunos").download(caminho);
+          return data ? await data.arrayBuffer() : null;
+        },
+      });
+      const url = URL.createObjectURL(
+        new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `alunos-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Planilha exportada em ordem crescente de idade");
+    } catch (err) {
+      if (err instanceof ExportacaoCancelada) toast.info("Exportação cancelada");
+      else toast.error(err instanceof Error ? err.message : "Erro ao exportar planilha");
+    } finally {
+      cancelarRef.current = null;
+      setExportando(false);
+      setProgressoPlanilha(null);
+    }
+  }
 
   async function verificarPastas() {
     setVerificando(true);
@@ -242,6 +391,12 @@ function BackupPage() {
     } finally {
       setBackupando(false);
     }
+  }
+
+  const jaLiberado = liberado || (typeof sessionStorage !== "undefined" && sessionStorage.getItem(CHAVE_LIBERADO) === "1");
+
+  if (isAdmin && !jaLiberado) {
+    return <SenhaAdmin email={user?.email ?? ""} onLiberar={() => setLiberado(true)} />;
   }
 
   if (!isAdmin) {
@@ -378,6 +533,37 @@ function BackupPage() {
           </Button>
         </CardContent>
       </Card>
+      <Card className="mt-4 max-w-2xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <FileSpreadsheet className="size-4" /> Planilha de alunos
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" disabled={exportando} onClick={() => void exportarPlanilha()}>
+              <FileSpreadsheet className="size-4" /> {exportando ? "Exportando..." : "Exportar planilha"}
+            </Button>
+            {exportando ? (
+              <Button variant="destructive" onClick={() => cancelarRef.current?.abort()}>
+                Cancelar exportação
+              </Button>
+            ) : null}
+            <ImportarAlunos
+              turmas={turmas}
+              matriculas={matriculas}
+              alunos={alunos as unknown as { id: string; nome: string; cpf: string | null; telefone: string | null }[]}
+              onImportado={() => void carregarDados()}
+            />
+          </div>
+          {progressoPlanilha ? (
+            <p className="text-xs text-muted-foreground">
+              Processando imagens: {progressoPlanilha.feitos} de {progressoPlanilha.total}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
       <Card className="mt-4 max-w-2xl">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">

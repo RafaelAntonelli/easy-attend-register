@@ -6,7 +6,6 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { ImportarAlunos } from "@/components/ImportarAlunos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,8 +82,6 @@ function RelatoriosPage() {
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [carregando, setCarregando] = useState(true);
-  const [exportando, setExportando] = useState(false);
-  const [gerandoCrachas, setGerandoCrachas] = useState(false);
   const [parametros, setParametros] = useState<ParametroId[]>(["faixa"]);
   const [detalhe, setDetalhe] = useState<{ titulo: string; alunos: Aluno[] } | null>(null);
   const { valor: prazo, salvar: salvarPrazo } = usePrazoAvisoAtestado();
@@ -248,70 +245,6 @@ function RelatoriosPage() {
 
     doc.save(`atestados-${new Date().toISOString().slice(0, 10)}.pdf`);
     toast.success("Relatório exportado em PDF");
-    return;
-  }
-
-  async function exportarPlanilha() {
-    setExportando(true);
-    try {
-      const buffer = await montarPlanilhaAlunos({
-        alunos,
-        turmaDoAluno,
-        modalidadeDoAluno,
-        baixarArquivo: async (caminho) => {
-          const { data } = await supabase.storage.from("fotos-alunos").download(caminho);
-          return data ? await data.arrayBuffer() : null;
-        },
-      });
-      const url = URL.createObjectURL(
-        new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
-      );
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `alunos-${new Date().toISOString().slice(0, 10)}.xlsx`;
-      link.click();
-      URL.revokeObjectURL(url);
-      toast.success("Planilha exportada em ordem crescente de idade");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao exportar planilha");
-    } finally {
-      setExportando(false);
-    }
-  }
-
-  function dadosCracha(a: Aluno): DadosCracha {
-    const t = turmaDoAluno(a.id);
-    return {
-      nome: a.nome,
-      rg: a.rg ?? null,
-      cpf: a.cpf ?? null,
-      responsavel: a.responsavel ?? null,
-      telefone: a.telefone,
-      pcd: Boolean(a.pcd),
-      modalidade: modalidadeDoAluno(a.id),
-      horario: t?.horario ?? "",
-      dias: t?.dias_semana ?? [],
-      fotoUrl: fotos[a.id] ?? null,
-      codigo: a.codigo,
-    };
-  }
-
-  async function exportarCrachas(lista: Aluno[], formato: "cartao" | "folha") {
-    if (!lista.length) return toast.error("Nenhum aluno para gerar crachá");
-    setGerandoCrachas(true);
-    const idToast = toast.loading(`Gerando crachás… 0/${lista.length}`);
-    try {
-      const nome = lista.length === 1 ? `cracha-${lista[0]!.nome.replace(/\s+/g, "-").toLowerCase()}` : "crachas-arena-aquatica";
-      await gerarCrachasPdfFielAoPreview(lista.map(dadosCracha), formato === "folha" ? `${nome}-a4` : nome, {
-        formato,
-        aoProgredir: (feitos, total) => toast.loading(`Gerando crachás… ${feitos}/${total}`, { id: idToast }),
-      });
-      toast.success(`${lista.length} crachá(s) gerado(s)`, { id: idToast });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar crachás", { id: idToast });
-    } finally {
-      setGerandoCrachas(false);
-    }
     return;
   }
 
@@ -530,28 +463,6 @@ function RelatoriosPage() {
         </CardContent>
       </Card>
 
-      <div className="mb-6 flex flex-wrap gap-3">
-        <Button variant="outline" disabled={exportando} onClick={() => void exportarPlanilha()}>
-          <FileSpreadsheet className="size-4" /> {exportando ? "Exportando..." : "Exportar planilha"}
-        </Button>
-        <ImportarAlunos turmas={turmas} matriculas={matriculas} alunos={alunos} onImportado={() => void carregar()} />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" disabled={gerandoCrachas || !alunos.length}>
-              <IdCard className="size-4" /> {gerandoCrachas ? "Gerando..." : "Crachás"}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-72">
-            <DropdownMenuLabel>Exportar crachás CR-80 (PDF)</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => void exportarCrachas(alunos, "cartao")}>
-              Todos os alunos ({alunos.length}) — 1 por página
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void exportarCrachas(alunos, "folha")}>
-              Todos os alunos ({alunos.length}) — folha A4
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
 
       <Card className="mb-6">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 pb-3">

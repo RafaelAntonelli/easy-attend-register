@@ -203,7 +203,7 @@ function PresencaPage() {
       toast.error("QR Code não reconhecido.");
       return;
     }
-    setConfirmacao(aluno);
+    setConfirmacao((atual) => atual ?? aluno);
   }
 
 

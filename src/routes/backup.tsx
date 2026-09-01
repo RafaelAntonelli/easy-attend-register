@@ -521,7 +521,7 @@ function BackupPage() {
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
             O backup envia a planilha de alunos do dia e todas as fotos e documentos para as pastas configuradas no
-            Google Drive. Ele também roda automaticamente toda segunda-feira.
+            Google Drive. Ele também roda sozinho no dia e horário definidos abaixo.
           </p>
           <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
             <p>

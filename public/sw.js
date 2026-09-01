@@ -1,8 +1,8 @@
-const CACHE = "arena-aquatica-v4";
+const CACHE = "arena-aquatica-v5";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/manifest.webmanifest", "/favicon.ico", "/icons/icon-192x192.png", "/icons/icon-512x512.png", "/icons/apple-touch-icon.png"]).catch(() => undefined)));
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/manifest.webmanifest", "/favicon.ico", "/icons/icon-192x192.png", "/icons/icon-512x512.png", "/icons/apple-touch-icon.png", "/__l5e/assets-v1/b7812670-724f-4961-abc6-5886da4afd01/abertura.mp4"]).catch(() => undefined)));
 });
 
 self.addEventListener("activate", (event) => {
@@ -20,8 +20,10 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(req)
       .then((res) => {
-        const copia = res.clone();
-        void caches.open(CACHE).then((c) => c.put(req, copia));
+        if (res && res.status === 200 && res.type === "basic") {
+          const copia = res.clone();
+          void caches.open(CACHE).then((c) => c.put(req, copia));
+        }
         return res;
       })
       .catch(async () => {

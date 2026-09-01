@@ -52,7 +52,10 @@ export const enviarLoteBackupFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await garantirAdmin(context);
     const { enviarLoteBackup } = await import("@/lib/backup.server");
-    return await enviarLoteBackup(data.arquivos, data.existentes);
+    const existentes = data.existentes
+      ? { fotos: data.existentes.fotos ?? {}, documentos: data.existentes.documentos ?? {} }
+      : undefined;
+    return await enviarLoteBackup(data.arquivos, existentes);
   });
 
 /** Registra o resultado do último backup manual. */

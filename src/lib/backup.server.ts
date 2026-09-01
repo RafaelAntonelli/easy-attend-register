@@ -149,7 +149,7 @@ async function baixarArquivoStorage(caminho: string) {
 export async function prepararBackup(): Promise<{
   planilha: string;
   arquivos: ArquivoBackup[];
-  existentes: Record<string, string>;
+  existentes: ExistentesBackup;
 }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -174,10 +174,11 @@ export async function prepararBackup(): Promise<{
     baixarArquivo: baixarArquivoStorage,
   });
 
+  const pastas = await pastasDrive();
   const data = new Date().toISOString().slice(0, 10);
   const planilha = await enviarParaDrive({
     nome: `alunos-${data}.xlsx`,
-    pasta: (await pastasDrive()).planilhas,
+    pasta: pastas.planilhas,
     conteudo: buffer,
     tipo: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });

@@ -107,6 +107,33 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_cron: {
+        Row: {
+          created_at: string
+          id: boolean
+          token: string
+          ultimo_backup: string | null
+          ultimo_resultado: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: boolean
+          token?: string
+          ultimo_backup?: string | null
+          ultimo_resultado?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: boolean
+          token?: string
+          ultimo_backup?: string | null
+          ultimo_resultado?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       configuracoes: {
         Row: {
           chave: string
@@ -414,6 +441,7 @@ export type Database = {
         Returns: string
       }
       calc_turno: { Args: { _horario: string }; Returns: string }
+      disparar_backup_semanal: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

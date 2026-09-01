@@ -195,7 +195,7 @@ function PresencaPage() {
 
   function onScan(texto: string) {
     const agora = Date.now();
-    if (confirmacao) return;
+    
     if (lastRef.current.code === texto && agora - lastRef.current.at < 4000) return;
     lastRef.current = { code: texto, at: agora };
     const aluno = alunos.find((a) => a.codigo === texto.trim());

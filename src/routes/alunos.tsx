@@ -244,7 +244,8 @@ function AlunosPage() {
     const input = document.getElementById(`doc-${campo}`) as HTMLInputElement | null;
     if (input) input.value = "";
     if (!enviado || !editando) return toast.success("Arquivo selecionado removido");
-    const { error } = await supabase.from("alunos").update({ [campo]: null }).eq("id", editando.id);
+    const patch = { [campo]: null } as Partial<Record<CampoDoc, string | null>>;
+    const { error } = await supabase.from("alunos").update(patch).eq("id", editando.id);
     if (error) return toast.error(error.message);
     await supabase.storage.from("fotos-alunos").remove([enviado]);
     setEditando({ ...editando, [campo]: null });

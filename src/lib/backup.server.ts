@@ -1,11 +1,31 @@
+import { CHAVE_PASTA_IMAGENS, CHAVE_PASTA_PLANILHAS, extrairIdPastaDrive } from "@/lib/configuracoes-chaves";
 import { montarPlanilhaAlunos, DOCUMENTOS_PLANILHA, type AlunoPlanilha } from "@/lib/planilha-alunos";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_drive";
 
-/** Pasta do Drive para as planilhas de exportação. */
+/** Pasta padrão do Drive para as planilhas de exportação. */
 export const PASTA_PLANILHAS = "1xCkat_TA0nT_zOW2yzw0myflN8jBO65n";
-/** Pasta do Drive para fotos e documentos dos alunos. */
+/** Pasta padrão do Drive para fotos e documentos dos alunos. */
 export const PASTA_IMAGENS = "1o-dAKikn44JlISnEK7IwUNrv-apownZ3";
+
+/** Lê as pastas de destino configuradas pelo administrador (com fallback para os padrões). */
+export async function pastasDrive(): Promise<{ planilhas: string; imagens: string }> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("configuracoes")
+      .select("chave,valor")
+      .in("chave", [CHAVE_PASTA_PLANILHAS, CHAVE_PASTA_IMAGENS]);
+    const mapa = new Map((data ?? []).map((c: { chave: string; valor: string }) => [c.chave, c.valor]));
+    return {
+      planilhas: extrairIdPastaDrive(mapa.get(CHAVE_PASTA_PLANILHAS)) || PASTA_PLANILHAS,
+      imagens: extrairIdPastaDrive(mapa.get(CHAVE_PASTA_IMAGENS)) || PASTA_IMAGENS,
+    };
+  } catch (err) {
+    console.error("[backup] não foi possível ler as pastas configuradas", err);
+    return { planilhas: PASTA_PLANILHAS, imagens: PASTA_IMAGENS };
+  }
+}
 
 function cabecalhosDrive() {
   const lovable = process.env["LOVABLE_API_KEY"];
@@ -144,7 +164,7 @@ export async function prepararBackup(): Promise<{
   const data = new Date().toISOString().slice(0, 10);
   const planilha = await enviarParaDrive({
     nome: `alunos-${data}.xlsx`,
-    pasta: PASTA_PLANILHAS,
+    pasta: (await pastasDrive()).planilhas,
     conteudo: buffer,
     tipo: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
@@ -164,7 +184,7 @@ export async function prepararBackup(): Promise<{
     }
   }
 
-  const existentes = Object.fromEntries(await listarPasta(PASTA_IMAGENS));
+  const existentes = Object.fromEntries(await listarPasta((await pastasDrive()).imagens));
   return { planilha: planilha.nome, arquivos, existentes };
 }
 
@@ -174,6 +194,7 @@ export async function enviarLoteBackup(
   existentes?: Record<string, string>,
 ): Promise<{ enviados: number; falhas: string[] }> {
   const indice = new Map(Object.entries(existentes ?? {}));
+  const pastaImagens = (await pastasDrive()).imagens;
   const falhas: string[] = [];
   let enviados = 0;
   const CONCORRENCIA = 8;
@@ -191,7 +212,7 @@ export async function enviarLoteBackup(
         }
         await enviarParaDrive({
           nome: arquivo.nome,
-          pasta: PASTA_IMAGENS,
+          pasta: pastaImagens,
           conteudo,
           tipo: tipoPorExtensao(arquivo.caminho),
           existentes: indice,

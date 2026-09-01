@@ -590,6 +590,64 @@ function BackupPage() {
       <Card className="mt-4 max-w-2xl">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">
+            <CalendarClock className="size-4" /> Backup automático
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Escolha o dia da semana e o horário (Brasília) em que o backup deve rodar sozinho. Ao terminar, você recebe
+            uma notificação com o resultado — inclusive se algo falhar.
+          </p>
+          <div className="flex items-center gap-3">
+            <Switch
+              id="backup-ativo"
+              checked={agenda.ativo}
+              onCheckedChange={(v) => setAgenda((a) => ({ ...a, ativo: v }))}
+            />
+            <Label htmlFor="backup-ativo">Backup automático ativado</Label>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Dia da semana</Label>
+              <Select
+                value={String(agenda.dia_semana)}
+                onValueChange={(v) => setAgenda((a) => ({ ...a, dia_semana: Number(v) }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIAS_SEMANA.map((d) => (
+                    <SelectItem key={d.valor} value={String(d.valor)}>
+                      {d.rotulo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="backup-hora">Horário</Label>
+              <Input
+                id="backup-hora"
+                type="time"
+                value={`${String(agenda.hora).padStart(2, "0")}:${String(agenda.minuto).padStart(2, "0")}`}
+                onChange={(e) => {
+                  const [h, m] = e.target.value.split(":");
+                  setAgenda((a) => ({ ...a, hora: Number(h ?? 0) || 0, minuto: Number(m ?? 0) || 0 }));
+                }}
+              />
+            </div>
+          </div>
+          <Button variant="secondary" disabled={salvandoAgenda} onClick={() => void gravarAgendamento()}>
+            {salvandoAgenda ? "Salvando..." : "Salvar agendamento"}
+          </Button>
+        </CardContent>
+      </Card>
+
+
+      <Card className="mt-4 max-w-2xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
             <FolderCog className="size-4" /> Pastas de destino no Drive
           </CardTitle>
         </CardHeader>

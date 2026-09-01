@@ -309,16 +309,18 @@ function RelatoriosPage() {
 
   const graficos = useMemo(() => {
     const contar = (valorDe: (a: Aluno) => string | string[]) => {
-      const mapa = new Map<string, number>();
+      const mapa = new Map<string, Aluno[]>();
       for (const a of alunos) {
         const valores = valorDe(a);
         for (const v of Array.isArray(valores) ? valores : [valores]) {
           const chave = v || "Não informado";
-          mapa.set(chave, (mapa.get(chave) ?? 0) + 1);
+          const atual = mapa.get(chave);
+          if (atual) atual.push(a);
+          else mapa.set(chave, [a]);
         }
       }
       return [...mapa.entries()]
-        .map(([nome, total]): PontoGrafico => ({ nome, total }))
+        .map(([nome, lista]): PontoGrafico => ({ nome, total: lista.length, alunos: lista }))
         .sort((x, y) => y.total - x.total);
     };
 
@@ -336,6 +338,132 @@ function RelatoriosPage() {
     } as Record<ParametroId, PontoGrafico[]>;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alunos, turmas, matriculas]);
+
+  function baixarArquivo(conteudo: BlobPart, nome: string, tipo: string) {
+    const url = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nome;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportarGraficosCsv() {
+    if (!parametros.length) return toast.error("Selecione ao menos um parâmetro");
+    const linhas = [["Parâmetro", "Categoria", "Alunos"]];
+    for (const id of parametros) {
+      const rotulo = PARAMETROS.find((p) => p.id === id)?.rotulo ?? id;
+      for (const ponto of graficos[id] ?? []) linhas.push([rotulo, ponto.nome, String(ponto.total)]);
+    }
+    const csv = linhas.map((l) => l.map((c) => `"${c.replace(/"/g, '""')}"`).join(";")).join("\n");
+    baixarArquivo("\uFEFF" + csv, `graficos-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv;charset=utf-8");
+    toast.success("CSV dos gráficos exportado");
+  }
+
+  async function svgParaImagem(svg: SVGSVGElement, escala = 2) {
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    const largura = svg.clientWidth || 600;
+    const altura = svg.clientHeight || 300;
+    clone.setAttribute("width", String(largura));
+    clone.setAttribute("height", String(altura));
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    clone.querySelectorAll("text").forEach((t) => {
+      t.setAttribute("fill", "#111827");
+      t.setAttribute("font-family", "Arial, sans-serif");
+    });
+    clone.querySelectorAll("path,line").forEach((el) => {
+      const stroke = el.getAttribute("stroke");
+      if (!stroke || stroke.includes("var(")) el.setAttribute("stroke", "#d1d5db");
+    });
+    clone.querySelectorAll("rect,path").forEach((el) => {
+      const fill = el.getAttribute("fill");
+      if (fill && fill.includes("var(")) el.setAttribute("fill", "#0ea5a4");
+    });
+    const texto = new XMLSerializer().serializeToString(clone);
+    const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(texto)}`;
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Falha ao converter o gráfico"));
+      img.src = url;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = largura * escala;
+    canvas.height = altura * escala;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas indisponível");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return { dados: canvas.toDataURL("image/png"), largura, altura };
+  }
+
+  async function exportarGraficosPdf() {
+    if (!parametros.length) return toast.error("Selecione ao menos um parâmetro");
+    const idToast = toast.loading("Gerando PDF dos gráficos…");
+    try {
+      const { jsPDF } = await import("jspdf");
+      const pdf = new jsPDF({ unit: "pt", format: "a4" });
+      const margem = 40;
+      const larguraUtil = pdf.internal.pageSize.getWidth() - margem * 2;
+      let y = margem;
+
+      pdf.setFontSize(16);
+      pdf.text("Relatório de alunos por parâmetro", margem, y);
+      y += 18;
+      pdf.setFontSize(10);
+      pdf.text(
+        `Gerado em ${new Date().toLocaleString("pt-BR")} · ${alunos.length} aluno(s) · Parâmetros: ${parametros
+          .map((id) => PARAMETROS.find((p) => p.id === id)?.rotulo ?? id)
+          .join(", ")}`,
+        margem,
+        y,
+      );
+      y += 20;
+
+      for (const id of parametros) {
+        const rotulo = PARAMETROS.find((p) => p.id === id)?.rotulo ?? id;
+        const svg = document.querySelector<SVGSVGElement>(`#grafico-${id} svg`);
+        const dados = graficos[id] ?? [];
+
+        if (y > pdf.internal.pageSize.getHeight() - 160) {
+          pdf.addPage();
+          y = margem;
+        }
+        pdf.setFontSize(12);
+        pdf.text(rotulo, margem, y);
+        y += 10;
+
+        if (svg) {
+          const img = await svgParaImagem(svg);
+          const altura = (img.altura / img.largura) * larguraUtil;
+          if (y + altura > pdf.internal.pageSize.getHeight() - margem) {
+            pdf.addPage();
+            y = margem;
+          }
+          pdf.addImage(img.dados, "PNG", margem, y, larguraUtil, altura);
+          y += altura + 10;
+        }
+
+        pdf.setFontSize(9);
+        for (const ponto of dados) {
+          if (y > pdf.internal.pageSize.getHeight() - margem) {
+            pdf.addPage();
+            y = margem;
+          }
+          pdf.text(`${ponto.nome}: ${ponto.total} aluno(s)`, margem, y);
+          y += 12;
+        }
+        y += 14;
+      }
+
+      pdf.save(`graficos-${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success("PDF dos gráficos gerado", { id: idToast });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar o PDF", { id: idToast });
+    }
+  }
+
 
 
 

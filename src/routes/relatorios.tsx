@@ -297,7 +297,7 @@ function RelatoriosPage() {
     setBackupando(true);
     const idToast = toast.loading("Enviando backup para o Google Drive…");
     try {
-      const r = await executarBackup({ data: undefined });
+      const r = await executarBackup();
       toast.success(
         `Backup concluído: ${r.planilha} e ${r.imagens} imagem(ns)${r.falhas.length ? ` · ${r.falhas.length} falha(s)` : ""}`,
         { id: idToast },

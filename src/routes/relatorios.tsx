@@ -307,21 +307,37 @@ function RelatoriosPage() {
     return;
   }
 
-  async function backupAgora() {
-    setBackupando(true);
-    const idToast = toast.loading("Enviando backup para o Google Drive…");
-    try {
-      const r = await executarBackup();
-      toast.success(
-        `Backup concluído: ${r.planilha} e ${r.imagens} imagem(ns)${r.falhas.length ? ` · ${r.falhas.length} falha(s)` : ""}`,
-        { id: idToast },
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha no backup", { id: idToast });
-    } finally {
-      setBackupando(false);
-    }
-  }
+  const graficos = useMemo(() => {
+    const contar = (valorDe: (a: Aluno) => string | string[]) => {
+      const mapa = new Map<string, number>();
+      for (const a of alunos) {
+        const valores = valorDe(a);
+        for (const v of Array.isArray(valores) ? valores : [valores]) {
+          const chave = v || "Não informado";
+          mapa.set(chave, (mapa.get(chave) ?? 0) + 1);
+        }
+      }
+      return [...mapa.entries()]
+        .map(([nome, total]): PontoGrafico => ({ nome, total }))
+        .sort((x, y) => y.total - x.total);
+    };
+
+    return {
+      pcd: contar((a) => (a.pcd ? "PCD" : "Não PCD")),
+      faixa: contar((a) => a.faixa_etaria || faixaEtariaECA(a.data_nascimento, a.idade) || ""),
+      sexo: contar((a) => a.sexo ?? ""),
+      modalidade: contar((a) => modalidadeDoAluno(a.id)),
+      horario: contar((a) => turmaDoAluno(a.id)?.horario ?? ""),
+      dias: contar((a) => {
+        const dias = turmaDoAluno(a.id)?.dias_semana ?? [];
+        return dias.length ? dias.join(" e ") : "";
+      }),
+      turno: contar((a) => turnoDoHorario(turmaDoAluno(a.id)?.horario) || ""),
+    } as Record<ParametroId, PontoGrafico[]>;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alunos, turmas, matriculas]);
+
+
 
   async function aplicarPrazo(valor: string) {
     const numero = Number(valor);

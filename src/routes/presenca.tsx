@@ -193,8 +193,9 @@ function PresencaPage() {
   }
 
 
-  async function onScan(texto: string) {
+  function onScan(texto: string) {
     const agora = Date.now();
+    if (confirmacao) return;
     if (lastRef.current.code === texto && agora - lastRef.current.at < 4000) return;
     lastRef.current = { code: texto, at: agora };
     const aluno = alunos.find((a) => a.codigo === texto.trim());
@@ -202,8 +203,9 @@ function PresencaPage() {
       toast.error("QR Code não reconhecido.");
       return;
     }
-    await registrar(aluno, "qrcode");
+    setConfirmacao(aluno);
   }
+
 
   async function iniciarScanner() {
     try {

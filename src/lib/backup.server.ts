@@ -1,29 +1,39 @@
-import { CHAVE_PASTA_IMAGENS, CHAVE_PASTA_PLANILHAS, extrairIdPastaDrive } from "@/lib/configuracoes-chaves";
+import {
+  CHAVE_PASTA_DOCUMENTOS,
+  CHAVE_PASTA_IMAGENS,
+  CHAVE_PASTA_PLANILHAS,
+  extrairIdPastaDrive,
+} from "@/lib/configuracoes-chaves";
 import { montarPlanilhaAlunos, DOCUMENTOS_PLANILHA, type AlunoPlanilha } from "@/lib/planilha-alunos";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_drive";
 
 /** Pasta padrão do Drive para as planilhas de exportação. */
 export const PASTA_PLANILHAS = "1xCkat_TA0nT_zOW2yzw0myflN8jBO65n";
-/** Pasta padrão do Drive para fotos e documentos dos alunos. */
-export const PASTA_IMAGENS = "1o-dAKikn44JlISnEK7IwUNrv-apownZ3";
+/** Pasta padrão do Drive para as fotos dos alunos. */
+export const PASTA_IMAGENS = "1j7Llm91Q2Zp0JfFg1afhPRADDO_KmoOz";
+/** Pasta padrão do Drive para as imagens dos documentos dos alunos. */
+export const PASTA_DOCUMENTOS = "1o-dAKikn44JlISnEK7IwUNrv-apownZ3";
+
+export type PastasDrive = { planilhas: string; fotos: string; documentos: string };
 
 /** Lê as pastas de destino configuradas pelo administrador (com fallback para os padrões). */
-export async function pastasDrive(): Promise<{ planilhas: string; imagens: string }> {
+export async function pastasDrive(): Promise<PastasDrive> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin
       .from("configuracoes")
       .select("chave,valor")
-      .in("chave", [CHAVE_PASTA_PLANILHAS, CHAVE_PASTA_IMAGENS]);
+      .in("chave", [CHAVE_PASTA_PLANILHAS, CHAVE_PASTA_IMAGENS, CHAVE_PASTA_DOCUMENTOS]);
     const mapa = new Map((data ?? []).map((c: { chave: string; valor: string }) => [c.chave, c.valor]));
     return {
       planilhas: extrairIdPastaDrive(mapa.get(CHAVE_PASTA_PLANILHAS)) || PASTA_PLANILHAS,
-      imagens: extrairIdPastaDrive(mapa.get(CHAVE_PASTA_IMAGENS)) || PASTA_IMAGENS,
+      fotos: extrairIdPastaDrive(mapa.get(CHAVE_PASTA_IMAGENS)) || PASTA_IMAGENS,
+      documentos: extrairIdPastaDrive(mapa.get(CHAVE_PASTA_DOCUMENTOS)) || PASTA_DOCUMENTOS,
     };
   } catch (err) {
     console.error("[backup] não foi possível ler as pastas configuradas", err);
-    return { planilhas: PASTA_PLANILHAS, imagens: PASTA_IMAGENS };
+    return { planilhas: PASTA_PLANILHAS, fotos: PASTA_IMAGENS, documentos: PASTA_DOCUMENTOS };
   }
 }
 
@@ -116,7 +126,10 @@ type Resultado = {
   falhas: string[];
 };
 
-export type ArquivoBackup = { caminho: string; nome: string };
+export type DestinoArquivo = "fotos" | "documentos";
+export type ArquivoBackup = { caminho: string; nome: string; destino: DestinoArquivo };
+/** Índices de arquivos já existentes, por pasta de destino. */
+export type ExistentesBackup = Record<DestinoArquivo, Record<string, string>>;
 
 function tipoPorExtensao(caminho: string) {
   const ext = (caminho.split(".").pop() ?? "").toLowerCase();
@@ -136,7 +149,7 @@ async function baixarArquivoStorage(caminho: string) {
 export async function prepararBackup(): Promise<{
   planilha: string;
   arquivos: ArquivoBackup[];
-  existentes: Record<string, string>;
+  existentes: ExistentesBackup;
 }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -161,10 +174,11 @@ export async function prepararBackup(): Promise<{
     baixarArquivo: baixarArquivoStorage,
   });
 
+  const pastas = await pastasDrive();
   const data = new Date().toISOString().slice(0, 10);
   const planilha = await enviarParaDrive({
     nome: `alunos-${data}.xlsx`,
-    pasta: (await pastasDrive()).planilhas,
+    pasta: pastas.planilhas,
     conteudo: buffer,
     tipo: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
@@ -174,27 +188,37 @@ export async function prepararBackup(): Promise<{
     const registro = aluno as AlunoPlanilha & { foto_path?: string | null };
     if (registro.foto_path) {
       const ext = registro.foto_path.split(".").pop() ?? "jpg";
-      arquivos.push({ caminho: registro.foto_path, nome: `${aluno.nome} - Foto.${ext}` });
+      arquivos.push({ caminho: registro.foto_path, nome: `${aluno.nome} - Foto.${ext}`, destino: "fotos" });
     }
     for (const doc of DOCUMENTOS_PLANILHA) {
       const caminho = aluno[doc.campo];
       if (!caminho) continue;
       const ext = caminho.split(".").pop() ?? "jpg";
-      arquivos.push({ caminho, nome: `${aluno.nome} - ${doc.rotulo}.${ext}` });
+      arquivos.push({ caminho, nome: `${aluno.nome} - ${doc.rotulo}.${ext}`, destino: "documentos" });
     }
   }
 
-  const existentes = Object.fromEntries(await listarPasta((await pastasDrive()).imagens));
+  const [fotosExistentes, docsExistentes] = await Promise.all([
+    listarPasta(pastas.fotos),
+    listarPasta(pastas.documentos),
+  ]);
+  const existentes: ExistentesBackup = {
+    fotos: Object.fromEntries(fotosExistentes),
+    documentos: Object.fromEntries(docsExistentes),
+  };
   return { planilha: planilha.nome, arquivos, existentes };
 }
 
-/** Envia um lote de fotos/documentos para a pasta de imagens do Drive. */
+/** Envia um lote de fotos/documentos para a pasta correspondente no Drive. */
 export async function enviarLoteBackup(
   arquivos: ArquivoBackup[],
-  existentes?: Record<string, string>,
+  existentes?: ExistentesBackup,
 ): Promise<{ enviados: number; falhas: string[] }> {
-  const indice = new Map(Object.entries(existentes ?? {}));
-  const pastaImagens = (await pastasDrive()).imagens;
+  const indices: Record<DestinoArquivo, Map<string, string>> = {
+    fotos: new Map(Object.entries(existentes?.fotos ?? {})),
+    documentos: new Map(Object.entries(existentes?.documentos ?? {})),
+  };
+  const pastas = await pastasDrive();
   const falhas: string[] = [];
   let enviados = 0;
   const CONCORRENCIA = 8;
@@ -212,10 +236,10 @@ export async function enviarLoteBackup(
         }
         await enviarParaDrive({
           nome: arquivo.nome,
-          pasta: pastaImagens,
+          pasta: arquivo.destino === "documentos" ? pastas.documentos : pastas.fotos,
           conteudo,
           tipo: tipoPorExtensao(arquivo.caminho),
-          existentes: indice,
+          existentes: indices[arquivo.destino],
         });
         enviados++;
       } catch (err) {

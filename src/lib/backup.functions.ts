@@ -29,8 +29,20 @@ export const prepararBackupFn = createServerFn({ method: "POST" })
   });
 
 const loteSchema = z.object({
-  arquivos: z.array(z.object({ caminho: z.string(), nome: z.string() })),
-  existentes: z.record(z.string(), z.string()).optional(),
+  arquivos: z.array(
+    z.object({
+      caminho: z.string(),
+      nome: z.string(),
+      destino: z.enum(["fotos", "documentos"]),
+    }),
+  ),
+  existentes: z
+    .object({
+      fotos: z.record(z.string(), z.string()),
+      documentos: z.record(z.string(), z.string()),
+    })
+    .partial()
+    .optional(),
 });
 
 /** Envia um lote de fotos/documentos (usado para exibir progresso na tela). */
@@ -40,7 +52,10 @@ export const enviarLoteBackupFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await garantirAdmin(context);
     const { enviarLoteBackup } = await import("@/lib/backup.server");
-    return await enviarLoteBackup(data.arquivos, data.existentes);
+    const existentes = data.existentes
+      ? { fotos: data.existentes.fotos ?? {}, documentos: data.existentes.documentos ?? {} }
+      : undefined;
+    return await enviarLoteBackup(data.arquivos, existentes);
   });
 
 /** Registra o resultado do último backup manual. */

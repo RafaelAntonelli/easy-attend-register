@@ -379,10 +379,67 @@ function RelatoriosPage() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button disabled={backupando} onClick={() => void backupAgora()}>
-          <CloudUpload className="size-4" /> {backupando ? "Enviando..." : "Fazer Backup"}
-        </Button>
       </div>
+
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <BarChart3 className="size-4" /> Alunos por parâmetro
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex flex-wrap gap-2">
+            {PARAMETROS.map((p) => {
+              const ativo = parametros.includes(p.id);
+              return (
+                <Button
+                  key={p.id}
+                  type="button"
+                  size="sm"
+                  variant={ativo ? "default" : "outline"}
+                  onClick={() =>
+                    setParametros((atual) =>
+                      atual.includes(p.id) ? atual.filter((x) => x !== p.id) : [...atual, p.id],
+                    )
+                  }
+                >
+                  {p.rotulo}
+                </Button>
+              );
+            })}
+          </div>
+
+          {!parametros.length ? (
+            <p className="text-sm text-muted-foreground">Selecione um ou mais parâmetros para ver os gráficos.</p>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-2">
+              {parametros.map((id) => {
+                const dados = graficos[id] ?? [];
+                const rotulo = PARAMETROS.find((p) => p.id === id)?.rotulo ?? id;
+                return (
+                  <div key={id} className="rounded-xl border border-border p-3">
+                    <p className="mb-2 text-sm font-medium">{rotulo}</p>
+                    {!dados.length ? (
+                      <p className="py-8 text-center text-sm text-muted-foreground">Sem dados.</p>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={Math.max(200, dados.length * 34 + 40)}>
+                        <BarChart data={dados} layout="vertical" margin={{ left: 8, right: 24 }}>
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
+                          <XAxis type="number" allowDecimals={false} fontSize={12} />
+                          <YAxis type="category" dataKey="nome" width={130} fontSize={12} />
+                          <Tooltip formatter={(v: number) => [`${v} aluno(s)`, "Total"]} />
+                          <Bar dataKey="total" radius={[0, 6, 6, 0]} fill="hsl(var(--primary))" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">

@@ -337,14 +337,67 @@ function BackupPage() {
     }
   }
 
+  const lerStatus = useServerFn(statusBackupFn);
+  const salvarAgendamento = useServerFn(salvarAgendamentoFn);
+  const [agenda, setAgenda] = useState({ dia_semana: 1, hora: 3, minuto: 0, ativo: true });
+  const [salvandoAgenda, setSalvandoAgenda] = useState(false);
+  const ultimoAvisadoRef = useRef<string | null>(null);
+
+  const atualizarStatus = useCallback(
+    async (avisar: boolean) => {
+      try {
+        const dados = await lerStatus({ data: undefined });
+        if (!dados) return;
+        setUltimo({ ultimo_backup: dados.ultimo_backup, ultimo_resultado: dados.ultimo_resultado });
+        setAgenda({
+          dia_semana: dados.dia_semana ?? 1,
+          hora: dados.hora ?? 3,
+          minuto: dados.minuto ?? 0,
+          ativo: dados.ativo ?? true,
+        });
+        const marca = dados.ultimo_backup ?? "";
+        if (!avisar || !marca) {
+          ultimoAvisadoRef.current = marca;
+          return;
+        }
+        if (ultimoAvisadoRef.current && marca !== ultimoAvisadoRef.current) {
+          notificar(
+            dados.ultimo_status === "falha" ? "Backup automático falhou" : "Backup automático concluído",
+            dados.ultimo_resultado ?? "",
+            dados.ultimo_status === "falha",
+          );
+        }
+        ultimoAvisadoRef.current = marca;
+      } catch {
+        /* silencioso: apenas leitura de status */
+      }
+    },
+    [lerStatus],
+  );
+
   useEffect(() => {
     if (!isAdmin) return;
-    void supabase
-      .from("backup_cron")
-      .select("ultimo_backup,ultimo_resultado")
-      .maybeSingle()
-      .then(({ data }) => setUltimo(data ?? null));
-  }, [isAdmin]);
+    void atualizarStatus(false);
+    const t = window.setInterval(() => void atualizarStatus(true), 60_000);
+    return () => window.clearInterval(t);
+  }, [isAdmin, atualizarStatus]);
+
+  async function gravarAgendamento() {
+    setSalvandoAgenda(true);
+    try {
+      await salvarAgendamento({ data: agenda });
+      toast.success(
+        agenda.ativo
+          ? `Backup automático agendado para ${DIAS_SEMANA[agenda.dia_semana]?.rotulo} às ${String(agenda.hora).padStart(2, "0")}:${String(agenda.minuto).padStart(2, "0")}.`
+          : "Backup automático desativado.",
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível salvar o agendamento.");
+    } finally {
+      setSalvandoAgenda(false);
+    }
+  }
+
 
   async function backupAgora() {
     const checagem = await verificarPastas();

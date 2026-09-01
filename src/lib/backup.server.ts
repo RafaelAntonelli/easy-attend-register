@@ -152,23 +152,40 @@ export async function executarBackupCompleto(): Promise<Resultado> {
     }
   }
 
-  for (const arquivo of arquivos) {
-    try {
-      const conteudo = await baixar(arquivo.caminho);
-      if (!conteudo) {
+  const existentes = await listarPasta(PASTA_IMAGENS);
+  const CONCORRENCIA = 8;
+  let proximo = 0;
+
+  async function trabalhador() {
+    while (proximo < arquivos.length) {
+      const arquivo = arquivos[proximo++];
+      if (!arquivo) return;
+      try {
+        const conteudo = await baixar(arquivo.caminho);
+        if (!conteudo) {
+          falhas.push(arquivo.nome);
+          continue;
+        }
+        const ext = (arquivo.caminho.split(".").pop() ?? "").toLowerCase();
+        const tipo =
+          ext === "png"
+            ? "image/png"
+            : ext === "pdf"
+              ? "application/pdf"
+              : ext === "webp"
+                ? "image/webp"
+                : "image/jpeg";
+        await enviarParaDrive({ nome: arquivo.nome, pasta: PASTA_IMAGENS, conteudo, tipo, existentes });
+        imagens++;
+      } catch (err) {
+        console.error("[backup] falha ao enviar arquivo", arquivo.nome, err);
         falhas.push(arquivo.nome);
-        continue;
       }
-      const ext = (arquivo.caminho.split(".").pop() ?? "").toLowerCase();
-      const tipo =
-        ext === "png" ? "image/png" : ext === "pdf" ? "application/pdf" : ext === "webp" ? "image/webp" : "image/jpeg";
-      await enviarParaDrive({ nome: arquivo.nome, pasta: PASTA_IMAGENS, conteudo, tipo });
-      imagens++;
-    } catch (err) {
-      console.error("[backup] falha ao enviar arquivo", arquivo.nome, err);
-      falhas.push(arquivo.nome);
     }
   }
+
+  await Promise.all(Array.from({ length: Math.min(CONCORRENCIA, arquivos.length) }, trabalhador));
+
 
   return { planilha: planilha.nome, imagens, falhas };
 }

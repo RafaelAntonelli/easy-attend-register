@@ -74,7 +74,10 @@ function PresencaPage() {
   const [registros, setRegistros] = useState<{ nome: string; hora: string; status: StatusPresenca; obs: string | null }[]>([]);
   const scannerRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
   const lastRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
-  const [confirmacao, setConfirmacao] = useState<Aluno | null>(null);
+  const [confirmacao, setConfirmacao] = useState<{ aluno: Aluno; jaRegistrado: StatusPresenca | null } | null>(null);
+  const statusRef = useRef<Record<string, StatusPresenca>>({});
+  statusRef.current = statusPorAluno;
+
 
 
   const [data, setData] = useState<Date>(new Date());
@@ -203,7 +206,7 @@ function PresencaPage() {
       toast.error("QR Code não reconhecido.");
       return;
     }
-    setConfirmacao((atual) => atual ?? aluno);
+    setConfirmacao((atual) => atual ?? { aluno, jaRegistrado: statusRef.current[aluno.id] ?? null });
   }
 
 
@@ -447,10 +450,23 @@ function PresencaPage() {
       <AlertDialog open={Boolean(confirmacao)} onOpenChange={(aberto) => !aberto && setConfirmacao(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar presença?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirmacao?.jaRegistrado ? "Presença já registrada hoje" : "Confirmar presença?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Registrar presença de <strong>{confirmacao?.nome}</strong> em{" "}
-              {format(data, "dd/MM/yyyy", { locale: ptBR })}?
+              {confirmacao?.jaRegistrado ? (
+                <>
+                  <strong>{confirmacao.aluno.nome}</strong> já tem registro de{" "}
+                  {rotuloStatus[confirmacao.jaRegistrado].toLowerCase()} em{" "}
+                  {format(data, "dd/MM/yyyy", { locale: ptBR })}. Deseja registrar novamente (o registro anterior será
+                  substituído)?
+                </>
+              ) : (
+                <>
+                  Registrar presença de <strong>{confirmacao?.aluno.nome}</strong> em{" "}
+                  {format(data, "dd/MM/yyyy", { locale: ptBR })}?
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -464,14 +480,15 @@ function PresencaPage() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                const aluno = confirmacao;
+                const alvo = confirmacao;
                 setConfirmacao(null);
-                if (aluno) void registrar(aluno, "qrcode");
+                if (alvo) void registrar(alvo.aluno, "qrcode");
               }}
             >
-              Sim
+              {confirmacao?.jaRegistrado ? "Registrar mesmo assim" : "Sim"}
             </AlertDialogAction>
           </AlertDialogFooter>
+
         </AlertDialogContent>
       </AlertDialog>
     </AppShell>

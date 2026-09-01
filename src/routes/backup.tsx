@@ -8,8 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/lib/auth";
-import { fazerBackup } from "@/lib/backup.functions";
+import { prepararBackupFn, enviarLoteBackupFn, registrarBackupFn } from "@/lib/backup.functions";
 
 export const Route = createFileRoute("/backup")({
   component: BackupPage,
@@ -28,11 +29,26 @@ export const Route = createFileRoute("/backup")({
   }),
 });
 
+const LOTE = 8;
+
+function formatarTempo(segundos: number) {
+  if (!Number.isFinite(segundos) || segundos <= 0) return "—";
+  const s = Math.round(segundos);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  return `${m}min ${String(s % 60).padStart(2, "0")}s`;
+}
+
+type Progresso = { etapa: string; enviados: number; total: number; falhas: number; restante: number | null };
+
 function BackupPage() {
   const { isAdmin } = useAuth();
   const [backupando, setBackupando] = useState(false);
+  const [progresso, setProgresso] = useState<Progresso | null>(null);
   const [ultimo, setUltimo] = useState<{ ultimo_backup: string | null; ultimo_resultado: string | null } | null>(null);
-  const executarBackup = useServerFn(fazerBackup);
+  const preparar = useServerFn(prepararBackupFn);
+  const enviarLote = useServerFn(enviarLoteBackupFn);
+  const registrar = useServerFn(registrarBackupFn);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -45,16 +61,41 @@ function BackupPage() {
 
   async function backupAgora() {
     setBackupando(true);
-    const idToast = toast.loading("Enviando backup para o Google Drive…");
+    setProgresso({ etapa: "Gerando e enviando a planilha…", enviados: 0, total: 0, falhas: 0, restante: null });
     try {
-      const r = await executarBackup();
-      toast.success(
-        `Backup concluído: ${r.planilha} e ${r.imagens} imagem(ns)${r.falhas.length ? ` · ${r.falhas.length} falha(s)` : ""}`,
-        { id: idToast },
-      );
-      setUltimo({ ultimo_backup: new Date().toISOString(), ultimo_resultado: `${r.planilha} · ${r.imagens} imagem(ns)` });
+      const { planilha, arquivos, existentes } = await preparar({ data: undefined });
+      const total = arquivos.length;
+      const inicio = Date.now();
+      let enviados = 0;
+      const falhas: string[] = [];
+
+      setProgresso({ etapa: "Enviando fotos e documentos…", enviados: 0, total, falhas: 0, restante: null });
+
+      for (let i = 0; i < total; i += LOTE) {
+        const parte = arquivos.slice(i, i + LOTE);
+        const r = await enviarLote({ data: { arquivos: parte, existentes } });
+        enviados += r.enviados;
+        falhas.push(...r.falhas);
+        const processados = Math.min(i + parte.length, total);
+        const decorrido = (Date.now() - inicio) / 1000;
+        const restante = processados > 0 ? (decorrido / processados) * (total - processados) : null;
+        setProgresso({
+          etapa: "Enviando fotos e documentos…",
+          enviados: processados,
+          total,
+          falhas: falhas.length,
+          restante,
+        });
+      }
+
+      const resumo = `${planilha} · ${enviados} arquivo(s)${falhas.length ? ` · ${falhas.length} falha(s)` : ""}`;
+      await registrar({ data: { resumo } });
+      setUltimo({ ultimo_backup: new Date().toISOString(), ultimo_resultado: resumo });
+      setProgresso({ etapa: "Backup concluído", enviados: total, total, falhas: falhas.length, restante: 0 });
+      toast.success(`Backup concluído: ${resumo}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha no backup", { id: idToast });
+      setProgresso(null);
+      toast.error(err instanceof Error ? err.message : "Falha no backup");
     } finally {
       setBackupando(false);
     }
@@ -72,6 +113,8 @@ function BackupPage() {
       </AppShell>
     );
   }
+
+  const pct = progresso && progresso.total > 0 ? Math.round((progresso.enviados / progresso.total) * 100) : 0;
 
   return (
     <AppShell title="Backup" subtitle="Envio da planilha e dos documentos para o Google Drive">
@@ -96,6 +139,30 @@ function BackupPage() {
               {ultimo?.ultimo_resultado ?? "—"}
             </p>
           </div>
+
+          {progresso ? (
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between text-sm">
+                <span>{progresso.etapa}</span>
+                <span className="tabular-nums text-muted-foreground">{pct}%</span>
+              </div>
+              <Progress value={progresso.total > 0 ? pct : undefined} />
+              <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
+                <span>
+                  {progresso.total > 0
+                    ? `${progresso.enviados} de ${progresso.total} enviados · faltam ${progresso.total - progresso.enviados}`
+                    : "Preparando arquivos…"}
+                </span>
+                <span>
+                  Tempo estimado: {progresso.restante === null ? "calculando…" : formatarTempo(progresso.restante)}
+                </span>
+              </div>
+              {progresso.falhas > 0 && (
+                <p className="text-xs text-destructive">{progresso.falhas} arquivo(s) não puderam ser enviados.</p>
+              )}
+            </div>
+          ) : null}
+
           <Button disabled={backupando} onClick={() => void backupAgora()}>
             <CloudUpload className="size-4" /> {backupando ? "Enviando..." : "Fazer Backup"}
           </Button>

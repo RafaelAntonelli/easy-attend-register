@@ -48,10 +48,11 @@ type Aluno = AlunoPlanilha & {
   codigo: string;
   foto_path: string | null;
   telefone: string | null;
+  cpf: string | null;
   pcd: boolean;
 };
 type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[]; modalidade: string; capacidade: number };
-type Matricula = { id: string; aluno_id: string; turma_id: string; modalidade: string };
+type Matricula = { id: string; aluno_id: string; turma_id: string; modalidade: string; status: string };
 
 const PRAZOS = [15, 30, 45, 60, 90];
 
@@ -296,7 +297,7 @@ function RelatoriosPage() {
     setBackupando(true);
     const idToast = toast.loading("Enviando backup para o Google Drive…");
     try {
-      const r = await executarBackup({ data: undefined });
+      const r = await executarBackup();
       toast.success(
         `Backup concluído: ${r.planilha} e ${r.imagens} imagem(ns)${r.falhas.length ? ` · ${r.falhas.length} falha(s)` : ""}`,
         { id: idToast },

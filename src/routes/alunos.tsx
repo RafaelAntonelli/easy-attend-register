@@ -11,6 +11,8 @@ import { capitalizarNome, formatarCelular, formatarCPF, cpfValido } from "@/lib/
 import { encontrarAlunoDuplicado } from "@/lib/duplicidade";
 import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/lib/turnos";
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
+import { atestadoVencido, atestadoVencendo, diasParaVencer } from "@/lib/atestado";
+import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";
@@ -88,36 +90,6 @@ const DOCUMENTOS = [
 
 type CampoDoc = (typeof DOCUMENTOS)[number]["campo"];
 
-
-function vencimentoAtestado(data: string | null | undefined) {
-  if (!data) return null;
-  const limite = new Date(`${data}T00:00:00`);
-  if (Number.isNaN(limite.getTime())) return null;
-  limite.setFullYear(limite.getFullYear() + 1);
-  return limite;
-}
-
-function atestadoVencido(data: string | null | undefined) {
-  const limite = vencimentoAtestado(data);
-  return limite ? limite < new Date() : false;
-}
-
-/** Vence em até 30 dias (ainda válido). */
-function atestadoVencendo(data: string | null | undefined) {
-  const limite = vencimentoAtestado(data);
-  if (!limite) return false;
-  const hoje = new Date();
-  const aviso = new Date(hoje);
-  aviso.setDate(aviso.getDate() + 30);
-  return limite >= hoje && limite <= aviso;
-}
-
-function diasParaVencer(data: string | null | undefined) {
-  const limite = vencimentoAtestado(data);
-  if (!limite) return 0;
-  return Math.max(0, Math.ceil((limite.getTime() - Date.now()) / 86400000));
-}
-
 const CAPACIDADE_TURMA = 40;
 
 const ROTULO_STATUS = {
@@ -170,8 +142,7 @@ function AlunosPage() {
   const [filtroDias, setFiltroDias] = useState("todos");
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [turnoForm, setTurnoForm] = useState("todos");
-  const [excluindoTodos, setExcluindoTodos] = useState(false);
-  const [exportando, setExportando] = useState(false);
+  const { valor: prazoAviso } = usePrazoAvisoAtestado();
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
   const [mostrarGuias, setMostrarGuias] = useState(false);
 
@@ -566,10 +537,6 @@ function AlunosPage() {
     return;
   }
 
-  async function excluirTodos() {
-    setExcluindoTodos(false);
-    await excluirAlunos(alunos);
-  }
 
 
   async function alternarAtivo(lista: Aluno[], ativo: boolean) {
@@ -676,99 +643,11 @@ function AlunosPage() {
     .sort((a, b) => a.nome.localeCompare(b.nome));
 
 
-  async function exportarPlanilha() {
-    setExportando(true);
-    try {
-      const ExcelJS = (await import("exceljs")).default;
-      const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet("Alunos");
-      const cabecalho = [
-        "Nome", "Sexo", "Idade", "Nascimento", "CPF", "RG", "Celular", "Celular 2", "E-mail",
-        "Responsável", "Rede de ensino", "Escola", "PCD", "Condições PCD", "Atestado entregue",
-        "Data do atestado", "Modalidade", "Turma", "Horário", "Turno", "Situação", "Observações",
-        ...DOCUMENTOS.map((d) => d.rotulo),
-      ];
-      ws.addRow(cabecalho);
-      ws.getRow(1).font = { bold: true };
-      ws.views = [{ state: "frozen", ySplit: 1 }];
-
-      const linhas = filtrados.map((a) => {
-        const m = matriculaDoAluno(a.id);
-        const t = turmaDoAluno(a.id);
-        return {
-          aluno: a,
-          valores: [
-            a.nome, a.sexo ?? "", a.idade ?? "", a.data_nascimento ?? "", a.cpf ?? "", a.rg ?? "",
-            a.telefone ?? "", a.telefone2 ?? "", a.email ?? "", a.responsavel ?? "", a.rede_ensino ?? "",
-            a.escola ?? "", a.pcd ? "Sim" : "Não", (a.pcd_condicoes ?? []).join(" | "),
-            a.atestado_entregue ? "Sim" : "Não", a.atestado_data ?? "",
-            m?.modalidade ?? t?.modalidade ?? "", t?.nome ?? "", t?.horario ?? "",
-            turnoDoHorario(t?.horario), a.ativo ? "Ativo" : "Inativo", a.observacoes ?? "",
-            ...DOCUMENTOS.map((d) => (a[d.campo] ? "Enviado" : "Pendente")),
-          ] as (string | number)[],
-        };
-      });
-
-      linhas.forEach((l) => ws.addRow(l.valores));
-
-      // Largura das colunas conforme conteúdo
-      cabecalho.forEach((titulo, i) => {
-        const largura = linhas.reduce(
-          (max, l) => Math.max(max, String(l.valores[i] ?? "").length),
-          titulo.length,
-        );
-        const col = ws.getColumn(i + 1);
-        col.width = Math.min(largura + 2, 45);
-        col.alignment = { vertical: "middle", wrapText: i === cabecalho.indexOf("Observações") };
-      });
-      const colunaDocInicial = cabecalho.length - DOCUMENTOS.length;
-      for (let i = 0; i < DOCUMENTOS.length; i++) ws.getColumn(colunaDocInicial + i + 1).width = 18;
-
-      // Imagens dos documentos
-      for (let li = 0; li < linhas.length; li++) {
-        const item = linhas[li];
-        if (!item) continue;
-        const linhaExcel = li + 2;
-        let temImagem = false;
-        for (let di = 0; di < DOCUMENTOS.length; di++) {
-          const doc = DOCUMENTOS[di];
-          const caminho = doc ? item.aluno[doc.campo] : null;
-          if (!caminho) continue;
-          const ext = (caminho.split(".").pop() ?? "").toLowerCase();
-          if (!["png", "jpg", "jpeg"].includes(ext)) continue;
-          const { data } = await supabase.storage.from("fotos-alunos").download(caminho);
-          if (!data) continue;
-          const buffer = await data.arrayBuffer();
-          const imageId = wb.addImage({ buffer, extension: ext === "png" ? "png" : "jpeg" });
-          ws.addImage(imageId, {
-            tl: { col: colunaDocInicial + di + 0.1, row: linhaExcel - 1 + 0.1 },
-            ext: { width: 100, height: 70 },
-          });
-          temImagem = true;
-        }
-        if (temImagem) ws.getRow(linhaExcel).height = 60;
-      }
-
-      ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cabecalho.length } };
-      const buffer = await wb.xlsx.writeBuffer();
-      const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `alunos-${new Date().toISOString().slice(0, 10)}.xlsx`;
-      link.click();
-      URL.revokeObjectURL(url);
-      toast.success("Planilha exportada com as imagens dos documentos");
-    } catch (err: any) {
-      toast.error(err?.message ?? "Erro ao exportar planilha");
-    } finally {
-      setExportando(false);
-    }
-  }
 
 
 
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
-  const proximosVencimento = alunos.filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data));
+  const proximosVencimento = alunos.filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso));
   const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
   const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
@@ -803,7 +682,7 @@ function AlunosPage() {
         <Card className="mb-6 border-orange-500/40 bg-orange-500/5">
           <CardContent className="space-y-2 py-4">
             <p className="flex items-center gap-2 font-medium text-orange-600">
-              <Bell className="size-4" /> Notificações · {proximosVencimento.length} atestado(s) vencendo em até 1 mês
+              <Bell className="size-4" /> Notificações · {proximosVencimento.length} atestado(s) vencendo em até {prazoAviso} dias
             </p>
             <div className="space-y-1">
               {proximosVencimento.map((a) => (
@@ -914,43 +793,6 @@ function AlunosPage() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
-        <Button variant="outline" disabled={exportando} onClick={() => void exportarPlanilha()}>
-          <Download className="size-4" /> {exportando ? "Exportando..." : "Exportar planilha"}
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" disabled={gerandoCrachas || !filtrados.length}>
-              <IdCard className="size-4" /> {gerandoCrachas ? "Gerando..." : "Crachás"}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            <DropdownMenuLabel>Exportar crachás CR-80 (PDF)</DropdownMenuLabel>
-            <DropdownMenuItem
-              disabled={!selecionados.length}
-              onClick={() => void exportarCrachas(filtrados.filter((a) => selecionados.includes(a.id)), "cartao")}
-            >
-              Selecionados ({selecionados.length}) — 1 por página
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              disabled={!selecionados.length}
-              onClick={() => void exportarCrachas(filtrados.filter((a) => selecionados.includes(a.id)), "folha")}
-            >
-              Selecionados ({selecionados.length}) — folha A4
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => void exportarCrachas(filtrados, "cartao")}>
-              Todos da lista ({filtrados.length}) — 1 por página
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void exportarCrachas(filtrados, "folha")}>
-              Todos da lista ({filtrados.length}) — folha A4
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button variant="destructive" disabled={!alunos.length} onClick={() => setExcluindoTodos(true)}>
-          <Trash2 className="size-4" /> Excluir todos
-        </Button>
-
-        <ImportarAlunos turmas={turmas} matriculas={matriculas} alunos={alunos} onImportado={() => void carregar()} />
 
 
         <Dialog open={aberto} onOpenChange={setAberto}>
@@ -1583,21 +1425,6 @@ function AlunosPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={excluindoTodos} onOpenChange={setExcluindoTodos}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir TODOS os alunos?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Os {alunos.length} alunos cadastrados serão removidos junto com matrículas, presenças e fotos. Esta ação não
-              pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void excluirTodos()}>Excluir todos</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
     </AppShell>
   );

@@ -74,6 +74,8 @@ function PresencaPage() {
   const [registros, setRegistros] = useState<{ nome: string; hora: string; status: StatusPresenca; obs: string | null }[]>([]);
   const scannerRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
   const lastRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
+  const [confirmacao, setConfirmacao] = useState<Aluno | null>(null);
+
 
   const [data, setData] = useState<Date>(new Date());
   const hoje = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;

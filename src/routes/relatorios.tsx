@@ -546,10 +546,18 @@ function RelatoriosPage() {
       </div>
 
       <Card className="mb-6">
-        <CardHeader className="pb-3">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">
             <BarChart3 className="size-4" /> Alunos por parâmetro
           </CardTitle>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportarGraficosCsv}>
+              <Download className="size-4" /> CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => void exportarGraficosPdf()}>
+              <FileText className="size-4" /> PDF
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex flex-wrap gap-2">
@@ -581,20 +589,34 @@ function RelatoriosPage() {
                 const dados = graficos[id] ?? [];
                 const rotulo = PARAMETROS.find((p) => p.id === id)?.rotulo ?? id;
                 return (
-                  <div key={id} className="rounded-xl border border-border p-3">
+                  <div key={id} id={`grafico-${id}`} className="rounded-xl border border-border p-3">
                     <p className="mb-2 text-sm font-medium">{rotulo}</p>
                     {!dados.length ? (
                       <p className="py-8 text-center text-sm text-muted-foreground">Sem dados.</p>
                     ) : (
-                      <ResponsiveContainer width="100%" height={Math.max(200, dados.length * 34 + 40)}>
-                        <BarChart data={dados} layout="vertical" margin={{ left: 8, right: 24 }}>
-                          <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
-                          <XAxis type="number" allowDecimals={false} fontSize={12} />
-                          <YAxis type="category" dataKey="nome" width={130} fontSize={12} />
-                          <Tooltip formatter={(v: number) => [`${v} aluno(s)`, "Total"]} />
-                          <Bar dataKey="total" radius={[0, 6, 6, 0]} fill="hsl(var(--primary))" />
-                        </BarChart>
-                      </ResponsiveContainer>
+                      <>
+                        <ResponsiveContainer width="100%" height={Math.max(200, dados.length * 34 + 40)}>
+                          <BarChart data={dados} layout="vertical" margin={{ left: 8, right: 24 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
+                            <XAxis type="number" allowDecimals={false} fontSize={12} />
+                            <YAxis type="category" dataKey="nome" width={130} fontSize={12} />
+                            <Tooltip formatter={(v: number) => [`${v} aluno(s)`, "Total"]} />
+                            <Bar
+                              dataKey="total"
+                              radius={[0, 6, 6, 0]}
+                              fill="hsl(var(--primary))"
+                              cursor="pointer"
+                              onClick={(ponto: unknown) => {
+                                const dado = ponto as { payload?: PontoGrafico };
+                                if (dado?.payload) setDetalhe({ titulo: `${rotulo}: ${dado.payload.nome}`, alunos: dado.payload.alunos });
+                              }}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <p className="mt-1 text-center text-xs text-muted-foreground">
+                          Clique em uma barra para ver os alunos.
+                        </p>
+                      </>
                     )}
                   </div>
                 );
@@ -603,6 +625,45 @@ function RelatoriosPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={Boolean(detalhe)} onOpenChange={(aberto) => !aberto && setDetalhe(null)}>
+        <DialogContent className="max-h-[80vh] max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-base">{detalhe?.titulo}</DialogTitle>
+            <DialogDescription>{detalhe?.alunos.length ?? 0} aluno(s)</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1">
+            {(detalhe?.alunos ?? [])
+              .slice()
+              .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+              .map((a) => (
+                <div key={a.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
+                  <span>{a.nome}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {turmaDoAluno(a.id)?.nome ?? "Sem turma"}
+                  </span>
+                </div>
+              ))}
+            {!detalhe?.alunos.length && <p className="text-sm text-muted-foreground">Nenhum aluno.</p>}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (!detalhe) return;
+              const csv =
+                "\uFEFF" +
+                [["Nome", "Turma"], ...detalhe.alunos.map((a) => [a.nome, turmaDoAluno(a.id)?.nome ?? ""])]
+                  .map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
+                  .join("\n");
+              baixarArquivo(csv, `alunos-${detalhe.titulo.replace(/[^\w]+/g, "-").toLowerCase()}.csv`, "text/csv;charset=utf-8");
+            }}
+          >
+            <Download className="size-4" /> Exportar lista (CSV)
+          </Button>
+        </DialogContent>
+      </Dialog>
+
 
 
       <Card>

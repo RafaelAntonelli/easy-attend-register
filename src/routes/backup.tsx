@@ -12,7 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useConfiguracaoTexto } from "@/lib/configuracoes";
-import { CHAVE_PASTA_IMAGENS, CHAVE_PASTA_PLANILHAS, extrairIdPastaDrive } from "@/lib/configuracoes-chaves";
+import {
+  CHAVE_PASTA_DOCUMENTOS,
+  CHAVE_PASTA_IMAGENS,
+  CHAVE_PASTA_PLANILHAS,
+  extrairIdPastaDrive,
+} from "@/lib/configuracoes-chaves";
 import { useAuth } from "@/lib/auth";
 import { prepararBackupFn, enviarLoteBackupFn, registrarBackupFn } from "@/lib/backup.functions";
 
@@ -55,8 +60,10 @@ function BackupPage() {
   const registrar = useServerFn(registrarBackupFn);
   const pastaPlanilhas = useConfiguracaoTexto(CHAVE_PASTA_PLANILHAS);
   const pastaImagens = useConfiguracaoTexto(CHAVE_PASTA_IMAGENS);
+  const pastaDocumentos = useConfiguracaoTexto(CHAVE_PASTA_DOCUMENTOS);
   const [formPlanilhas, setFormPlanilhas] = useState("");
   const [formImagens, setFormImagens] = useState("");
+  const [formDocumentos, setFormDocumentos] = useState("");
   const [salvandoPastas, setSalvandoPastas] = useState(false);
 
   useEffect(() => {
@@ -67,23 +74,34 @@ function BackupPage() {
     if (!pastaImagens.carregando) setFormImagens(pastaImagens.valor);
   }, [pastaImagens.carregando, pastaImagens.valor]);
 
+  useEffect(() => {
+    if (!pastaDocumentos.carregando) setFormDocumentos(pastaDocumentos.valor);
+  }, [pastaDocumentos.carregando, pastaDocumentos.valor]);
+
   async function salvarPastas() {
     const idPlanilhas = extrairIdPastaDrive(formPlanilhas);
     const idImagens = extrairIdPastaDrive(formImagens);
+    const idDocumentos = extrairIdPastaDrive(formDocumentos);
     if (formPlanilhas.trim() && !idPlanilhas) {
       toast.error("Link ou ID inválido para a pasta da planilha.");
       return;
     }
     if (formImagens.trim() && !idImagens) {
-      toast.error("Link ou ID inválido para a pasta das imagens.");
+      toast.error("Link ou ID inválido para a pasta das fotos.");
+      return;
+    }
+    if (formDocumentos.trim() && !idDocumentos) {
+      toast.error("Link ou ID inválido para a pasta dos documentos.");
       return;
     }
     setSalvandoPastas(true);
     try {
       await pastaPlanilhas.salvar(idPlanilhas);
       await pastaImagens.salvar(idImagens);
+      await pastaDocumentos.salvar(idDocumentos);
       setFormPlanilhas(idPlanilhas);
       setFormImagens(idImagens);
+      setFormDocumentos(idDocumentos);
       toast.success("Pastas de destino atualizadas.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível salvar as pastas.");
@@ -231,11 +249,20 @@ function BackupPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="pasta-imagens">Pasta das fotos e documentos</Label>
+            <Label htmlFor="pasta-imagens">Pasta das fotos dos alunos</Label>
             <Input
               id="pasta-imagens"
               value={formImagens}
               onChange={(e) => setFormImagens(e.target.value)}
+              placeholder="https://drive.google.com/drive/folders/..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="pasta-documentos">Pasta das imagens dos documentos</Label>
+            <Input
+              id="pasta-documentos"
+              value={formDocumentos}
+              onChange={(e) => setFormDocumentos(e.target.value)}
               placeholder="https://drive.google.com/drive/folders/..."
             />
           </div>

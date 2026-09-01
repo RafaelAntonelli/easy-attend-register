@@ -13,6 +13,7 @@ const baseNav = [
   { to: "/alunos", label: "Alunos", icon: Users },
   { to: "/turmas", label: "Turmas", icon: CalendarDays },
   { to: "/presenca", label: "Presença", icon: QrCode },
+  { to: "/relatorios", label: "Relatórios", icon: FileBarChart },
 ];
 const adminNav = [{ to: "/equipe", label: "Equipe", icon: ShieldCheck }];
 

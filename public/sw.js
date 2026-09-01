@@ -20,8 +20,10 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(req)
       .then((res) => {
-        const copia = res.clone();
-        void caches.open(CACHE).then((c) => c.put(req, copia));
+        if (res && res.status === 200 && res.type === "basic") {
+          const copia = res.clone();
+          void caches.open(CACHE).then((c) => c.put(req, copia));
+        }
         return res;
       })
       .catch(async () => {

@@ -80,6 +80,9 @@ type Aluno = {
   doc_residencia_path: string | null;
   doc_matricula_path: string | null;
   doc_identidade_path: string | null;
+  motivo_inativacao: string | null;
+  inativado_em: string | null;
+  inativado_por: string | null;
 };
 
 const DOCUMENTOS = [
@@ -174,6 +177,8 @@ function AlunosPage() {
   const [faltasPorAluno, setFaltasPorAluno] = useState<Record<string, number>>({});
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [confirmarExclusao, setConfirmarExclusao] = useState<Aluno[] | null>(null);
+  const [inativando, setInativando] = useState<Aluno[] | null>(null);
+  const [motivoInativacao, setMotivoInativacao] = useState("");
 
   async function carregar() {
     setCarregando(true);
@@ -568,16 +573,42 @@ function AlunosPage() {
 
 
   async function alternarAtivo(lista: Aluno[], ativo: boolean) {
-    const ids = lista.map((a) => a.id);
-    const { error } = await supabase.from("alunos").update({ ativo }).in("id", ids);
-    if (error) return toast.error(error.message);
     if (!ativo) {
-      const { error: erroMatricula } = await supabase.from("matriculas").delete().in("aluno_id", ids);
-      if (erroMatricula) return toast.error(erroMatricula.message);
-      toast.success(ids.length > 1 ? "Alunos inativados e removidos das turmas" : "Aluno inativado e removido da turma");
-    } else {
-      toast.success("Aluno(s) reativado(s)");
+      setMotivoInativacao("");
+      setInativando(lista);
+      return;
     }
+    const ids = lista.map((a) => a.id);
+    const { error } = await supabase
+      .from("alunos")
+      .update({ ativo: true, motivo_inativacao: null, inativado_em: null, inativado_por: null })
+      .in("id", ids);
+    if (error) return toast.error(error.message);
+    toast.success("Aluno(s) reativado(s)");
+    setSelecionados([]);
+    void carregar();
+    return;
+  }
+
+  async function confirmarInativacao() {
+    if (!inativando?.length) return;
+    if (!motivoInativacao.trim()) return toast.error("Informe o motivo da inativação.");
+    const ids = inativando.map((a) => a.id);
+    const { error } = await supabase
+      .from("alunos")
+      .update({
+        ativo: false,
+        motivo_inativacao: motivoInativacao.trim(),
+        inativado_em: new Date().toISOString(),
+        inativado_por: user?.id ?? null,
+      })
+      .in("id", ids);
+    if (error) return toast.error(error.message);
+    const { error: erroMatricula } = await supabase.from("matriculas").delete().in("aluno_id", ids);
+    if (erroMatricula) return toast.error(erroMatricula.message);
+    toast.success(ids.length > 1 ? "Alunos inativados e removidos das turmas" : "Aluno inativado e removido da turma");
+    setInativando(null);
+    setMotivoInativacao("");
     setSelecionados([]);
     void carregar();
     return;
@@ -703,10 +734,13 @@ function AlunosPage() {
                   key={a.id}
                   type="button"
                   onClick={() => void abrirDetalhe(a)}
-                  className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                  className="flex w-full items-center justify-between gap-2 rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
                 >
                   <span>{a.nome}</span>
-                  <span className="text-xs text-muted-foreground">Sem turma</span>
+                  <span className="text-right text-xs text-muted-foreground">
+                    {a.motivo_inativacao ?? "Sem turma"}
+                    {a.inativado_em ? ` · ${new Date(a.inativado_em).toLocaleDateString("pt-BR")}` : ""}
+                  </span>
                 </button>
               ))}
             </div>
@@ -1419,6 +1453,20 @@ function AlunosPage() {
                 ) : null}
               </div>
 
+              {!detalhe.ativo ? (
+                <div className="space-y-1 text-sm">
+                  <p className="text-sm font-medium">Inativação</p>
+                  <p className="text-muted-foreground">
+                    {detalhe.motivo_inativacao ?? "Motivo não informado"}
+                  </p>
+                  {detalhe.inativado_em ? (
+                    <p className="text-xs text-muted-foreground">
+                      Inativado em {new Date(detalhe.inativado_em).toLocaleDateString("pt-BR")} às {new Date(detalhe.inativado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      {detalhe.inativado_por ? ` por ${nomesUsuarios[detalhe.inativado_por] ?? "usuário"}` : ""}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="space-y-2">
                 <p className="text-sm font-medium">Matrículas</p>
@@ -1533,6 +1581,37 @@ function AlunosPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!inativando} onOpenChange={(o) => !o && setInativando(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Inativar {inativando && inativando.length > 1 ? `${inativando.length} alunos` : "aluno"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {inativando?.length === 1
+                ? `${inativando[0]?.nome} será inativado e removido da turma.`
+                : `${inativando?.length ?? 0} alunos serão inativados e removidos das turmas.`}
+            </p>
+            <div className="space-y-1">
+              <Label htmlFor="motivo-inativacao">Motivo da inativação *</Label>
+              <Textarea
+                id="motivo-inativacao"
+                value={motivoInativacao}
+                onChange={(e) => setMotivoInativacao(e.target.value)}
+                placeholder="Ex.: desistência, mudança de cidade, questões de saúde..."
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setInativando(null)}>Cancelar</Button>
+              <Button variant="destructive" disabled={!motivoInativacao.trim()} onClick={() => void confirmarInativacao()}>
+                <UserX className="size-4" /> Inativar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
 
     </AppShell>

@@ -12,7 +12,7 @@ const STORE_CACHE = "cache";
 export type OperacaoFila =
   | { id: string; criado_em: number; tipo: "aluno_novo"; aluno: Record<string, unknown>; foto?: Blob | null; fotoNome?: string | null }
   | { id: string; criado_em: number; tipo: "aluno_update"; aluno_id: string; dados: Record<string, unknown>; foto?: Blob | null; fotoNome?: string | null }
-  | { id: string; criado_em: number; tipo: "matricula"; aluno_id: string; turma_id: string; modalidade: string }
+  | { id: string; criado_em: number; tipo: "matricula"; aluno_id: string; turma_id: string; modalidade: string; registrado_por?: string | null }
   | {
       id: string;
       criado_em: number;
@@ -147,7 +147,7 @@ async function executar(op: OperacaoFila) {
     await supabase.from("matriculas").delete().eq("aluno_id", op.aluno_id).neq("turma_id", op.turma_id);
     const { error } = await supabase
       .from("matriculas")
-      .upsert({ aluno_id: op.aluno_id, turma_id: op.turma_id, status: "ativa", modalidade: op.modalidade }, { onConflict: "aluno_id,turma_id" });
+      .upsert({ aluno_id: op.aluno_id, turma_id: op.turma_id, status: "ativa", modalidade: op.modalidade, registrado_por: op.registrado_por ?? null }, { onConflict: "aluno_id,turma_id" });
     if (error) throw error;
     return;
   }

@@ -268,6 +268,7 @@ export type Database = {
           id: string
           modalidade: string
           plano: string
+          registrado_por: string | null
           status: string
           turma_id: string
           valor_mensal: number
@@ -279,6 +280,7 @@ export type Database = {
           id?: string
           modalidade?: string
           plano?: string
+          registrado_por?: string | null
           status?: string
           turma_id: string
           valor_mensal?: number
@@ -290,6 +292,7 @@ export type Database = {
           id?: string
           modalidade?: string
           plano?: string
+          registrado_por?: string | null
           status?: string
           turma_id?: string
           valor_mensal?: number

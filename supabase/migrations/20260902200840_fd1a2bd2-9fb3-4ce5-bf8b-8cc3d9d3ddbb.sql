@@ -1,0 +1,1 @@
+ALTER TABLE public.matriculas ADD COLUMN registrado_por uuid REFERENCES auth.users(id);

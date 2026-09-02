@@ -33,6 +33,9 @@ export type Database = {
           foto_path: string | null
           id: string
           idade: number | null
+          inativado_em: string | null
+          inativado_por: string | null
+          motivo_inativacao: string | null
           nome: string
           observacoes: string | null
           pcd: boolean
@@ -63,6 +66,9 @@ export type Database = {
           foto_path?: string | null
           id?: string
           idade?: number | null
+          inativado_em?: string | null
+          inativado_por?: string | null
+          motivo_inativacao?: string | null
           nome: string
           observacoes?: string | null
           pcd?: boolean
@@ -93,6 +99,9 @@ export type Database = {
           foto_path?: string | null
           id?: string
           idade?: number | null
+          inativado_em?: string | null
+          inativado_por?: string | null
+          motivo_inativacao?: string | null
           nome?: string
           observacoes?: string | null
           pcd?: boolean

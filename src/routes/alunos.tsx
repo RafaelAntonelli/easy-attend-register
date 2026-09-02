@@ -13,6 +13,7 @@ import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/li
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { atestadoVencido, atestadoVencendo, diasParaVencer } from "@/lib/atestado";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
+import { useAuth } from "@/lib/auth";
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";
@@ -99,7 +100,7 @@ const ROTULO_STATUS = {
 } as const;
 
 type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[] | null; modalidade: string | null; capacidade: number | null };
-type Matricula = { id: string; aluno_id: string; turma_id: string; status: string; modalidade: string; data_inicio: string | null };
+type Matricula = { id: string; aluno_id: string; turma_id: string; status: string; modalidade: string; data_inicio: string | null; created_at: string | null; registrado_por: string | null };
 type Presenca = { id: string; data: string; status: string; turma_id: string | null; observacoes: string | null };
 
 
@@ -145,6 +146,8 @@ function AlunosPage() {
   const { valor: prazoAviso } = usePrazoAvisoAtestado();
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
   const [mostrarGuias, setMostrarGuias] = useState(false);
+  const { user } = useAuth();
+  const [nomesUsuarios, setNomesUsuarios] = useState<Record<string, string>>({});
 
   const [idadeMin, setIdadeMin] = useState("");
   const [idadeMax, setIdadeMax] = useState("");
@@ -200,6 +203,14 @@ function AlunosPage() {
       setTurmas(t.data as Turma[]);
       setMatriculas(m.data as Matricula[]);
       void salvarCache("alunos", { alunos: a.data, turmas: t.data, matriculas: m.data });
+      const perfis = await supabase.from("profiles").select("id,nome,email");
+      if (perfis.data) {
+        const mapa: Record<string, string> = {};
+        for (const p of perfis.data as { id: string; nome: string | null; email: string | null }[]) {
+          mapa[p.id] = p.nome || p.email || "Usuário";
+        }
+        setNomesUsuarios(mapa);
+      }
       const f = await supabase.from("presencas").select("aluno_id").eq("status", "falta");
       if (f.data) {
         const contagem: Record<string, number> = {};
@@ -365,7 +376,7 @@ function AlunosPage() {
         setAlunos((lista) => [...lista, { id: idLocal, ativo: true, ...payload } as unknown as Aluno]);
       }
       if (turmaId) {
-        await enfileirar({ tipo: "matricula", aluno_id: idLocal, turma_id: turmaId, modalidade: form.modalidade });
+        await enfileirar({ tipo: "matricula", aluno_id: idLocal, turma_id: turmaId, modalidade: form.modalidade, registrado_por: user?.id ?? null });
         setMatriculas((lista) => [
           ...lista.filter((m) => m.aluno_id !== idLocal),
           { aluno_id: idLocal, turma_id: turmaId, status: "ativa", modalidade: form.modalidade } as unknown as Matricula,
@@ -430,7 +441,7 @@ function AlunosPage() {
         return toast.error(eDel.message);
       }
       const { error } = await supabase.from("matriculas").upsert(
-        { aluno_id: alunoId, turma_id: turmaId, status: "ativa", modalidade: form.modalidade },
+        { aluno_id: alunoId, turma_id: turmaId, status: "ativa", modalidade: form.modalidade, registrado_por: user?.id ?? null },
         { onConflict: "aluno_id,turma_id" },
       );
       if (error) {
@@ -1421,6 +1432,12 @@ function AlunosPage() {
                           {m.modalidade} · {m.status}
                           {m.data_inicio ? ` · início ${new Date(`${m.data_inicio}T00:00:00`).toLocaleDateString("pt-BR")}` : ""}
                         </p>
+                        {m.created_at ? (
+                          <p className="text-xs text-muted-foreground">
+                            Matriculado em {new Date(m.created_at).toLocaleDateString("pt-BR")} às {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                            {m.registrado_por ? ` por ${nomesUsuarios[m.registrado_por] ?? "usuário"}` : ""}
+                          </p>
+                        ) : null}
                       </div>
                     ))
                 ) : (

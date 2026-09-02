@@ -559,12 +559,14 @@ export function ImportarAlunos({
         // Um aluno pertence a apenas uma turma: encerra matrículas anteriores
         await supabase.from("matriculas").delete().eq("aluno_id", alunoId);
       }
+      const { data: sessaoAtual } = await supabase.auth.getSession();
       const { error: erroMat } = await supabase.from("matriculas").insert({
         aluno_id: alunoId,
         turma_id: a.turmaId,
         status: "ativa",
         modalidade,
         data_inicio: new Date().toISOString().slice(0, 10),
+        registrado_por: sessaoAtual.session?.user?.id ?? null,
       });
       if (erroMat) {
         falhas.push(`${d.nome}: ${erroMat.message}`);

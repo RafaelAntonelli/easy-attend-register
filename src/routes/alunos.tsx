@@ -678,12 +678,35 @@ function AlunosPage() {
 
   return (
     <AppShell title="Alunos" subtitle="Cadastro e matrículas da Arena Aquática">
+      {inativos.length ? (
+        <Card className="mb-6 border-muted-foreground/30 bg-muted/40">
+          <CardContent className="space-y-2 py-4">
+            <p className="flex items-center gap-2 font-medium text-muted-foreground">
+              <UserX className="size-4" /> Notificações · {inativos.length} aluno(s) inativo(s)
+            </p>
+            <div className="space-y-1">
+              {inativos.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => void abrirDetalhe(a)}
+                  className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                >
+                  <span>{a.nome}</span>
+                  <span className="text-xs text-muted-foreground">Sem turma</span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
       {vencidos.length ? (
         <Card className="mb-6 border-destructive/40 bg-destructive/5">
           <CardContent className="space-y-2 py-4">
             <p className="flex items-center gap-2 font-medium text-destructive">
               <Bell className="size-4" /> Notificações · {vencidos.length} atestado(s) vencido(s)
             </p>
+
             <div className="space-y-1">
               {vencidos.map((a) => (
                 <button

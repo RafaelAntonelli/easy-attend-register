@@ -673,6 +673,8 @@ function AlunosPage() {
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
   const proximosVencimento = alunos.filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso));
   const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
+  const inativos = alunos.filter((a) => !a.ativo).sort((a, b) => a.nome.localeCompare(b.nome));
+
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
   const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
 

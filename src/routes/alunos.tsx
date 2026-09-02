@@ -560,11 +560,18 @@ function AlunosPage() {
     const ids = lista.map((a) => a.id);
     const { error } = await supabase.from("alunos").update({ ativo }).in("id", ids);
     if (error) return toast.error(error.message);
-    toast.success(ativo ? "Aluno(s) reativado(s)" : "Aluno(s) inativado(s)");
+    if (!ativo) {
+      const { error: erroMatricula } = await supabase.from("matriculas").delete().in("aluno_id", ids);
+      if (erroMatricula) return toast.error(erroMatricula.message);
+      toast.success(ids.length > 1 ? "Alunos inativados e removidos das turmas" : "Aluno inativado e removido da turma");
+    } else {
+      toast.success("Aluno(s) reativado(s)");
+    }
     setSelecionados([]);
     void carregar();
     return;
   }
+
 
   function matriculaDoAluno(id: string) {
     return matriculas.find((m) => m.aluno_id === id);
@@ -666,17 +673,42 @@ function AlunosPage() {
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
   const proximosVencimento = alunos.filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso));
   const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
+  const inativos = alunos.filter((a) => !a.ativo).sort((a, b) => a.nome.localeCompare(b.nome));
+
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
   const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
 
   return (
     <AppShell title="Alunos" subtitle="Cadastro e matrículas da Arena Aquática">
+      {inativos.length ? (
+        <Card className="mb-6 border-muted-foreground/30 bg-muted/40">
+          <CardContent className="space-y-2 py-4">
+            <p className="flex items-center gap-2 font-medium text-muted-foreground">
+              <UserX className="size-4" /> Notificações · {inativos.length} aluno(s) inativo(s)
+            </p>
+            <div className="space-y-1">
+              {inativos.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => void abrirDetalhe(a)}
+                  className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                >
+                  <span>{a.nome}</span>
+                  <span className="text-xs text-muted-foreground">Sem turma</span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
       {vencidos.length ? (
         <Card className="mb-6 border-destructive/40 bg-destructive/5">
           <CardContent className="space-y-2 py-4">
             <p className="flex items-center gap-2 font-medium text-destructive">
               <Bell className="size-4" /> Notificações · {vencidos.length} atestado(s) vencido(s)
             </p>
+
             <div className="space-y-1">
               {vencidos.map((a) => (
                 <button

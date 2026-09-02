@@ -560,11 +560,18 @@ function AlunosPage() {
     const ids = lista.map((a) => a.id);
     const { error } = await supabase.from("alunos").update({ ativo }).in("id", ids);
     if (error) return toast.error(error.message);
-    toast.success(ativo ? "Aluno(s) reativado(s)" : "Aluno(s) inativado(s)");
+    if (!ativo) {
+      const { error: erroMatricula } = await supabase.from("matriculas").delete().in("aluno_id", ids);
+      if (erroMatricula) return toast.error(erroMatricula.message);
+      toast.success(ids.length > 1 ? "Alunos inativados e removidos das turmas" : "Aluno inativado e removido da turma");
+    } else {
+      toast.success("Aluno(s) reativado(s)");
+    }
     setSelecionados([]);
     void carregar();
     return;
   }
+
 
   function matriculaDoAluno(id: string) {
     return matriculas.find((m) => m.aluno_id === id);

@@ -29,6 +29,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { TURNOS, turnoDoHorario } from "@/lib/turnos";
 import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
+import { correspondeBusca, relevanciaBusca } from "@/lib/formatacao";
 
 
 
@@ -251,7 +252,7 @@ function PresencaPage() {
 
   const filtrados = alunos
     .filter((a) => {
-      if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+      if (!correspondeBusca(a, busca)) return false;
       const t = turmaDoAluno(a.id);
       if (turmaId && t?.id !== turmaId) return false;
       if (filtroModalidade !== "todas" && (t?.modalidade ?? "") !== filtroModalidade) return false;

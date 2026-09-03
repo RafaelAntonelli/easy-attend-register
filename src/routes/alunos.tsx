@@ -253,6 +253,17 @@ function AlunosPage() {
     void carregar();
   }, []);
 
+  // Abre o perfil automaticamente ao chegar de outra tela com ?aluno=<id>
+  useEffect(() => {
+    const alvo = params.aluno;
+    if (!alvo || abertoPorLinkRef.current === alvo || !alunos.length) return;
+    const encontrado = alunos.find((x) => x.id === alvo);
+    if (!encontrado) return;
+    abertoPorLinkRef.current = alvo;
+    void abrirDetalhe(encontrado);
+    void navegar({ to: "/alunos", replace: true });
+  }, [params.aluno, alunos, navegar]);
+
 
   function limparDocs() {
     setDocs({ doc_atestado_path: null, doc_residencia_path: null, doc_matricula_path: null, doc_identidade_path: null });

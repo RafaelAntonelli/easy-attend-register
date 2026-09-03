@@ -203,16 +203,6 @@ function SenhaAdmin({ email, onLiberar }: { email: string; onLiberar: () => void
   );
 }
 
-type Turma = {
-  id: string;
-  nome: string;
-  horario: string | null;
-  modalidade: string | null;
-  capacidade: number | null;
-  dias_semana?: string[] | null;
-};
-type Matricula = { aluno_id: string; turma_id: string; status: string; modalidade?: string | null };
-
 function BackupPage() {
   const { isAdmin, user } = useAuth();
   const [liberado, setLiberado] = useState(false);
@@ -232,80 +222,6 @@ function BackupPage() {
   const [checagens, setChecagens] = useState<ChecagemPasta[] | null>(null);
   const [verificando, setVerificando] = useState(false);
   const validarPastas = useServerFn(validarPastasDriveFn);
-  const [alunos, setAlunos] = useState<AlunoPlanilha[]>([]);
-  const [turmas, setTurmas] = useState<Turma[]>([]);
-  const [matriculas, setMatriculas] = useState<Matricula[]>([]);
-  const [exportando, setExportando] = useState(false);
-  const [progressoPlanilha, setProgressoPlanilha] = useState<{ feitos: number; total: number } | null>(null);
-  const cancelarRef = useRef<AbortController | null>(null);
-
-  const carregarDados = useCallback(async () => {
-    const [{ data: a }, { data: t }, { data: m }] = await Promise.all([
-      supabase.from("alunos").select("*").order("nome"),
-      supabase.from("turmas").select("*").order("nome"),
-      supabase.from("matriculas").select("*"),
-    ]);
-    setAlunos((a ?? []) as AlunoPlanilha[]);
-    setTurmas((t ?? []) as Turma[]);
-    setMatriculas((m ?? []) as Matricula[]);
-  }, []);
-
-  useEffect(() => {
-    if (isAdmin) void carregarDados();
-  }, [isAdmin, carregarDados]);
-
-  const turmaDoAluno = useCallback(
-    (id: string) => {
-      const m = matriculas.find((x) => x.aluno_id === id);
-      const t = m ? turmas.find((x) => x.id === m.turma_id) : undefined;
-      return t ? { id: t.id, nome: t.nome, modalidade: t.modalidade, horario: t.horario } : undefined;
-    },
-    [matriculas, turmas],
-  );
-
-  const modalidadeDoAluno = useCallback(
-    (id: string) => {
-      const m = matriculas.find((x) => x.aluno_id === id);
-      return m?.modalidade ?? turmaDoAluno(id)?.modalidade ?? "";
-    },
-    [matriculas, turmaDoAluno],
-  );
-
-  async function exportarPlanilha() {
-    const controle = new AbortController();
-    cancelarRef.current = controle;
-    setExportando(true);
-    setProgressoPlanilha({ feitos: 0, total: alunos.length });
-    try {
-      const buffer = await montarPlanilhaAlunos({
-        alunos,
-        turmaDoAluno,
-        modalidadeDoAluno,
-        sinal: controle.signal,
-        aoProgredir: (feitos, total) => setProgressoPlanilha({ feitos, total }),
-        baixarArquivo: async (caminho) => {
-          const { data } = await supabase.storage.from("fotos-alunos").download(caminho);
-          return data ? await data.arrayBuffer() : null;
-        },
-      });
-      const url = URL.createObjectURL(
-        new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
-      );
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `alunos-${new Date().toISOString().slice(0, 10)}.xlsx`;
-      link.click();
-      URL.revokeObjectURL(url);
-      toast.success("Planilha exportada em ordem crescente de idade");
-    } catch (err) {
-      if (err instanceof ExportacaoCancelada) toast.info("Exportação cancelada");
-      else toast.error(err instanceof Error ? err.message : "Erro ao exportar planilha");
-    } finally {
-      cancelarRef.current = null;
-      setExportando(false);
-      setProgressoPlanilha(null);
-    }
-  }
 
   async function verificarPastas() {
     setVerificando(true);

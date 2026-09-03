@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarClock, CheckCircle2, CloudUpload, FileSpreadsheet, FolderCog, FolderTree, KeyRound, ShieldAlert, XCircle } from "lucide-react";
+import { CalendarClock, CheckCircle2, CloudUpload, FolderCog, FolderTree, KeyRound, ShieldAlert, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -11,8 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { ImportarAlunos } from "@/components/ImportarAlunos";
-import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
 import { useConfiguracaoTexto } from "@/lib/configuracoes";
 import {
   CHAVE_PASTA_DOCUMENTOS,

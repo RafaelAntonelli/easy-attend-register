@@ -29,6 +29,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { TURNOS, turnoDoHorario } from "@/lib/turnos";
 import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
+import { correspondeBusca, relevanciaBusca } from "@/lib/formatacao";
 
 
 
@@ -251,14 +252,14 @@ function PresencaPage() {
 
   const filtrados = alunos
     .filter((a) => {
-      if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+      if (!correspondeBusca(a, busca)) return false;
       const t = turmaDoAluno(a.id);
       if (turmaId && t?.id !== turmaId) return false;
       if (filtroModalidade !== "todas" && (t?.modalidade ?? "") !== filtroModalidade) return false;
       if (filtroTurno !== "todos" && turnoDoHorario(t?.horario) !== filtroTurno) return false;
       return true;
     })
-    .sort((a, b) => a.nome.localeCompare(b.nome));
+    .sort((a, b) => relevanciaBusca(a.nome, busca) - relevanciaBusca(b.nome, busca) || a.nome.localeCompare(b.nome));
   const turmasVisiveis = turmas.filter(
     (t) =>
       (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
@@ -388,7 +389,7 @@ function PresencaPage() {
               <CardContent className="space-y-3 pt-6">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+                  <Input className="pl-9" placeholder="Buscar por nome, CPF ou telefone..." value={busca} onChange={(e) => setBusca(e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Observações (justificativa)</Label>

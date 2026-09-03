@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CONDICOES_PCD } from "@/lib/pcd";
 import { useHorarios } from "@/lib/horarios";
 import { useGruposDias } from "@/lib/dias";
-import { capitalizarNome, formatarCelular, formatarCPF, cpfValido } from "@/lib/formatacao";
+import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, correspondeBusca, relevanciaBusca } from "@/lib/formatacao";
 import { encontrarAlunoDuplicado } from "@/lib/duplicidade";
 import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/lib/turnos";
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
@@ -686,7 +686,7 @@ function AlunosPage() {
 
   const filtrados = alunos
     .filter((a) => {
-      if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+      if (!correspondeBusca(a, busca)) return false;
       if (filtroSexo !== "todos" && (a.sexo ?? "") !== filtroSexo) return false;
       if (idadeMin && (a.idade ?? -1) < Number(idadeMin)) return false;
       if (idadeMax && (a.idade ?? 999) > Number(idadeMax)) return false;
@@ -706,7 +706,7 @@ function AlunosPage() {
       if (filtroPcd === "com") return a.pcd;
       return (a.pcd_condicoes ?? []).includes(filtroPcd);
     })
-    .sort((a, b) => a.nome.localeCompare(b.nome));
+    .sort((a, b) => relevanciaBusca(a.nome, busca) - relevanciaBusca(b.nome, busca) || a.nome.localeCompare(b.nome));
 
 
 
@@ -885,7 +885,7 @@ function AlunosPage() {
         </div>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+          <Input className="pl-9" placeholder="Buscar por nome, responsável, CPF, RG ou telefone..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
 
 

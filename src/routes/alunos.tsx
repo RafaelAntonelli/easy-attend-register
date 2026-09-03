@@ -686,7 +686,7 @@ function AlunosPage() {
 
   const filtrados = alunos
     .filter((a) => {
-      if (!a.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+      if (!correspondeBusca(a, busca)) return false;
       if (filtroSexo !== "todos" && (a.sexo ?? "") !== filtroSexo) return false;
       if (idadeMin && (a.idade ?? -1) < Number(idadeMin)) return false;
       if (idadeMax && (a.idade ?? 999) > Number(idadeMax)) return false;

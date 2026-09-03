@@ -131,9 +131,6 @@ const vazio = {
 
 
 function AlunosPage() {
-  const navegar = useNavigate();
-  const params = Route.useSearch();
-  const abertoPorLinkRef = useRef<string | null>(null);
   const { lista: listaHorarios } = useHorarios();
   const { lista: listaGrupos } = useGruposDias();
   const [alunos, setAlunos] = useState<Aluno[]>([]);
@@ -250,17 +247,6 @@ function AlunosPage() {
   useEffect(() => {
     void carregar();
   }, []);
-
-  // Abre o perfil automaticamente ao chegar de outra tela com ?aluno=<id>
-  useEffect(() => {
-    const alvo = params.aluno;
-    if (!alvo || abertoPorLinkRef.current === alvo || !alunos.length) return;
-    const encontrado = alunos.find((x) => x.id === alvo);
-    if (!encontrado) return;
-    abertoPorLinkRef.current = alvo;
-    void abrirDetalhe(encontrado);
-    void navegar({ to: "/alunos", replace: true });
-  }, [params.aluno, alunos, navegar]);
 
 
   function limparDocs() {

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import { TURNOS, turnoDoHorario } from "@/lib/turnos";
 
 import { useGruposDias, diasDoLabel } from "@/lib/dias";
 import { AppShell } from "@/components/AppShell";
+import { PerfilAluno } from "@/components/PerfilAluno";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,6 +67,7 @@ function TurmasPage() {
   const [novoGrupo, setNovoGrupo] = useState("");
   const [filtroDias, setFiltroDias] = useState("todos");
   const [gerenciarHorarios, setGerenciarHorarios] = useState(false);
+  const [perfilAlunoId, setPerfilAlunoId] = useState<string | null>(null);
 
   function grupoDosDias(dias: string[] | null) {
     const g = listaGrupos.find((x) => x.dias.length && x.dias.every((d) => (dias ?? []).includes(d)));
@@ -508,6 +510,8 @@ function TurmasPage() {
         )}
       </div>
 
+      <PerfilAluno alunoId={perfilAlunoId} onFechar={() => setPerfilAlunoId(null)} />
+
       <Dialog open={!!turmaAberta} onOpenChange={(o) => !o && setTurmaAberta(null)}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
@@ -534,14 +538,14 @@ function TurmasPage() {
                         </div>
                       )}
                       <div>
-                        <Link
-                          to="/alunos"
-                          search={{ aluno: a.id }}
-                          className="text-sm font-medium text-foreground hover:text-primary hover:underline"
+                        <button
+                          type="button"
+                          onClick={() => setPerfilAlunoId(a.id)}
+                          className="text-left text-sm font-medium text-foreground hover:text-primary hover:underline"
                           title={`Ver perfil de ${a.nome}`}
                         >
                           {a.nome}
-                        </Link>
+                        </button>
                         <p className="text-xs text-muted-foreground">
                           {a.modalidade}
                           {statusPresenca[a.id] ? ` · ${ROTULO_PRESENCA[statusPresenca[a.id] as StatusPresenca]} hoje` : ""}

@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard } from "lucide-react";
 import { toast } from "sonner";
 
@@ -43,8 +43,6 @@ import {
 
 export const Route = createFileRoute("/alunos")({
   component: AlunosPage,
-  validateSearch: (search: Record<string, unknown>): { aluno?: string } =>
-    typeof search["aluno"] === "string" ? { aluno: search["aluno"] as string } : {},
   head: () => ({
     meta: [
       { title: "Alunos e matrículas | Arena Aquática" },
@@ -133,9 +131,6 @@ const vazio = {
 
 
 function AlunosPage() {
-  const navegar = useNavigate();
-  const params = Route.useSearch();
-  const abertoPorLinkRef = useRef<string | null>(null);
   const { lista: listaHorarios } = useHorarios();
   const { lista: listaGrupos } = useGruposDias();
   const [alunos, setAlunos] = useState<Aluno[]>([]);
@@ -252,17 +247,6 @@ function AlunosPage() {
   useEffect(() => {
     void carregar();
   }, []);
-
-  // Abre o perfil automaticamente ao chegar de outra tela com ?aluno=<id>
-  useEffect(() => {
-    const alvo = params.aluno;
-    if (!alvo || abertoPorLinkRef.current === alvo || !alunos.length) return;
-    const encontrado = alunos.find((x) => x.id === alvo);
-    if (!encontrado) return;
-    abertoPorLinkRef.current = alvo;
-    void abrirDetalhe(encontrado);
-    void navegar({ to: "/alunos", replace: true });
-  }, [params.aluno, alunos, navegar]);
 
 
   function limparDocs() {

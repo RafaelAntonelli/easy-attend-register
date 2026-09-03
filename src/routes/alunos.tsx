@@ -43,9 +43,8 @@ import {
 
 export const Route = createFileRoute("/alunos")({
   component: AlunosPage,
-  validateSearch: (search: Record<string, unknown>) => ({
-    aluno: typeof search["aluno"] === "string" ? (search["aluno"] as string) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { aluno?: string } =>
+    typeof search["aluno"] === "string" ? { aluno: search["aluno"] as string } : {},
   head: () => ({
     meta: [
       { title: "Alunos e matrículas | Arena Aquática" },

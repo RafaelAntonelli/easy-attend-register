@@ -503,6 +503,36 @@ function RelatoriosPage() {
         </CardContent>
       </Card>
 
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <FileSpreadsheet className="size-4" /> Planilha de alunos
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" disabled={exportando} onClick={() => void exportarPlanilha()}>
+              <FileSpreadsheet className="size-4" /> {exportando ? "Exportando..." : "Exportar planilha"}
+            </Button>
+            {exportando ? (
+              <Button variant="destructive" onClick={() => cancelarRef.current?.abort()}>
+                Cancelar exportação
+              </Button>
+            ) : null}
+            <ImportarAlunos
+              turmas={turmas}
+              matriculas={matriculas}
+              alunos={alunos as unknown as { id: string; nome: string; cpf: string | null; telefone: string | null }[]}
+              onImportado={() => void carregar()}
+            />
+          </div>
+          {progressoPlanilha ? (
+            <p className="text-xs text-muted-foreground">
+              Processando imagens: {progressoPlanilha.feitos} de {progressoPlanilha.total}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Card className="mb-6">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 pb-3">

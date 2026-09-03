@@ -133,6 +133,9 @@ const vazio = {
 
 
 function AlunosPage() {
+  const navegar = useNavigate();
+  const params = Route.useSearch();
+  const abertoPorLinkRef = useRef<string | null>(null);
   const { lista: listaHorarios } = useHorarios();
   const { lista: listaGrupos } = useGruposDias();
   const [alunos, setAlunos] = useState<Aluno[]>([]);

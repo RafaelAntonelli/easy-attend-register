@@ -8,6 +8,7 @@ import { TURNOS, turnoDoHorario } from "@/lib/turnos";
 
 import { useGruposDias, diasDoLabel } from "@/lib/dias";
 import { AppShell } from "@/components/AppShell";
+import { PerfilAluno } from "@/components/PerfilAluno";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,6 +67,7 @@ function TurmasPage() {
   const [novoGrupo, setNovoGrupo] = useState("");
   const [filtroDias, setFiltroDias] = useState("todos");
   const [gerenciarHorarios, setGerenciarHorarios] = useState(false);
+  const [perfilAlunoId, setPerfilAlunoId] = useState<string | null>(null);
 
   function grupoDosDias(dias: string[] | null) {
     const g = listaGrupos.find((x) => x.dias.length && x.dias.every((d) => (dias ?? []).includes(d)));

@@ -510,6 +510,8 @@ function TurmasPage() {
         )}
       </div>
 
+      <PerfilAluno alunoId={perfilAlunoId} onFechar={() => setPerfilAlunoId(null)} />
+
       <Dialog open={!!turmaAberta} onOpenChange={(o) => !o && setTurmaAberta(null)}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, BarChart3, Download, FileSpreadsheet, FileText, IdCard, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -29,7 +29,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import { atestadoVencendo, atestadoVencido, diasParaVencer, vencimentoAtestado } from "@/lib/atestado";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
-import { montarPlanilhaAlunos, type AlunoPlanilha } from "@/lib/planilha-alunos";
+import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
+import { ImportarAlunos } from "@/components/ImportarAlunos";
 import { gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { faixaEtariaECA, turnoDoHorario } from "@/lib/turnos";
 
@@ -86,6 +87,45 @@ function RelatoriosPage() {
   const [detalhe, setDetalhe] = useState<{ titulo: string; alunos: Aluno[] } | null>(null);
   const { valor: prazo, salvar: salvarPrazo } = usePrazoAvisoAtestado();
   const [prazoEditado, setPrazoEditado] = useState<string>("");
+  const [exportando, setExportando] = useState(false);
+  const [progressoPlanilha, setProgressoPlanilha] = useState<{ feitos: number; total: number } | null>(null);
+  const cancelarRef = useRef<AbortController | null>(null);
+
+  async function exportarPlanilha() {
+    const controle = new AbortController();
+    cancelarRef.current = controle;
+    setExportando(true);
+    setProgressoPlanilha({ feitos: 0, total: alunos.length });
+    try {
+      const buffer = await montarPlanilhaAlunos({
+        alunos,
+        turmaDoAluno,
+        modalidadeDoAluno,
+        sinal: controle.signal,
+        aoProgredir: (feitos, total) => setProgressoPlanilha({ feitos, total }),
+        baixarArquivo: async (caminho) => {
+          const { data } = await supabase.storage.from("fotos-alunos").download(caminho);
+          return data ? await data.arrayBuffer() : null;
+        },
+      });
+      const url = URL.createObjectURL(
+        new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `alunos-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Planilha exportada em ordem crescente de idade");
+    } catch (err) {
+      if (err instanceof ExportacaoCancelada) toast.info("Exportação cancelada");
+      else toast.error(err instanceof Error ? err.message : "Erro ao exportar planilha");
+    } finally {
+      cancelarRef.current = null;
+      setExportando(false);
+      setProgressoPlanilha(null);
+    }
+  }
 
 
   useEffect(() => {
@@ -463,6 +503,36 @@ function RelatoriosPage() {
         </CardContent>
       </Card>
 
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <FileSpreadsheet className="size-4" /> Planilha de alunos
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" disabled={exportando} onClick={() => void exportarPlanilha()}>
+              <FileSpreadsheet className="size-4" /> {exportando ? "Exportando..." : "Exportar planilha"}
+            </Button>
+            {exportando ? (
+              <Button variant="destructive" onClick={() => cancelarRef.current?.abort()}>
+                Cancelar exportação
+              </Button>
+            ) : null}
+            <ImportarAlunos
+              turmas={turmas}
+              matriculas={matriculas}
+              alunos={alunos as unknown as { id: string; nome: string; cpf: string | null; telefone: string | null }[]}
+              onImportado={() => void carregar()}
+            />
+          </div>
+          {progressoPlanilha ? (
+            <p className="text-xs text-muted-foreground">
+              Processando imagens: {progressoPlanilha.feitos} de {progressoPlanilha.total}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Card className="mb-6">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 pb-3">

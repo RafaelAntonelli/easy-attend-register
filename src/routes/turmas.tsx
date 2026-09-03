@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
@@ -534,7 +534,14 @@ function TurmasPage() {
                         </div>
                       )}
                       <div>
-                        <p className="text-sm font-medium">{a.nome}</p>
+                        <Link
+                          to="/alunos"
+                          search={{ aluno: a.id }}
+                          className="text-sm font-medium text-foreground hover:text-primary hover:underline"
+                          title={`Ver perfil de ${a.nome}`}
+                        >
+                          {a.nome}
+                        </Link>
                         <p className="text-xs text-muted-foreground">
                           {a.modalidade}
                           {statusPresenca[a.id] ? ` · ${ROTULO_PRESENCA[statusPresenca[a.id] as StatusPresenca]} hoje` : ""}

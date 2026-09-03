@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard } from "lucide-react";
 import { toast } from "sonner";
 
@@ -43,6 +43,9 @@ import {
 
 export const Route = createFileRoute("/alunos")({
   component: AlunosPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    aluno: typeof search.aluno === "string" ? search.aluno : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Alunos e matrículas | Arena Aquática" },

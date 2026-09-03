@@ -44,7 +44,7 @@ import {
 export const Route = createFileRoute("/alunos")({
   component: AlunosPage,
   validateSearch: (search: Record<string, unknown>) => ({
-    aluno: typeof search.aluno === "string" ? search.aluno : undefined,
+    aluno: typeof search["aluno"] === "string" ? (search["aluno"] as string) : undefined,
   }),
   head: () => ({
     meta: [

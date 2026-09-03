@@ -259,7 +259,7 @@ function PresencaPage() {
       if (filtroTurno !== "todos" && turnoDoHorario(t?.horario) !== filtroTurno) return false;
       return true;
     })
-    .sort((a, b) => a.nome.localeCompare(b.nome));
+    .sort((a, b) => relevanciaBusca(a.nome, busca) - relevanciaBusca(b.nome, busca) || a.nome.localeCompare(b.nome));
   const turmasVisiveis = turmas.filter(
     (t) =>
       (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
@@ -389,7 +389,7 @@ function PresencaPage() {
               <CardContent className="space-y-3 pt-6">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input className="pl-9" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+                  <Input className="pl-9" placeholder="Buscar por nome, CPF ou telefone..." value={busca} onChange={(e) => setBusca(e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Observações (justificativa)</Label>

@@ -728,7 +728,7 @@ function AlunosPage() {
             <p className="flex items-center gap-2 font-medium text-muted-foreground">
               <UserX className="size-4" /> Notificações · {inativos.length} aluno(s) inativo(s)
             </p>
-            <div className="space-y-1">
+            <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {inativos.map((a) => (
                 <button
                   key={a.id}

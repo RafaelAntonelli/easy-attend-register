@@ -875,6 +875,16 @@ function AlunosPage() {
         </div>
       )}
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Select value={filtroNotificacao} onValueChange={(v) => setFiltroNotificacao(v as typeof filtroNotificacao)}>
+          <SelectTrigger><SelectValue placeholder="Situação" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas as situações</SelectItem>
+            <SelectItem value="inativos">Inativos</SelectItem>
+            <SelectItem value="atestado_vencido">Atestado vencido</SelectItem>
+            <SelectItem value="atestado_vencer">Atestado a vencer</SelectItem>
+            <SelectItem value="excesso_faltas">Excesso de faltas</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={filtroPcd} onValueChange={setFiltroPcd}>
           <SelectTrigger><SelectValue placeholder="Filtrar PCD" /></SelectTrigger>
           <SelectContent className="max-h-80">

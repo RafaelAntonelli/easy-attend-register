@@ -329,8 +329,51 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
             </div>
 
             <div className="space-y-2">
+              <p className="text-sm font-medium">Anotações</p>
+              <Textarea
+                rows={3}
+                placeholder="Escreva uma anotação sobre o aluno..."
+                value={novaAnotacao}
+                onChange={(e) => setNovaAnotacao(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" disabled={salvandoAnotacao || !novaAnotacao.trim()} onClick={() => void salvarAnotacao()}>
+                  {salvandoAnotacao ? "Salvando..." : "Salvar"}
+                </Button>
+                <Button size="sm" variant="ghost" disabled={!novaAnotacao} onClick={() => setNovaAnotacao("")}>
+                  Limpar
+                </Button>
+              </div>
+              {anotacoes.length ? (
+                <div className="max-h-56 space-y-2 overflow-y-auto">
+                  {anotacoes.map((n) => (
+                    <div key={n.id} className="rounded-lg bg-secondary/50 px-3 py-2 text-sm">
+                      <p className="whitespace-pre-wrap">{n.texto}</p>
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(n.created_at).toLocaleDateString("pt-BR")} às{" "}
+                          {new Date(n.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          {n.autor_nome ? ` · ${n.autor_nome}` : ""}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-auto px-2 py-1 text-xs text-destructive"
+                          onClick={() => void excluirAnotacao(n.id)}
+                        >
+                          Excluir
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhuma anotação.</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
               <p className="text-sm font-medium">Histórico de frequência</p>
-              <div className="hidden" />
               {historico === null ? (
                 <p className="text-sm text-muted-foreground">Carregando...</p>
               ) : historico.length === 0 ? (

@@ -754,7 +754,7 @@ function AlunosPage() {
               <Bell className="size-4" /> Notificações · {vencidos.length} atestado(s) vencido(s)
             </p>
 
-            <div className="space-y-1">
+            <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {vencidos.map((a) => (
                 <button
                   key={a.id}

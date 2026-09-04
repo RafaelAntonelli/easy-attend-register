@@ -797,7 +797,13 @@ function AlunosPage() {
         </Card>
       ) : null}
       {proximosVencimento.length ? (
-        <Card className="mb-6 border-orange-500/40 bg-orange-500/5">
+        <Card
+          className={cn(
+            "mb-6 cursor-pointer border-orange-500/40 bg-orange-500/5 transition-shadow hover:opacity-90",
+            filtroNotificacao === "atestado_vencer" && "ring-2 ring-orange-500 ring-offset-2",
+          )}
+          onClick={() => setFiltroNotificacao(filtroNotificacao === "atestado_vencer" ? "todos" : "atestado_vencer")}
+        >
           <CardContent className="space-y-2 py-4">
             <p className="flex items-center gap-2 font-medium text-orange-600">
               <Bell className="size-4" /> Notificações · {proximosVencimento.length} atestado(s) vencendo em até {prazoAviso} dias
@@ -807,7 +813,10 @@ function AlunosPage() {
                 <button
                   key={a.id}
                   type="button"
-                  onClick={() => abrirEdicao(a)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    abrirEdicao(a);
+                  }}
                   className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
                 >
                   <span>{a.nome}</span>

@@ -830,7 +830,13 @@ function AlunosPage() {
         </Card>
       ) : null}
       {excessoFaltas.length ? (
-        <Card className="mb-6 border-amber-500/40 bg-amber-500/5">
+        <Card
+          className={cn(
+            "mb-6 cursor-pointer border-amber-500/40 bg-amber-500/5 transition-shadow hover:opacity-90",
+            filtroNotificacao === "excesso_faltas" && "ring-2 ring-amber-500 ring-offset-2",
+          )}
+          onClick={() => setFiltroNotificacao(filtroNotificacao === "excesso_faltas" ? "todos" : "excesso_faltas")}
+        >
           <CardContent className="space-y-2 py-4">
             <p className="flex items-center gap-2 font-medium text-amber-600">
               <AlertTriangle className="size-4" /> Notificações · {excessoFaltas.length} aluno(s) com 5 faltas ou mais
@@ -840,7 +846,10 @@ function AlunosPage() {
                 <button
                   key={a.id}
                   type="button"
-                  onClick={() => void abrirDetalhe(a)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void abrirDetalhe(a);
+                  }}
                   className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
                 >
                   <span>{a.nome}</span>

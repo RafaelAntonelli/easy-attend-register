@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+
 import { useEffect, useState } from "react";
-import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard } from "lucide-react";
+import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -268,6 +269,25 @@ function AlunosPage() {
     await supabase.storage.from("fotos-alunos").remove([enviado]);
     setEditando({ ...editando, [campo]: null });
     toast.success("Documento excluído");
+    void carregar();
+    return;
+  }
+
+  async function excluirFoto() {
+    const enviada = editando?.foto_path ?? null;
+    if (!foto && !enviada) return;
+    if (!confirm("Excluir a foto do aluno?")) return;
+    setFoto(null);
+    setFotoPreview(null);
+    (document.getElementById("foto-aluno-arquivo") as HTMLInputElement | null) && ((document.getElementById("foto-aluno-arquivo") as HTMLInputElement).value = "");
+    (document.getElementById("foto-aluno-camera") as HTMLInputElement | null) && ((document.getElementById("foto-aluno-camera") as HTMLInputElement).value = "");
+    if (!enviada || !editando) return toast.success("Foto removida");
+    const { error } = await supabase.from("alunos").update({ foto_path: null }).eq("id", editando.id);
+    if (error) return toast.error(error.message);
+    await supabase.storage.from("fotos-alunos").remove([enviada]);
+    setEditando({ ...editando, foto_path: null });
+    setFotos((m) => { const novo = { ...m }; delete novo[editando.id]; return novo; });
+    toast.success("Foto excluída");
     void carregar();
     return;
   }
@@ -683,6 +703,91 @@ function AlunosPage() {
       setGerandoCrachas(false);
     }
 
+  }
+
+  const CABECALHO_LISTA = ["Nome", "Idade", "Sexo", "Telefone", "Responsável", "CPF", "RG", "Modalidade", "Turma", "Horário", "PCD", "Situação", "Faltas", "Atestado"];
+
+  function linhasLista(lista: Aluno[]) {
+    return lista.map((a) => {
+      const turma = turmaDoAluno(a.id);
+      const modalidade = matriculaDoAluno(a.id)?.modalidade ?? turma?.modalidade ?? "";
+      const atestado = !a.atestado_entregue ? "Não entregue" : atestadoVencido(a.atestado_data) ? "Vencido" : "Em dia";
+      return [
+        a.nome,
+        a.idade != null ? String(a.idade) : "",
+        a.sexo ?? "",
+        a.telefone ?? "",
+        a.responsavel ?? "",
+        a.cpf ?? "",
+        a.rg ?? "",
+        modalidade,
+        turma?.nome ?? "",
+        turma?.horario ?? "",
+        a.pcd ? "Sim" : "Não",
+        a.ativo ? "Ativo" : "Inativo",
+        String(faltasPorAluno[a.id] ?? 0),
+        atestado,
+      ];
+    });
+  }
+
+  function exportarListaCsv() {
+    if (!filtrados.length) return toast.error("Nenhum aluno na lista filtrada");
+    const escapar = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const csv = [CABECALHO_LISTA, ...linhasLista(filtrados)].map((l) => l.map(escapar).join(";")).join("\n");
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `alunos-filtrados-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Lista exportada em CSV (${filtrados.length} aluno${filtrados.length > 1 ? "s" : ""})`);
+    return;
+  }
+
+  async function exportarListaPdf() {
+    if (!filtrados.length) return toast.error("Nenhum aluno na lista filtrada");
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const larguras = [44, 10, 16, 24, 34, 24, 20, 22, 30, 16, 10, 14, 10, 18];
+    let y = 18;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("Lista de alunos — Arena Aquática", 12, 12);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${filtrados.length} aluno(s) · Gerado em ${new Date().toLocaleDateString("pt-BR")}`, 12, 16.5);
+
+    const escreverLinha = (celulas: string[], negrito = false) => {
+      doc.setFont("helvetica", negrito ? "bold" : "normal");
+      doc.setFontSize(7);
+      let x = 12;
+      celulas.forEach((c, i) => {
+        const largura = larguras[i] ?? 20;
+        doc.text(doc.splitTextToSize(c, largura - 2)[0] ?? "", x, y);
+        x += largura;
+      });
+      y += 5;
+    };
+
+    y += 6;
+    escreverLinha(CABECALHO_LISTA, true);
+    doc.setDrawColor(200);
+    doc.line(12, y - 3.5, 285, y - 3.5);
+
+    for (const linha of linhasLista(filtrados)) {
+      if (y > 198) {
+        doc.addPage();
+        y = 18;
+        escreverLinha(CABECALHO_LISTA, true);
+      }
+      escreverLinha(linha);
+    }
+
+    doc.save(`alunos-filtrados-${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success(`Lista exportada em PDF (${filtrados.length} aluno${filtrados.length > 1 ? "s" : ""})`);
+    return;
   }
 
 
@@ -1270,6 +1375,16 @@ function AlunosPage() {
                     >
                       <Camera className="mr-2 size-4" /> Usar câmera
                     </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      disabled={!foto && !editando?.foto_path}
+                      onClick={() => void excluirFoto()}
+                    >
+                      <Trash2 className="mr-2 size-4" /> Excluir foto
+                    </Button>
                     {foto ? (
                       <span className="w-full truncate text-xs text-muted-foreground">{foto.name}</span>
                     ) : null}
@@ -1366,6 +1481,22 @@ function AlunosPage() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => void exportarCrachas(filtrados, "folha")}>
                   Todos os alunos da lista ({filtrados.length}) — folha A4
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={!filtrados.length}>
+                  <FileDown className="size-4" /> Exportar lista
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>Lista filtrada ({filtrados.length} aluno{filtrados.length !== 1 ? "s" : ""})</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => exportarListaCsv()}>
+                  Exportar em CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void exportarListaPdf()}>
+                  Exportar em PDF
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

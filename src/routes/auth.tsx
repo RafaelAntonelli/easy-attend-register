@@ -30,10 +30,52 @@ function AuthPage() {
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
   const [busy, setBusy] = useState(false);
+  const [recuperando, setRecuperando] = useState(false);
+  const [emailRecuperacao, setEmailRecuperacao] = useState("");
+  const [redefinindo, setRedefinindo] = useState(false);
+  const [novaSenha, setNovaSenha] = useState("");
 
   useEffect(() => {
-    if (!loading && session) navigate({ to: "/" });
-  }, [loading, session, navigate]);
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setRedefinindo(true);
+    });
+    if (typeof window !== "undefined" && /type=recovery/.test(window.location.hash)) setRedefinindo(true);
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!loading && session && !redefinindo) navigate({ to: "/" });
+  }, [loading, session, navigate, redefinindo]);
+
+  async function enviarRecuperacao(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(emailRecuperacao, {
+      redirectTo: `${window.location.origin}/auth`,
+    });
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Enviamos um link de recuperação para o seu e-mail.");
+    setRecuperando(false);
+  }
+
+  async function definirNovaSenha(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ password: novaSenha });
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Senha alterada com sucesso!");
+    setRedefinindo(false);
+    setNovaSenha("");
+    navigate({ to: "/" });
+  }
 
   async function entrar(e: React.FormEvent) {
     e.preventDefault();

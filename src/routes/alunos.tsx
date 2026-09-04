@@ -969,6 +969,7 @@ function AlunosPage() {
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-border/70 bg-card px-3 py-2 text-sm">
           <span className="text-muted-foreground">Filtro ativo:</span>
           <Badge variant="secondary">
+            {filtroNotificacao === "ativos" && "Ativos"}
             {filtroNotificacao === "inativos" && "Inativos"}
             {filtroNotificacao === "atestado_vencido" && "Atestado vencido"}
             {filtroNotificacao === "atestado_vencer" && "Atestado a vencer"}

@@ -1289,6 +1289,16 @@ function AlunosPage() {
                     >
                       <Camera className="mr-2 size-4" /> Usar câmera
                     </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      disabled={!foto && !editando?.foto_path}
+                      onClick={() => void excluirFoto()}
+                    >
+                      <Trash2 className="mr-2 size-4" /> Excluir foto
+                    </Button>
                     {foto ? (
                       <span className="w-full truncate text-xs text-muted-foreground">{foto.name}</span>
                     ) : null}

@@ -796,6 +796,7 @@ function AlunosPage() {
   const filtrados = alunos
     .filter((a) => {
       if (!correspondeBusca(a, busca)) return false;
+      if (filtroNotificacao === "ativos" && !a.ativo) return false;
       if (filtroNotificacao === "inativos" && a.ativo) return false;
       if (filtroNotificacao === "atestado_vencido" && !(a.atestado_entregue && atestadoVencido(a.atestado_data))) return false;
       if (filtroNotificacao === "atestado_vencer" && !(a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso))) return false;

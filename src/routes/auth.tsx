@@ -190,6 +190,17 @@ function AuthPage() {
                     <Input id="senha" type="password" required value={senha} onChange={(e) => setSenha(e.target.value)} />
                   </div>
                   <Button type="submit" className="w-full" disabled={busy}>Entrar</Button>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="w-full"
+                    onClick={() => {
+                      setEmailRecuperacao(email);
+                      setRecuperando(true);
+                    }}
+                  >
+                    Esqueci minha senha
+                  </Button>
                 </form>
               </TabsContent>
 

@@ -330,6 +330,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
 
             <div className="space-y-2">
               <p className="text-sm font-medium">Histórico de frequência</p>
+              <div className="hidden" />
               {historico === null ? (
                 <p className="text-sm text-muted-foreground">Carregando...</p>
               ) : historico.length === 0 ? (

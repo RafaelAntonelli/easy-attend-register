@@ -116,6 +116,44 @@ export type Database = {
         }
         Relationships: []
       }
+      anotacoes_alunos: {
+        Row: {
+          aluno_id: string
+          autor_id: string | null
+          autor_nome: string | null
+          created_at: string
+          id: string
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          autor_id?: string | null
+          autor_nome?: string | null
+          created_at?: string
+          id?: string
+          texto: string
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          autor_id?: string | null
+          autor_nome?: string | null
+          created_at?: string
+          id?: string
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anotacoes_alunos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backup_cron: {
         Row: {
           ativo: boolean

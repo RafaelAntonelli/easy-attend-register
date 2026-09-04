@@ -142,6 +142,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
       }
       const perfil = a as AlunoPerfil;
       setAluno(perfil);
+      void carregarAnotacoes(perfil.id);
 
       const [{ data: ms }, { data: ts }, { data: ps }] = await Promise.all([
         supabase.from("matriculas").select("id,turma_id,status,modalidade,data_inicio,created_at,registrado_por").eq("aluno_id", perfil.id),

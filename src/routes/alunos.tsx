@@ -688,6 +688,10 @@ function AlunosPage() {
   const filtrados = alunos
     .filter((a) => {
       if (!correspondeBusca(a, busca)) return false;
+      if (filtroNotificacao === "inativos" && a.ativo) return false;
+      if (filtroNotificacao === "atestado_vencido" && !(a.atestado_entregue && atestadoVencido(a.atestado_data))) return false;
+      if (filtroNotificacao === "atestado_vencer" && !(a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso))) return false;
+      if (filtroNotificacao === "excesso_faltas" && (faltasPorAluno[a.id] ?? 0) < 5) return false;
       if (filtroSexo !== "todos" && (a.sexo ?? "") !== filtroSexo) return false;
       if (idadeMin && (a.idade ?? -1) < Number(idadeMin)) return false;
       if (idadeMax && (a.idade ?? 999) > Number(idadeMax)) return false;

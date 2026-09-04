@@ -984,6 +984,7 @@ function AlunosPage() {
           <SelectTrigger><SelectValue placeholder="Situação" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todas as situações</SelectItem>
+            <SelectItem value="ativos">Ativos</SelectItem>
             <SelectItem value="inativos">Inativos</SelectItem>
             <SelectItem value="atestado_vencido">Atestado vencido</SelectItem>
             <SelectItem value="atestado_vencer">Atestado a vencer</SelectItem>

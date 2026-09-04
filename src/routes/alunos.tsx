@@ -802,7 +802,7 @@ function AlunosPage() {
             <p className="flex items-center gap-2 font-medium text-amber-600">
               <AlertTriangle className="size-4" /> Notificações · {excessoFaltas.length} aluno(s) com 5 faltas ou mais
             </p>
-            <div className="space-y-1">
+            <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {excessoFaltas.map((a) => (
                 <button
                   key={a.id}

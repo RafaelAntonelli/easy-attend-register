@@ -519,12 +519,6 @@ function RelatoriosPage() {
                 Cancelar exportação
               </Button>
             ) : null}
-            <ImportarAlunos
-              turmas={turmas}
-              matriculas={matriculas}
-              alunos={alunos as unknown as { id: string; nome: string; cpf: string | null; telefone: string | null }[]}
-              onImportado={() => void carregar()}
-            />
           </div>
           {progressoPlanilha ? (
             <p className="text-xs text-muted-foreground">

@@ -131,6 +131,8 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
     setMatriculas([]);
     setHistorico(null);
     setNomesUsuarios({});
+    setAnotacoes([]);
+    setNovaAnotacao("");
 
     async function carregar() {
       const { data: a, error } = await supabase.from("alunos").select("*").eq("id", alunoId!).maybeSingle();

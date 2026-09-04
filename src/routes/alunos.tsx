@@ -790,6 +790,7 @@ function AlunosPage() {
   }
 
 
+  const filtrados = alunos
     .filter((a) => {
       if (!correspondeBusca(a, busca)) return false;
       if (filtroNotificacao === "inativos" && a.ativo) return false;

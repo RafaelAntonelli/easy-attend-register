@@ -763,7 +763,13 @@ function AlunosPage() {
         </Card>
       ) : null}
       {vencidos.length ? (
-        <Card className="mb-6 border-destructive/40 bg-destructive/5">
+        <Card
+          className={cn(
+            "mb-6 cursor-pointer border-destructive/40 bg-destructive/5 transition-shadow hover:opacity-90",
+            filtroNotificacao === "atestado_vencido" && "ring-2 ring-destructive ring-offset-2",
+          )}
+          onClick={() => setFiltroNotificacao(filtroNotificacao === "atestado_vencido" ? "todos" : "atestado_vencido")}
+        >
           <CardContent className="space-y-2 py-4">
             <p className="flex items-center gap-2 font-medium text-destructive">
               <Bell className="size-4" /> Notificações · {vencidos.length} atestado(s) vencido(s)
@@ -774,7 +780,10 @@ function AlunosPage() {
                 <button
                   key={a.id}
                   type="button"
-                  onClick={() => abrirEdicao(a)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    abrirEdicao(a);
+                  }}
                   className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
                 >
                   <span>{a.nome}</span>

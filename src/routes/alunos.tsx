@@ -8,6 +8,7 @@ import { CONDICOES_PCD } from "@/lib/pcd";
 import { useHorarios } from "@/lib/horarios";
 import { useGruposDias } from "@/lib/dias";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, correspondeBusca, relevanciaBusca } from "@/lib/formatacao";
+import { cn } from "@/lib/utils";
 import { encontrarAlunoDuplicado } from "@/lib/duplicidade";
 import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/lib/turnos";
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
@@ -146,6 +147,7 @@ function AlunosPage() {
   const [filtroDias, setFiltroDias] = useState("todos");
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [turnoForm, setTurnoForm] = useState("todos");
+  const [filtroNotificacao, setFiltroNotificacao] = useState<"todos" | "inativos" | "atestado_vencido" | "atestado_vencer" | "excesso_faltas">("todos");
   const { valor: prazoAviso } = usePrazoAvisoAtestado();
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
   const [mostrarGuias, setMostrarGuias] = useState(false);
@@ -687,6 +689,10 @@ function AlunosPage() {
   const filtrados = alunos
     .filter((a) => {
       if (!correspondeBusca(a, busca)) return false;
+      if (filtroNotificacao === "inativos" && a.ativo) return false;
+      if (filtroNotificacao === "atestado_vencido" && !(a.atestado_entregue && atestadoVencido(a.atestado_data))) return false;
+      if (filtroNotificacao === "atestado_vencer" && !(a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso))) return false;
+      if (filtroNotificacao === "excesso_faltas" && (faltasPorAluno[a.id] ?? 0) < 5) return false;
       if (filtroSexo !== "todos" && (a.sexo ?? "") !== filtroSexo) return false;
       if (idadeMin && (a.idade ?? -1) < Number(idadeMin)) return false;
       if (idadeMax && (a.idade ?? 999) > Number(idadeMax)) return false;
@@ -723,7 +729,13 @@ function AlunosPage() {
   return (
     <AppShell title="Alunos" subtitle="Cadastro e matrículas da Arena Aquática">
       {inativos.length ? (
-        <Card className="mb-6 border-muted-foreground/30 bg-muted/40">
+        <Card
+          className={cn(
+            "mb-6 cursor-pointer border-muted-foreground/30 bg-muted/40 transition-shadow hover:opacity-90",
+            filtroNotificacao === "inativos" && "ring-2 ring-muted-foreground ring-offset-2",
+          )}
+          onClick={() => setFiltroNotificacao(filtroNotificacao === "inativos" ? "todos" : "inativos")}
+        >
           <CardContent className="space-y-2 py-4">
             <p className="flex items-center gap-2 font-medium text-muted-foreground">
               <UserX className="size-4" /> Notificações · {inativos.length} aluno(s) inativo(s)
@@ -733,7 +745,10 @@ function AlunosPage() {
                 <button
                   key={a.id}
                   type="button"
-                  onClick={() => void abrirDetalhe(a)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void abrirDetalhe(a);
+                  }}
                   className="flex w-full items-center justify-between gap-2 rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
                 >
                   <span>{a.nome}</span>
@@ -748,7 +763,13 @@ function AlunosPage() {
         </Card>
       ) : null}
       {vencidos.length ? (
-        <Card className="mb-6 border-destructive/40 bg-destructive/5">
+        <Card
+          className={cn(
+            "mb-6 cursor-pointer border-destructive/40 bg-destructive/5 transition-shadow hover:opacity-90",
+            filtroNotificacao === "atestado_vencido" && "ring-2 ring-destructive ring-offset-2",
+          )}
+          onClick={() => setFiltroNotificacao(filtroNotificacao === "atestado_vencido" ? "todos" : "atestado_vencido")}
+        >
           <CardContent className="space-y-2 py-4">
             <p className="flex items-center gap-2 font-medium text-destructive">
               <Bell className="size-4" /> Notificações · {vencidos.length} atestado(s) vencido(s)
@@ -759,7 +780,10 @@ function AlunosPage() {
                 <button
                   key={a.id}
                   type="button"
-                  onClick={() => abrirEdicao(a)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    abrirEdicao(a);
+                  }}
                   className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
                 >
                   <span>{a.nome}</span>
@@ -773,7 +797,13 @@ function AlunosPage() {
         </Card>
       ) : null}
       {proximosVencimento.length ? (
-        <Card className="mb-6 border-orange-500/40 bg-orange-500/5">
+        <Card
+          className={cn(
+            "mb-6 cursor-pointer border-orange-500/40 bg-orange-500/5 transition-shadow hover:opacity-90",
+            filtroNotificacao === "atestado_vencer" && "ring-2 ring-orange-500 ring-offset-2",
+          )}
+          onClick={() => setFiltroNotificacao(filtroNotificacao === "atestado_vencer" ? "todos" : "atestado_vencer")}
+        >
           <CardContent className="space-y-2 py-4">
             <p className="flex items-center gap-2 font-medium text-orange-600">
               <Bell className="size-4" /> Notificações · {proximosVencimento.length} atestado(s) vencendo em até {prazoAviso} dias
@@ -783,7 +813,10 @@ function AlunosPage() {
                 <button
                   key={a.id}
                   type="button"
-                  onClick={() => abrirEdicao(a)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    abrirEdicao(a);
+                  }}
                   className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
                 >
                   <span>{a.nome}</span>
@@ -797,7 +830,13 @@ function AlunosPage() {
         </Card>
       ) : null}
       {excessoFaltas.length ? (
-        <Card className="mb-6 border-amber-500/40 bg-amber-500/5">
+        <Card
+          className={cn(
+            "mb-6 cursor-pointer border-amber-500/40 bg-amber-500/5 transition-shadow hover:opacity-90",
+            filtroNotificacao === "excesso_faltas" && "ring-2 ring-amber-500 ring-offset-2",
+          )}
+          onClick={() => setFiltroNotificacao(filtroNotificacao === "excesso_faltas" ? "todos" : "excesso_faltas")}
+        >
           <CardContent className="space-y-2 py-4">
             <p className="flex items-center gap-2 font-medium text-amber-600">
               <AlertTriangle className="size-4" /> Notificações · {excessoFaltas.length} aluno(s) com 5 faltas ou mais
@@ -807,7 +846,10 @@ function AlunosPage() {
                 <button
                   key={a.id}
                   type="button"
-                  onClick={() => void abrirDetalhe(a)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void abrirDetalhe(a);
+                  }}
                   className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
                 >
                   <span>{a.nome}</span>
@@ -818,6 +860,20 @@ function AlunosPage() {
           </CardContent>
         </Card>
       ) : null}
+      {filtroNotificacao !== "todos" && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-border/70 bg-card px-3 py-2 text-sm">
+          <span className="text-muted-foreground">Filtro ativo:</span>
+          <Badge variant="secondary">
+            {filtroNotificacao === "inativos" && "Inativos"}
+            {filtroNotificacao === "atestado_vencido" && "Atestado vencido"}
+            {filtroNotificacao === "atestado_vencer" && "Atestado a vencer"}
+            {filtroNotificacao === "excesso_faltas" && "Excesso de faltas"}
+          </Badge>
+          <Button variant="ghost" size="sm" className="ml-auto h-auto px-2 py-1 text-xs" onClick={() => setFiltroNotificacao("todos")}>
+            Limpar
+          </Button>
+        </div>
+      )}
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Select value={filtroPcd} onValueChange={setFiltroPcd}>
           <SelectTrigger><SelectValue placeholder="Filtrar PCD" /></SelectTrigger>

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard } from "lucide-react";
+import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -268,6 +268,25 @@ function AlunosPage() {
     await supabase.storage.from("fotos-alunos").remove([enviado]);
     setEditando({ ...editando, [campo]: null });
     toast.success("Documento excluído");
+    void carregar();
+    return;
+  }
+
+  async function excluirFoto() {
+    const enviada = editando?.foto_path ?? null;
+    if (!foto && !enviada) return;
+    if (!confirm("Excluir a foto do aluno?")) return;
+    setFoto(null);
+    setFotoPreview(null);
+    (document.getElementById("foto-aluno-arquivo") as HTMLInputElement | null) && ((document.getElementById("foto-aluno-arquivo") as HTMLInputElement).value = "");
+    (document.getElementById("foto-aluno-camera") as HTMLInputElement | null) && ((document.getElementById("foto-aluno-camera") as HTMLInputElement).value = "");
+    if (!enviada || !editando) return toast.success("Foto removida");
+    const { error } = await supabase.from("alunos").update({ foto_path: null }).eq("id", editando.id);
+    if (error) return toast.error(error.message);
+    await supabase.storage.from("fotos-alunos").remove([enviada]);
+    setEditando({ ...editando, foto_path: null });
+    setFotos((m) => { const novo = { ...m }; delete novo[editando.id]; return novo; });
+    toast.success("Foto excluída");
     void carregar();
     return;
   }

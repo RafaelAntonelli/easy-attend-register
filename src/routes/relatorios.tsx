@@ -30,7 +30,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { atestadoVencendo, atestadoVencido, diasParaVencer, vencimentoAtestado } from "@/lib/atestado";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
-import { ImportarAlunos } from "@/components/ImportarAlunos";
 import { gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { faixaEtariaECA, turnoDoHorario } from "@/lib/turnos";
 

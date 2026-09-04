@@ -860,6 +860,20 @@ function AlunosPage() {
           </CardContent>
         </Card>
       ) : null}
+      {filtroNotificacao !== "todos" && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-border/70 bg-card px-3 py-2 text-sm">
+          <span className="text-muted-foreground">Filtro ativo:</span>
+          <Badge variant="secondary">
+            {filtroNotificacao === "inativos" && "Inativos"}
+            {filtroNotificacao === "atestado_vencido" && "Atestado vencido"}
+            {filtroNotificacao === "atestado_vencer" && "Atestado a vencer"}
+            {filtroNotificacao === "excesso_faltas" && "Excesso de faltas"}
+          </Badge>
+          <Button variant="ghost" size="sm" className="ml-auto h-auto px-2 py-1 text-xs" onClick={() => setFiltroNotificacao("todos")}>
+            Limpar
+          </Button>
+        </div>
+      )}
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Select value={filtroPcd} onValueChange={setFiltroPcd}>
           <SelectTrigger><SelectValue placeholder="Filtrar PCD" /></SelectTrigger>

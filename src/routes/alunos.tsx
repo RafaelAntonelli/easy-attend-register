@@ -1484,6 +1484,22 @@ function AlunosPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={!filtrados.length}>
+                  <FileDown className="size-4" /> Exportar lista
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>Lista filtrada ({filtrados.length} aluno{filtrados.length !== 1 ? "s" : ""})</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => exportarListaCsv()}>
+                  Exportar em CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void exportarListaPdf()}>
+                  Exportar em PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       ) : null}

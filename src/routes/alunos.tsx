@@ -1060,6 +1060,13 @@ function AlunosPage() {
         </div>
 
 
+        <ImportarAlunos
+          turmas={turmas}
+          matriculas={matriculas}
+          alunos={alunos as unknown as { id: string; nome: string; cpf: string | null; telefone: string | null }[]}
+          onImportado={() => void carregar()}
+        />
+
         <Dialog open={aberto} onOpenChange={setAberto}>
           <DialogTrigger asChild>
             <Button onClick={abrirNovo}>

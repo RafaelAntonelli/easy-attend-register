@@ -728,7 +728,13 @@ function AlunosPage() {
   return (
     <AppShell title="Alunos" subtitle="Cadastro e matrículas da Arena Aquática">
       {inativos.length ? (
-        <Card className="mb-6 border-muted-foreground/30 bg-muted/40">
+        <Card
+          className={cn(
+            "mb-6 cursor-pointer border-muted-foreground/30 bg-muted/40 transition-shadow hover:opacity-90",
+            filtroNotificacao === "inativos" && "ring-2 ring-muted-foreground ring-offset-2",
+          )}
+          onClick={() => setFiltroNotificacao(filtroNotificacao === "inativos" ? "todos" : "inativos")}
+        >
           <CardContent className="space-y-2 py-4">
             <p className="flex items-center gap-2 font-medium text-muted-foreground">
               <UserX className="size-4" /> Notificações · {inativos.length} aluno(s) inativo(s)
@@ -738,7 +744,10 @@ function AlunosPage() {
                 <button
                   key={a.id}
                   type="button"
-                  onClick={() => void abrirDetalhe(a)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void abrirDetalhe(a);
+                  }}
                   className="flex w-full items-center justify-between gap-2 rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
                 >
                   <span>{a.nome}</span>

@@ -24,8 +24,15 @@ export const prepararBackupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await garantirAdmin(context);
-    const { prepararBackup } = await import("@/lib/backup.server");
-    return await prepararBackup();
+    try {
+      const { prepararBackup } = await import("@/lib/backup.server");
+      const resultado = await prepararBackup();
+      return { ok: true as const, ...resultado };
+    } catch (err) {
+      const erro = err instanceof Error ? err.message : "Falha ao preparar o backup.";
+      console.error("[backup] prepararBackup falhou:", erro);
+      return { ok: false as const, erro, planilha: "", arquivos: [], existentes: {} };
+    }
   });
 
 const loteSchema = z.object({

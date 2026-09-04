@@ -355,7 +355,10 @@ function BackupPage() {
     setBackupando(true);
     setProgresso({ etapa: "Gerando e enviando a planilha…", enviados: 0, total: 0, falhas: 0, restante: null });
     try {
-      const { planilha, arquivos, existentes } = await preparar({ data: undefined });
+      const resposta = await preparar({ data: undefined });
+      if (!resposta) throw new Error("O servidor não respondeu ao preparar o backup. Tente novamente.");
+      if (!resposta.ok) throw new Error(resposta.erro || "Falha ao preparar o backup.");
+      const { planilha, arquivos, existentes } = resposta;
       const total = arquivos.length;
       const inicio = Date.now();
       let enviados = 0;

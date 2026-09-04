@@ -148,7 +148,9 @@ function AlunosPage() {
   const [filtroDias, setFiltroDias] = useState("todos");
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [turnoForm, setTurnoForm] = useState("todos");
-  const [filtroNotificacao, setFiltroNotificacao] = useState<"todos" | "inativos" | "atestado_vencido" | "atestado_vencer" | "excesso_faltas">("todos");
+  const [filtroNotificacao, setFiltroNotificacao] = useState<
+    "todos" | "ativos" | "inativos" | "atestado_vencido" | "atestado_vencer" | "excesso_faltas"
+  >("todos");
   const { valor: prazoAviso } = usePrazoAvisoAtestado();
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
   const [mostrarGuias, setMostrarGuias] = useState(false);
@@ -794,6 +796,7 @@ function AlunosPage() {
   const filtrados = alunos
     .filter((a) => {
       if (!correspondeBusca(a, busca)) return false;
+      if (filtroNotificacao === "ativos" && !a.ativo) return false;
       if (filtroNotificacao === "inativos" && a.ativo) return false;
       if (filtroNotificacao === "atestado_vencido" && !(a.atestado_entregue && atestadoVencido(a.atestado_data))) return false;
       if (filtroNotificacao === "atestado_vencer" && !(a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso))) return false;
@@ -969,6 +972,7 @@ function AlunosPage() {
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-border/70 bg-card px-3 py-2 text-sm">
           <span className="text-muted-foreground">Filtro ativo:</span>
           <Badge variant="secondary">
+            {filtroNotificacao === "ativos" && "Ativos"}
             {filtroNotificacao === "inativos" && "Inativos"}
             {filtroNotificacao === "atestado_vencido" && "Atestado vencido"}
             {filtroNotificacao === "atestado_vencer" && "Atestado a vencer"}
@@ -984,6 +988,7 @@ function AlunosPage() {
           <SelectTrigger><SelectValue placeholder="Situação" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todas as situações</SelectItem>
+            <SelectItem value="ativos">Ativos</SelectItem>
             <SelectItem value="inativos">Inativos</SelectItem>
             <SelectItem value="atestado_vencido">Atestado vencido</SelectItem>
             <SelectItem value="atestado_vencer">Atestado a vencer</SelectItem>
@@ -1059,6 +1064,13 @@ function AlunosPage() {
           <Input className="pl-9" placeholder="Buscar por nome, responsável, CPF, RG ou telefone..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
 
+
+        <ImportarAlunos
+          turmas={turmas}
+          matriculas={matriculas}
+          alunos={alunos as unknown as { id: string; nome: string; cpf: string | null; telefone: string | null }[]}
+          onImportado={() => void carregar()}
+        />
 
         <Dialog open={aberto} onOpenChange={setAberto}>
           <DialogTrigger asChild>

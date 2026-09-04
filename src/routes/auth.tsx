@@ -30,10 +30,52 @@ function AuthPage() {
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
   const [busy, setBusy] = useState(false);
+  const [recuperando, setRecuperando] = useState(false);
+  const [emailRecuperacao, setEmailRecuperacao] = useState("");
+  const [redefinindo, setRedefinindo] = useState(false);
+  const [novaSenha, setNovaSenha] = useState("");
 
   useEffect(() => {
-    if (!loading && session) navigate({ to: "/" });
-  }, [loading, session, navigate]);
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setRedefinindo(true);
+    });
+    if (typeof window !== "undefined" && /type=recovery/.test(window.location.hash)) setRedefinindo(true);
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!loading && session && !redefinindo) navigate({ to: "/" });
+  }, [loading, session, navigate, redefinindo]);
+
+  async function enviarRecuperacao(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(emailRecuperacao, {
+      redirectTo: `${window.location.origin}/auth`,
+    });
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Enviamos um link de recuperação para o seu e-mail.");
+    setRecuperando(false);
+  }
+
+  async function definirNovaSenha(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ password: novaSenha });
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Senha alterada com sucesso!");
+    setRedefinindo(false);
+    setNovaSenha("");
+    navigate({ to: "/" });
+  }
 
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
@@ -94,6 +136,43 @@ function AuthPage() {
             <CardDescription>Entre para gerenciar alunos, turmas e presenças.</CardDescription>
           </CardHeader>
           <CardContent>
+            {redefinindo ? (
+              <form onSubmit={definirNovaSenha} className="space-y-4">
+                <p className="text-sm text-muted-foreground">Defina uma nova senha para a sua conta.</p>
+                <div className="space-y-2">
+                  <Label htmlFor="nova-senha">Nova senha</Label>
+                  <Input
+                    id="nova-senha"
+                    type="password"
+                    required
+                    minLength={6}
+                    value={novaSenha}
+                    onChange={(e) => setNovaSenha(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={busy}>Salvar nova senha</Button>
+              </form>
+            ) : recuperando ? (
+              <form onSubmit={enviarRecuperacao} className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Informe o e-mail da sua conta. Enviaremos um link para você criar uma nova senha.
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="email-recuperacao">E-mail</Label>
+                  <Input
+                    id="email-recuperacao"
+                    type="email"
+                    required
+                    value={emailRecuperacao}
+                    onChange={(e) => setEmailRecuperacao(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={busy}>Enviar link de recuperação</Button>
+                <Button type="button" variant="ghost" className="w-full" onClick={() => setRecuperando(false)}>
+                  Voltar para o login
+                </Button>
+              </form>
+            ) : (
             <Tabs defaultValue="entrar">
               <TabsList className="w-full">
                 <TabsTrigger value="entrar" className="flex-1">Entrar</TabsTrigger>
@@ -111,6 +190,17 @@ function AuthPage() {
                     <Input id="senha" type="password" required value={senha} onChange={(e) => setSenha(e.target.value)} />
                   </div>
                   <Button type="submit" className="w-full" disabled={busy}>Entrar</Button>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="w-full"
+                    onClick={() => {
+                      setEmailRecuperacao(email);
+                      setRecuperando(true);
+                    }}
+                  >
+                    Esqueci minha senha
+                  </Button>
                 </form>
               </TabsContent>
 
@@ -132,7 +222,7 @@ function AuthPage() {
                 </form>
               </TabsContent>
             </Tabs>
-
+            )}
           </CardContent>
         </Card>
       </div>

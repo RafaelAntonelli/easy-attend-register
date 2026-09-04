@@ -2,10 +2,19 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { idadePorNascimento, turnoDoHorario } from "@/lib/turnos";
 
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+type Anotacao = {
+  id: string;
+  texto: string;
+  autor_nome: string | null;
+  created_at: string;
+};
 
 type AlunoPerfil = {
   id: string;
@@ -70,6 +79,48 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
   const [turmas, setTurmas] = useState<{ id: string; nome: string; horario: string | null }[]>([]);
   const [historico, setHistorico] = useState<PresencaPerfil[] | null>(null);
   const [nomesUsuarios, setNomesUsuarios] = useState<Record<string, string>>({});
+  const [anotacoes, setAnotacoes] = useState<Anotacao[]>([]);
+  const [novaAnotacao, setNovaAnotacao] = useState("");
+  const [salvandoAnotacao, setSalvandoAnotacao] = useState(false);
+  const { user } = useAuth();
+
+  async function carregarAnotacoes(id: string) {
+    const { data } = await supabase
+      .from("anotacoes_alunos")
+      .select("id,texto,autor_nome,created_at")
+      .eq("aluno_id", id)
+      .order("created_at", { ascending: false });
+    setAnotacoes((data ?? []) as Anotacao[]);
+  }
+
+  async function salvarAnotacao() {
+    if (!aluno || !novaAnotacao.trim()) return;
+    setSalvandoAnotacao(true);
+    const nome =
+      (user?.user_metadata as { nome?: string } | undefined)?.nome || user?.email || "usuário";
+    const { error } = await supabase.from("anotacoes_alunos").insert({
+      aluno_id: aluno.id,
+      texto: novaAnotacao.trim(),
+      autor_id: user?.id ?? null,
+      autor_nome: nome,
+    });
+    setSalvandoAnotacao(false);
+    if (error) return toast.error(error.message);
+    setNovaAnotacao("");
+    toast.success("Anotação salva.");
+    await carregarAnotacoes(aluno.id);
+    return;
+  }
+
+  async function excluirAnotacao(id: string) {
+    if (!aluno) return;
+    if (!confirm("Excluir esta anotação?")) return;
+    const { error } = await supabase.from("anotacoes_alunos").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Anotação excluída.");
+    await carregarAnotacoes(aluno.id);
+    return;
+  }
 
   useEffect(() => {
     if (!alunoId) return;
@@ -80,6 +131,8 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
     setMatriculas([]);
     setHistorico(null);
     setNomesUsuarios({});
+    setAnotacoes([]);
+    setNovaAnotacao("");
 
     async function carregar() {
       const { data: a, error } = await supabase.from("alunos").select("*").eq("id", alunoId!).maybeSingle();
@@ -91,6 +144,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
       }
       const perfil = a as AlunoPerfil;
       setAluno(perfil);
+      void carregarAnotacoes(perfil.id);
 
       const [{ data: ms }, { data: ts }, { data: ps }] = await Promise.all([
         supabase.from("matriculas").select("id,turma_id,status,modalidade,data_inicio,created_at,registrado_por").eq("aluno_id", perfil.id),
@@ -271,6 +325,50 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground">Sem matrícula ativa.</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Anotações</p>
+              <Textarea
+                rows={3}
+                placeholder="Escreva uma anotação sobre o aluno..."
+                value={novaAnotacao}
+                onChange={(e) => setNovaAnotacao(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" disabled={salvandoAnotacao || !novaAnotacao.trim()} onClick={() => void salvarAnotacao()}>
+                  {salvandoAnotacao ? "Salvando..." : "Salvar"}
+                </Button>
+                <Button size="sm" variant="ghost" disabled={!novaAnotacao} onClick={() => setNovaAnotacao("")}>
+                  Limpar
+                </Button>
+              </div>
+              {anotacoes.length ? (
+                <div className="max-h-56 space-y-2 overflow-y-auto">
+                  {anotacoes.map((n) => (
+                    <div key={n.id} className="rounded-lg bg-secondary/50 px-3 py-2 text-sm">
+                      <p className="whitespace-pre-wrap">{n.texto}</p>
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(n.created_at).toLocaleDateString("pt-BR")} às{" "}
+                          {new Date(n.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          {n.autor_nome ? ` · ${n.autor_nome}` : ""}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-auto px-2 py-1 text-xs text-destructive"
+                          onClick={() => void excluirAnotacao(n.id)}
+                        >
+                          Excluir
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhuma anotação.</p>
               )}
             </div>
 

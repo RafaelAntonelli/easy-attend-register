@@ -136,6 +136,43 @@ function AuthPage() {
             <CardDescription>Entre para gerenciar alunos, turmas e presenças.</CardDescription>
           </CardHeader>
           <CardContent>
+            {redefinindo ? (
+              <form onSubmit={definirNovaSenha} className="space-y-4">
+                <p className="text-sm text-muted-foreground">Defina uma nova senha para a sua conta.</p>
+                <div className="space-y-2">
+                  <Label htmlFor="nova-senha">Nova senha</Label>
+                  <Input
+                    id="nova-senha"
+                    type="password"
+                    required
+                    minLength={6}
+                    value={novaSenha}
+                    onChange={(e) => setNovaSenha(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={busy}>Salvar nova senha</Button>
+              </form>
+            ) : recuperando ? (
+              <form onSubmit={enviarRecuperacao} className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Informe o e-mail da sua conta. Enviaremos um link para você criar uma nova senha.
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="email-recuperacao">E-mail</Label>
+                  <Input
+                    id="email-recuperacao"
+                    type="email"
+                    required
+                    value={emailRecuperacao}
+                    onChange={(e) => setEmailRecuperacao(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={busy}>Enviar link de recuperação</Button>
+                <Button type="button" variant="ghost" className="w-full" onClick={() => setRecuperando(false)}>
+                  Voltar para o login
+                </Button>
+              </form>
+            ) : (
             <Tabs defaultValue="entrar">
               <TabsList className="w-full">
                 <TabsTrigger value="entrar" className="flex-1">Entrar</TabsTrigger>

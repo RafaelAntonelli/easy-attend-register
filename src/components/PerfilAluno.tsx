@@ -79,6 +79,48 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
   const [turmas, setTurmas] = useState<{ id: string; nome: string; horario: string | null }[]>([]);
   const [historico, setHistorico] = useState<PresencaPerfil[] | null>(null);
   const [nomesUsuarios, setNomesUsuarios] = useState<Record<string, string>>({});
+  const [anotacoes, setAnotacoes] = useState<Anotacao[]>([]);
+  const [novaAnotacao, setNovaAnotacao] = useState("");
+  const [salvandoAnotacao, setSalvandoAnotacao] = useState(false);
+  const { user } = useAuth();
+
+  async function carregarAnotacoes(id: string) {
+    const { data } = await supabase
+      .from("anotacoes_alunos")
+      .select("id,texto,autor_nome,created_at")
+      .eq("aluno_id", id)
+      .order("created_at", { ascending: false });
+    setAnotacoes((data ?? []) as Anotacao[]);
+  }
+
+  async function salvarAnotacao() {
+    if (!aluno || !novaAnotacao.trim()) return;
+    setSalvandoAnotacao(true);
+    const nome =
+      (user?.user_metadata as { nome?: string } | undefined)?.nome || user?.email || "usuário";
+    const { error } = await supabase.from("anotacoes_alunos").insert({
+      aluno_id: aluno.id,
+      texto: novaAnotacao.trim(),
+      autor_id: user?.id ?? null,
+      autor_nome: nome,
+    });
+    setSalvandoAnotacao(false);
+    if (error) return toast.error(error.message);
+    setNovaAnotacao("");
+    toast.success("Anotação salva.");
+    await carregarAnotacoes(aluno.id);
+    return;
+  }
+
+  async function excluirAnotacao(id: string) {
+    if (!aluno) return;
+    if (!confirm("Excluir esta anotação?")) return;
+    const { error } = await supabase.from("anotacoes_alunos").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Anotação excluída.");
+    await carregarAnotacoes(aluno.id);
+    return;
+  }
 
   useEffect(() => {
     if (!alunoId) return;

@@ -728,7 +728,7 @@ function AlunosPage() {
             <p className="flex items-center gap-2 font-medium text-muted-foreground">
               <UserX className="size-4" /> Notificações · {inativos.length} aluno(s) inativo(s)
             </p>
-            <div className="space-y-1">
+            <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {inativos.map((a) => (
                 <button
                   key={a.id}
@@ -754,7 +754,7 @@ function AlunosPage() {
               <Bell className="size-4" /> Notificações · {vencidos.length} atestado(s) vencido(s)
             </p>
 
-            <div className="space-y-1">
+            <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {vencidos.map((a) => (
                 <button
                   key={a.id}
@@ -778,7 +778,7 @@ function AlunosPage() {
             <p className="flex items-center gap-2 font-medium text-orange-600">
               <Bell className="size-4" /> Notificações · {proximosVencimento.length} atestado(s) vencendo em até {prazoAviso} dias
             </p>
-            <div className="space-y-1">
+            <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {proximosVencimento.map((a) => (
                 <button
                   key={a.id}
@@ -802,7 +802,7 @@ function AlunosPage() {
             <p className="flex items-center gap-2 font-medium text-amber-600">
               <AlertTriangle className="size-4" /> Notificações · {excessoFaltas.length} aluno(s) com 5 faltas ou mais
             </p>
-            <div className="space-y-1">
+            <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {excessoFaltas.map((a) => (
                 <button
                   key={a.id}

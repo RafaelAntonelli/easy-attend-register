@@ -67,6 +67,22 @@ export class ExportacaoCancelada extends Error {
   }
 }
 
+/** Estima a largura da coluna em unidades do Excel a partir de um texto. */
+function larguraTexto(texto: string) {
+  let largura = 0;
+  for (const char of texto) {
+    const code = char.charCodeAt(0);
+    if (code < 128) {
+      // caracteres ASCII: maiúsculas/largas ~0.9, minúsculas ~0.7
+      largura += /[WM@mvw]/.test(char) ? 1.1 : /[A-Z0-9]/.test(char) ? 0.9 : 0.75;
+    } else {
+      // caracteres latinos/cjk: aproximadamente 1.15
+      largura += 1.15;
+    }
+  }
+  return largura;
+}
+
 /** Monta a planilha de alunos em ordem crescente de idade, com as imagens dos documentos. */
 export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<ArrayBuffer> {
   const ExcelJS = (await import("exceljs")).default;
@@ -80,14 +96,15 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
   ];
   const cabecalho = [
     ...colunasBase,
-    ...DOCUMENTOS_PLANILHA.map((d) => d.rotulo),
+    "Foto do aluno",
+    ...DOCUMENTOS_PLANILHA.map((d) => `Arquivo - ${d.rotulo}`),
     "Link da foto do aluno",
     ...DOCUMENTOS_PLANILHA.map((d) => `Link - ${d.rotulo}`),
   ];
   ws.addRow(cabecalho);
   ws.getRow(1).font = { bold: true };
   ws.getRow(1).alignment = { vertical: "middle", horizontal: "center", wrapText: true };
-  ws.getRow(1).height = 30;
+  ws.getRow(1).height = 36;
   ws.views = [{ state: "frozen", ySplit: 1 }];
 
   const ordenados = [...opcoes.alunos].sort((a, b) => {
@@ -104,6 +121,11 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
     if (caminhos.length) links = await opcoes.linksArquivos(caminhos);
   }
   const linkDe = (caminho?: string | null) => (caminho ? (links[caminho] ?? "") : "");
+  const nomeArquivo = (caminho?: string | null) => (caminho ? (caminho.split("/").pop() || "") : "");
+
+  const colunaNomeFoto = colunasBase.length;
+  const colunaNomeDocsInicial = colunaNomeFoto + 1;
+  const colunaLinkFoto = colunaNomeDocsInicial + DOCUMENTOS_PLANILHA.length;
 
   const linhas = ordenados.map((a) => {
     const t = opcoes.turmaDoAluno(a.id);
@@ -134,7 +156,8 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
         turnoDoHorario(t?.horario),
         a.ativo === false ? "Inativo" : "Ativo",
         a.observacoes ?? "",
-        ...DOCUMENTOS_PLANILHA.map((d) => (a[d.campo] ? "Enviado" : "Pendente")),
+        nomeArquivo(a.foto_path),
+        ...DOCUMENTOS_PLANILHA.map((d) => nomeArquivo(a[d.campo])),
         linkDe(a.foto_path),
         ...DOCUMENTOS_PLANILHA.map((d) => linkDe(a[d.campo])),
       ] as (string | number)[],
@@ -142,9 +165,6 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
   });
 
   linhas.forEach((l) => ws.addRow(l.valores));
-
-  const colunaDocInicial = colunasBase.length;
-  const colunaLinkFoto = colunasBase.length + DOCUMENTOS_PLANILHA.length + 1;
 
   // Links clicáveis, com o nome do arquivo como texto exibido
   for (let li = 0; li < linhas.length; li++) {
@@ -155,16 +175,19 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
     arquivos.forEach((caminho, i) => {
       const url = linkDe(caminho);
       if (!url || !caminho) return;
-      const celula = ws.getCell(linhaExcel, colunaLinkFoto + i);
-      celula.value = { text: caminho.split("/").pop() || "Abrir arquivo", hyperlink: url };
+      const celula = ws.getCell(linhaExcel, colunaLinkFoto + i + 1);
+      celula.value = { text: nomeArquivo(caminho) || "Abrir arquivo", hyperlink: url };
       celula.font = { color: { argb: "FF0563C1" }, underline: true };
     });
   }
 
-  const colunasLargas = ["Observações", "Condições PCD", "E-mail", "Escola", "Responsável"];
+  const colunasLargas = new Set(["Observações", "Condições PCD", "E-mail", "Escola", "Responsável", "Foto do aluno", "Link da foto do aluno"]);
+  const colunasFixas = new Set(["Sexo", "Idade", "PCD", "Atestado entregue"]);
+
   cabecalho.forEach((titulo, i) => {
     const col = ws.getColumn(i + 1);
-    let largura = titulo.length;
+    let maxLargura = larguraTexto(titulo);
+    let maxLinhas = 1;
     col.eachCell({ includeEmpty: false }, (celula, numeroLinha) => {
       if (numeroLinha === 1) return;
       const v = celula.value as unknown;
@@ -172,16 +195,38 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
         v && typeof v === "object" && "text" in (v as Record<string, unknown>)
           ? String((v as { text: unknown }).text ?? "")
           : String(v ?? "");
-      largura = Math.max(largura, texto.length);
+      maxLargura = Math.max(maxLargura, larguraTexto(texto));
+      maxLinhas = Math.max(maxLinhas, texto.split("\n").length, texto.split(" | ").length);
     });
-    const quebra = colunasLargas.includes(titulo);
-    col.width = Math.min(Math.max(largura + 2, 10), quebra ? 45 : 32);
+
+    const quebra = colunasLargas.has(titulo);
+    if (colunasFixas.has(titulo)) {
+      col.width = Math.max(maxLargura + 2, 10);
+    } else if (titulo.startsWith("Link - ") || titulo.startsWith("Arquivo - ")) {
+      col.width = Math.min(Math.max(maxLargura + 3, 14), 38);
+    } else {
+      col.width = Math.min(Math.max(maxLargura + 3, 10), quebra ? 55 : 36);
+    }
     col.alignment = { vertical: "middle", wrapText: quebra };
   });
 
-  for (let i = 0; i < DOCUMENTOS_PLANILHA.length; i++) ws.getColumn(colunaDocInicial + i + 1).width = 18;
-
-
+  // Ajusta altura das linhas que têm conteúdo grande
+  linhas.forEach((_, li) => {
+    const linhaExcel = li + 2;
+    let altura = 15;
+    cabecalho.forEach((titulo, ci) => {
+      if (!colunasLargas.has(titulo)) return;
+      const celula = ws.getCell(linhaExcel, ci + 1);
+      const v = celula.value as unknown;
+      const texto =
+        v && typeof v === "object" && "text" in (v as Record<string, unknown>)
+          ? String((v as { text: unknown }).text ?? "")
+          : String(v ?? "");
+      const linhasTexto = Math.ceil(texto.length / ((ws.getColumn(ci + 1).width ?? 10) / 1.1));
+      altura = Math.max(altura, Math.min(linhasTexto, 8) * 14);
+    });
+    ws.getRow(linhaExcel).height = altura;
+  });
 
   if (opcoes.baixarArquivo) {
     for (let li = 0; li < linhas.length; li++) {
@@ -201,12 +246,12 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
         if (!buffer) continue;
         const imageId = wb.addImage({ buffer, extension: ext === "png" ? "png" : "jpeg" });
         ws.addImage(imageId, {
-          tl: { col: colunaDocInicial + di + 0.1, row: linhaExcel - 1 + 0.1 },
-          ext: { width: 100, height: 70 },
+          tl: { col: colunaNomeDocsInicial + di + 0.05, row: linhaExcel - 1 + 0.05 },
+          ext: { width: 90, height: 60 },
         });
         temImagem = true;
       }
-      if (temImagem) ws.getRow(linhaExcel).height = 60;
+      if (temImagem) ws.getRow(linhaExcel).height = Math.max(ws.getRow(linhaExcel).height ?? 15, 55);
     }
   }
 

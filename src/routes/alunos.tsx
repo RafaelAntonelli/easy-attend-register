@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { useEffect, useState } from "react";
-import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,7 @@ import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCrach
 import { atestadoVencido, atestadoVencendo, diasParaVencer } from "@/lib/atestado";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { useAuth } from "@/lib/auth";
+import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";
@@ -184,6 +185,8 @@ function AlunosPage() {
   const [confirmarExclusao, setConfirmarExclusao] = useState<Aluno[] | null>(null);
   const [inativando, setInativando] = useState<Aluno[] | null>(null);
   const [motivoInativacao, setMotivoInativacao] = useState("");
+  const [exportandoPlanilha, setExportandoPlanilha] = useState(false);
+  const cancelarPlanilhaRef = useRef<AbortController | null>(null);
 
   async function carregar() {
     setCarregando(true);
@@ -790,6 +793,68 @@ function AlunosPage() {
     doc.save(`alunos-filtrados-${new Date().toISOString().slice(0, 10)}.pdf`);
     toast.success(`Lista exportada em PDF (${filtrados.length} aluno${filtrados.length > 1 ? "s" : ""})`);
     return;
+  }
+
+  function turmaDoAlunoPlanilha(id: string): { id: string; nome: string; modalidade: string | null; horario: string | null } | undefined {
+    const m = matriculas.find((x) => x.aluno_id === id);
+    const t = turmas.find((t) => t.id === (m?.turma_id ?? ""));
+    return t ? { id: t.id, nome: t.nome, modalidade: t.modalidade, horario: t.horario } : undefined;
+  }
+
+  function modalidadeDoAlunoPlanilha(id: string): string {
+    const m = matriculas.find((x) => x.aluno_id === id);
+    return m?.modalidade ?? turmaDoAlunoPlanilha(id)?.modalidade ?? "";
+  }
+
+  async function exportarPlanilha(): Promise<void> {
+    if (!alunos.length) {
+      toast.error("Nenhum aluno para exportar");
+      return;
+    }
+    const controle = new AbortController();
+    cancelarPlanilhaRef.current = controle;
+    setExportandoPlanilha(true);
+    const idToast = toast.loading("Preparando planilha...");
+    try {
+      const buffer = await montarPlanilhaAlunos({
+        alunos: alunos as AlunoPlanilha[],
+        turmaDoAluno: turmaDoAlunoPlanilha,
+        modalidadeDoAluno: modalidadeDoAlunoPlanilha,
+        sinal: controle.signal,
+        baixarArquivo: async (caminho) => {
+          const { data } = await supabase.storage.from("fotos-alunos").download(caminho);
+          return data ? await data.arrayBuffer() : null;
+        },
+        linksArquivos: async (caminhos) => {
+          const mapa: Record<string, string> = {};
+          const unicos = Array.from(new Set(caminhos));
+          for (let i = 0; i < unicos.length; i += 100) {
+            const lote = unicos.slice(i, i + 100);
+            const { data } = await supabase.storage.from("fotos-alunos").createSignedUrls(lote, 60 * 60 * 24 * 7);
+            data?.forEach((s, j) => {
+              const caminho = lote[j];
+              if (s.signedUrl && caminho) mapa[caminho] = s.signedUrl;
+            });
+          }
+          return mapa;
+        },
+      });
+      const url = URL.createObjectURL(
+        new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `alunos-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Planilha exportada em ordem crescente de idade", { id: idToast });
+    } catch (err) {
+      if (err instanceof ExportacaoCancelada) toast.info("Exportação cancelada", { id: idToast });
+      else toast.error(err instanceof Error ? err.message : "Erro ao exportar planilha", { id: idToast });
+    } finally {
+      cancelarPlanilhaRef.current = null;
+      setExportandoPlanilha(false);
+    }
   }
 
 
@@ -1512,6 +1577,14 @@ function AlunosPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={exportandoPlanilha || !alunos.length}
+              onClick={() => void exportarPlanilha()}
+            >
+              <FileSpreadsheet className="size-4" /> {exportandoPlanilha ? "Exportando..." : "Exportar planilha"}
+            </Button>
           </div>
         </div>
       ) : null}

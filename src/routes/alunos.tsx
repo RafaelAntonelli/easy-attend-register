@@ -1528,7 +1528,16 @@ function AlunosPage() {
           <label className="flex items-center gap-2 text-sm">
             <Checkbox
               checked={todosSelecionados}
-              onCheckedChange={(v) => setSelecionados(v ? filtrados.map((a) => a.id) : [])}
+              onCheckedChange={(v) =>
+                setSelecionados((s) => {
+                  const idsFiltrados = filtrados.map((a) => a.id);
+                  if (v) {
+                    const conjunto = new Set([...s, ...idsFiltrados]);
+                    return Array.from(conjunto);
+                  }
+                  return s.filter((id) => !idsFiltrados.includes(id));
+                })
+              }
             />
             Selecionar todos
           </label>

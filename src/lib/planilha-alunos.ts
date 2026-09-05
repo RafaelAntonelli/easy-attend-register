@@ -54,7 +54,10 @@ export type OpcoesPlanilha = {
   sinal?: AbortSignal | undefined;
   /** Progresso do processamento das linhas com imagens. */
   aoProgredir?: ((feitos: number, total: number) => void) | undefined;
+  /** Gera links (URLs) para os arquivos: foto do aluno e documentos. */
+  linksArquivos?: ((caminhos: string[]) => Promise<Record<string, string>>) | undefined;
 };
+
 
 /** Erro lançado quando o usuário cancela a exportação. */
 export class ExportacaoCancelada extends Error {

@@ -73,14 +73,21 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Alunos");
 
-  const cabecalho = [
+  const colunasBase = [
     "Nome", "Sexo", "Idade", "Faixa etária", "Nascimento", "CPF", "RG", "Celular", "Celular 2", "E-mail",
     "Responsável", "Rede de ensino", "Escola", "PCD", "Condições PCD", "Atestado entregue",
     "Data do atestado", "Modalidade", "Turma", "Horário", "Turno", "Situação", "Observações",
+  ];
+  const cabecalho = [
+    ...colunasBase,
     ...DOCUMENTOS_PLANILHA.map((d) => d.rotulo),
+    "Link da foto do aluno",
+    ...DOCUMENTOS_PLANILHA.map((d) => `Link - ${d.rotulo}`),
   ];
   ws.addRow(cabecalho);
   ws.getRow(1).font = { bold: true };
+  ws.getRow(1).alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+  ws.getRow(1).height = 30;
   ws.views = [{ state: "frozen", ySplit: 1 }];
 
   const ordenados = [...opcoes.alunos].sort((a, b) => {
@@ -88,6 +95,15 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
     if (diff !== 0 && Number.isFinite(diff)) return diff;
     return a.nome.localeCompare(b.nome, "pt-BR");
   });
+
+  let links: Record<string, string> = {};
+  if (opcoes.linksArquivos) {
+    const caminhos = ordenados.flatMap((a) =>
+      [a.foto_path, ...DOCUMENTOS_PLANILHA.map((d) => a[d.campo])].filter((c): c is string => !!c),
+    );
+    if (caminhos.length) links = await opcoes.linksArquivos(caminhos);
+  }
+  const linkDe = (caminho?: string | null) => (caminho ? (links[caminho] ?? "") : "");
 
   const linhas = ordenados.map((a) => {
     const t = opcoes.turmaDoAluno(a.id);
@@ -119,21 +135,53 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
         a.ativo === false ? "Inativo" : "Ativo",
         a.observacoes ?? "",
         ...DOCUMENTOS_PLANILHA.map((d) => (a[d.campo] ? "Enviado" : "Pendente")),
+        linkDe(a.foto_path),
+        ...DOCUMENTOS_PLANILHA.map((d) => linkDe(a[d.campo])),
       ] as (string | number)[],
     };
   });
 
   linhas.forEach((l) => ws.addRow(l.valores));
 
+  const colunaDocInicial = colunasBase.length;
+  const colunaLinkFoto = colunasBase.length + DOCUMENTOS_PLANILHA.length + 1;
+
+  // Links clicáveis, com o nome do arquivo como texto exibido
+  for (let li = 0; li < linhas.length; li++) {
+    const item = linhas[li];
+    if (!item) continue;
+    const linhaExcel = li + 2;
+    const arquivos = [item.aluno.foto_path, ...DOCUMENTOS_PLANILHA.map((d) => item.aluno[d.campo])];
+    arquivos.forEach((caminho, i) => {
+      const url = linkDe(caminho);
+      if (!url || !caminho) return;
+      const celula = ws.getCell(linhaExcel, colunaLinkFoto + i);
+      celula.value = { text: caminho.split("/").pop() || "Abrir arquivo", hyperlink: url };
+      celula.font = { color: { argb: "FF0563C1" }, underline: true };
+    });
+  }
+
+  const colunasLargas = ["Observações", "Condições PCD", "E-mail", "Escola", "Responsável"];
   cabecalho.forEach((titulo, i) => {
-    const largura = linhas.reduce((max, l) => Math.max(max, String(l.valores[i] ?? "").length), titulo.length);
     const col = ws.getColumn(i + 1);
-    col.width = Math.min(largura + 2, 45);
-    col.alignment = { vertical: "middle", wrapText: i === cabecalho.indexOf("Observações") };
+    let largura = titulo.length;
+    col.eachCell({ includeEmpty: false }, (celula, numeroLinha) => {
+      if (numeroLinha === 1) return;
+      const v = celula.value as unknown;
+      const texto =
+        v && typeof v === "object" && "text" in (v as Record<string, unknown>)
+          ? String((v as { text: unknown }).text ?? "")
+          : String(v ?? "");
+      largura = Math.max(largura, texto.length);
+    });
+    const quebra = colunasLargas.includes(titulo);
+    col.width = Math.min(Math.max(largura + 2, 10), quebra ? 45 : 32);
+    col.alignment = { vertical: "middle", wrapText: quebra };
   });
 
-  const colunaDocInicial = cabecalho.length - DOCUMENTOS_PLANILHA.length;
   for (let i = 0; i < DOCUMENTOS_PLANILHA.length; i++) ws.getColumn(colunaDocInicial + i + 1).width = 18;
+
+
 
   if (opcoes.baixarArquivo) {
     for (let li = 0; li < linhas.length; li++) {

@@ -345,7 +345,8 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                 </Button>
               </div>
               {anotacoes.length ? (
-                <div className="max-h-56 space-y-2 overflow-y-auto">
+                <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border p-2 pr-3 [scrollbar-gutter:stable]">
+
                   {anotacoes.map((n) => (
                     <div key={n.id} className="rounded-lg bg-secondary/50 px-3 py-2 text-sm">
                       <p className="whitespace-pre-wrap">{n.texto}</p>

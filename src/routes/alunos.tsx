@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { useEffect, useState } from "react";
-import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,7 @@ import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCrach
 import { atestadoVencido, atestadoVencendo, diasParaVencer } from "@/lib/atestado";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { useAuth } from "@/lib/auth";
+import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";

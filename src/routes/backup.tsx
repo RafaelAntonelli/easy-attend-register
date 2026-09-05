@@ -23,13 +23,11 @@ import {
 } from "@/lib/configuracoes-chaves";
 import { useAuth } from "@/lib/auth";
 import {
-  prepararBackupFn,
-  enviarLoteBackupFn,
-  registrarBackupFn,
   validarPastasDriveFn,
   statusBackupFn,
   salvarAgendamentoFn,
 } from "@/lib/backup.functions";
+import { assinarBackup, estadoBackupAtual, executarBackupGlobal, notificar, type EstadoBackup } from "@/lib/backup-execucao";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -43,23 +41,6 @@ const DIAS_SEMANA = [
   { valor: 5, rotulo: "Sexta-feira" },
   { valor: 6, rotulo: "Sábado" },
 ] as const;
-
-/** Avisa o administrador por notificação do navegador (quando permitido) e por aviso na tela. */
-function notificar(titulo: string, corpo: string, erro = false) {
-  if (erro) toast.error(`${titulo}${corpo ? `: ${corpo}` : ""}`);
-  else toast.success(`${titulo}${corpo ? `: ${corpo}` : ""}`);
-  try {
-    if (typeof Notification === "undefined") return;
-    if (Notification.permission === "granted") new Notification(titulo, { body: corpo });
-    else if (Notification.permission === "default") {
-      void Notification.requestPermission().then((p) => {
-        if (p === "granted") new Notification(titulo, { body: corpo });
-      });
-    }
-  } catch {
-    /* notificação do navegador é opcional */
-  }
-}
 
 
 type ChecagemPasta = {

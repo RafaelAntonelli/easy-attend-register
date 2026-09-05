@@ -858,7 +858,13 @@ function AlunosPage() {
     } finally {
       cancelarPlanilhaRef.current = null;
       setExportandoPlanilha(false);
+      setProgressoPlanilha(null);
     }
+  }
+
+  function cancelarExportacaoPlanilha() {
+    cancelarPlanilhaRef.current?.abort();
+    setProgressoPlanilha((p) => (p ? { ...p, etapa: "Cancelando..." } : p));
   }
 
 

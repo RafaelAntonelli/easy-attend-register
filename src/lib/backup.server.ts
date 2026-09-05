@@ -294,12 +294,14 @@ export async function prepararBackup(): Promise<{
     return m ? (turmas ?? []).find((t) => t.id === m.turma_id) : undefined;
   };
 
+  // A planilha do backup não embute as fotos: elas são enviadas separadamente
+  // para o Drive. Embutir centenas de imagens estourava o tempo do servidor.
   const buffer = await montarPlanilhaAlunos({
     alunos: lista,
     turmaDoAluno,
     modalidadeDoAluno: (id) => matriculaDoAluno(id)?.modalidade ?? turmaDoAluno(id)?.modalidade ?? "",
-    baixarArquivo: baixarArquivoStorage,
   });
+
 
   const pastas = await pastasDrive();
   const data = new Date().toISOString().slice(0, 10);

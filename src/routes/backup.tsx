@@ -110,8 +110,6 @@ export const Route = createFileRoute("/backup")({
   }),
 });
 
-const LOTE = 8;
-
 function formatarTempo(segundos: number) {
   if (!Number.isFinite(segundos) || segundos <= 0) return "—";
   const s = Math.round(segundos);
@@ -119,8 +117,6 @@ function formatarTempo(segundos: number) {
   const m = Math.floor(s / 60);
   return `${m}min ${String(s % 60).padStart(2, "0")}s`;
 }
-
-type Progresso = { etapa: string; enviados: number; total: number; falhas: number; restante: number | null };
 
 /** Chave de sessão: a senha só é pedida uma vez por sessão do navegador. */
 const CHAVE_LIBERADO = "arena:backup-liberado";

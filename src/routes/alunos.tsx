@@ -1595,8 +1595,33 @@ function AlunosPage() {
             >
               <FileSpreadsheet className="size-4" /> {exportandoPlanilha ? "Exportando..." : "Exportar planilha"}
             </Button>
+            {exportandoPlanilha ? (
+              <Button variant="destructive" size="sm" onClick={cancelarExportacaoPlanilha}>
+                Cancelar exportação
+              </Button>
+            ) : null}
           </div>
         </div>
+      ) : null}
+
+      {progressoPlanilha ? (
+        <Card className="mb-3">
+          <CardContent className="space-y-2 p-4">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span>{progressoPlanilha.etapa}</span>
+              <span className="text-muted-foreground">
+                {progressoPlanilha.feitos} de {progressoPlanilha.total}
+              </span>
+            </div>
+            <Progress
+              value={
+                progressoPlanilha.total > 0
+                  ? Math.round((progressoPlanilha.feitos / progressoPlanilha.total) * 100)
+                  : 0
+              }
+            />
+          </CardContent>
+        </Card>
       ) : null}
 
       <div className="grid gap-3">

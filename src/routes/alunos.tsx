@@ -185,6 +185,8 @@ function AlunosPage() {
   const [confirmarExclusao, setConfirmarExclusao] = useState<Aluno[] | null>(null);
   const [inativando, setInativando] = useState<Aluno[] | null>(null);
   const [motivoInativacao, setMotivoInativacao] = useState("");
+  const [exportandoPlanilha, setExportandoPlanilha] = useState(false);
+  const cancelarPlanilhaRef = useRef<AbortController | null>(null);
 
   async function carregar() {
     setCarregando(true);

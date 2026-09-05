@@ -30,7 +30,9 @@ export type AlunoPlanilha = {
   atestado_data?: string | null;
   ativo?: boolean | null;
   observacoes?: string | null;
+  foto_path?: string | null;
 } & Partial<Record<CampoDocPlanilha, string | null>>;
+
 
 export type TurmaPlanilha = { id: string; nome: string; modalidade?: string | null; horario?: string | null };
 

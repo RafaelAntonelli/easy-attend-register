@@ -1577,6 +1577,14 @@ function AlunosPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={exportandoPlanilha || !alunos.length}
+              onClick={() => void exportarPlanilha()}
+            >
+              <FileSpreadsheet className="size-4" /> {exportandoPlanilha ? "Exportando..." : "Exportar planilha"}
+            </Button>
           </div>
         </div>
       ) : null}

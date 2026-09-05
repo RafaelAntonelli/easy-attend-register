@@ -896,7 +896,12 @@ function AlunosPage() {
       if (filtroPcd === "com") return a.pcd;
       return (a.pcd_condicoes ?? []).includes(filtroPcd);
     })
-    .sort((a, b) => relevanciaBusca(a.nome, busca) - relevanciaBusca(b.nome, busca) || a.nome.localeCompare(b.nome));
+    .sort((a, b) => {
+      const selA = selecionados.includes(a.id) ? 1 : 0;
+      const selB = selecionados.includes(b.id) ? 1 : 0;
+      if (selA !== selB) return selB - selA;
+      return relevanciaBusca(a.nome, busca) - relevanciaBusca(b.nome, busca) || a.nome.localeCompare(b.nome);
+    });
 
 
 

@@ -407,7 +407,7 @@ function BackupPage() {
             </div>
           ) : null}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button disabled={backupando || verificando} onClick={() => void backupAgora()}>
               <CloudUpload className="size-4" /> {backupando ? "Enviando..." : "Fazer Backup"}
             </Button>

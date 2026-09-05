@@ -32,6 +32,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
 import {
   AlertDialog,
@@ -186,6 +187,7 @@ function AlunosPage() {
   const [inativando, setInativando] = useState<Aluno[] | null>(null);
   const [motivoInativacao, setMotivoInativacao] = useState("");
   const [exportandoPlanilha, setExportandoPlanilha] = useState(false);
+  const [progressoPlanilha, setProgressoPlanilha] = useState<{ etapa: string; feitos: number; total: number } | null>(null);
   const cancelarPlanilhaRef = useRef<AbortController | null>(null);
 
   async function carregar() {
@@ -814,6 +816,7 @@ function AlunosPage() {
     const controle = new AbortController();
     cancelarPlanilhaRef.current = controle;
     setExportandoPlanilha(true);
+    setProgressoPlanilha({ etapa: "Preparando planilha...", feitos: 0, total: alunos.length });
     const idToast = toast.loading("Preparando planilha...");
     try {
       const buffer = await montarPlanilhaAlunos({
@@ -821,6 +824,8 @@ function AlunosPage() {
         turmaDoAluno: turmaDoAlunoPlanilha,
         modalidadeDoAluno: modalidadeDoAlunoPlanilha,
         sinal: controle.signal,
+        aoProgredir: (feitos, total) =>
+          setProgressoPlanilha({ etapa: "Processando alunos e documentos...", feitos, total }),
         baixarArquivo: async (caminho) => {
           const { data } = await supabase.storage.from("fotos-alunos").download(caminho);
           return data ? await data.arrayBuffer() : null;
@@ -854,7 +859,13 @@ function AlunosPage() {
     } finally {
       cancelarPlanilhaRef.current = null;
       setExportandoPlanilha(false);
+      setProgressoPlanilha(null);
     }
+  }
+
+  function cancelarExportacaoPlanilha() {
+    cancelarPlanilhaRef.current?.abort();
+    setProgressoPlanilha((p) => (p ? { ...p, etapa: "Cancelando..." } : p));
   }
 
 
@@ -1585,8 +1596,33 @@ function AlunosPage() {
             >
               <FileSpreadsheet className="size-4" /> {exportandoPlanilha ? "Exportando..." : "Exportar planilha"}
             </Button>
+            {exportandoPlanilha ? (
+              <Button variant="destructive" size="sm" onClick={cancelarExportacaoPlanilha}>
+                Cancelar exportação
+              </Button>
+            ) : null}
           </div>
         </div>
+      ) : null}
+
+      {progressoPlanilha ? (
+        <Card className="mb-3">
+          <CardContent className="space-y-2 p-4">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span>{progressoPlanilha.etapa}</span>
+              <span className="text-muted-foreground">
+                {progressoPlanilha.feitos} de {progressoPlanilha.total}
+              </span>
+            </div>
+            <Progress
+              value={
+                progressoPlanilha.total > 0
+                  ? Math.round((progressoPlanilha.feitos / progressoPlanilha.total) * 100)
+                  : 0
+              }
+            />
+          </CardContent>
+        </Card>
       ) : null}
 
       <div className="grid gap-3">

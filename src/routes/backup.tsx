@@ -414,6 +414,11 @@ function BackupPage() {
             <Button variant="outline" disabled={verificando || backupando} onClick={() => void verificarPastas()}>
               <CheckCircle2 className="size-4" /> {verificando ? "Verificando..." : "Verificar pastas"}
             </Button>
+            {backupando ? (
+              <span className="text-xs text-muted-foreground">
+                Você pode trocar de tela: o backup continua em segundo plano.
+              </span>
+            ) : null}
           </div>
 
           {checagens ? (

@@ -815,6 +815,7 @@ function AlunosPage() {
     const controle = new AbortController();
     cancelarPlanilhaRef.current = controle;
     setExportandoPlanilha(true);
+    setProgressoPlanilha({ etapa: "Preparando planilha...", feitos: 0, total: alunos.length });
     const idToast = toast.loading("Preparando planilha...");
     try {
       const buffer = await montarPlanilhaAlunos({
@@ -822,6 +823,8 @@ function AlunosPage() {
         turmaDoAluno: turmaDoAlunoPlanilha,
         modalidadeDoAluno: modalidadeDoAlunoPlanilha,
         sinal: controle.signal,
+        aoProgredir: (feitos, total) =>
+          setProgressoPlanilha({ etapa: "Processando alunos e documentos...", feitos, total }),
         baixarArquivo: async (caminho) => {
           const { data } = await supabase.storage.from("fotos-alunos").download(caminho);
           return data ? await data.arrayBuffer() : null;

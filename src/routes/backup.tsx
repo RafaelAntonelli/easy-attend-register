@@ -23,13 +23,11 @@ import {
 } from "@/lib/configuracoes-chaves";
 import { useAuth } from "@/lib/auth";
 import {
-  prepararBackupFn,
-  enviarLoteBackupFn,
-  registrarBackupFn,
   validarPastasDriveFn,
   statusBackupFn,
   salvarAgendamentoFn,
 } from "@/lib/backup.functions";
+import { assinarBackup, estadoBackupAtual, executarBackupGlobal, notificar, type EstadoBackup } from "@/lib/backup-execucao";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -43,23 +41,6 @@ const DIAS_SEMANA = [
   { valor: 5, rotulo: "Sexta-feira" },
   { valor: 6, rotulo: "Sábado" },
 ] as const;
-
-/** Avisa o administrador por notificação do navegador (quando permitido) e por aviso na tela. */
-function notificar(titulo: string, corpo: string, erro = false) {
-  if (erro) toast.error(`${titulo}${corpo ? `: ${corpo}` : ""}`);
-  else toast.success(`${titulo}${corpo ? `: ${corpo}` : ""}`);
-  try {
-    if (typeof Notification === "undefined") return;
-    if (Notification.permission === "granted") new Notification(titulo, { body: corpo });
-    else if (Notification.permission === "default") {
-      void Notification.requestPermission().then((p) => {
-        if (p === "granted") new Notification(titulo, { body: corpo });
-      });
-    }
-  } catch {
-    /* notificação do navegador é opcional */
-  }
-}
 
 
 type ChecagemPasta = {
@@ -129,8 +110,6 @@ export const Route = createFileRoute("/backup")({
   }),
 });
 
-const LOTE = 8;
-
 function formatarTempo(segundos: number) {
   if (!Number.isFinite(segundos) || segundos <= 0) return "—";
   const s = Math.round(segundos);
@@ -138,8 +117,6 @@ function formatarTempo(segundos: number) {
   const m = Math.floor(s / 60);
   return `${m}min ${String(s % 60).padStart(2, "0")}s`;
 }
-
-type Progresso = { etapa: string; enviados: number; total: number; falhas: number; restante: number | null };
 
 /** Chave de sessão: a senha só é pedida uma vez por sessão do navegador. */
 const CHAVE_LIBERADO = "arena:backup-liberado";
@@ -206,12 +183,11 @@ function SenhaAdmin({ email, onLiberar }: { email: string; onLiberar: () => void
 function BackupPage() {
   const { isAdmin, user } = useAuth();
   const [liberado, setLiberado] = useState(false);
-  const [backupando, setBackupando] = useState(false);
-  const [progresso, setProgresso] = useState<Progresso | null>(null);
+  // Estado global: o backup continua rodando mesmo ao trocar de tela.
+  const [estadoBackup, setEstadoBackup] = useState<EstadoBackup>(() => estadoBackupAtual());
+  const backupando = estadoBackup.executando;
+  const progresso = estadoBackup.progresso;
   const [ultimo, setUltimo] = useState<{ ultimo_backup: string | null; ultimo_resultado: string | null } | null>(null);
-  const preparar = useServerFn(prepararBackupFn);
-  const enviarLote = useServerFn(enviarLoteBackupFn);
-  const registrar = useServerFn(registrarBackupFn);
   const pastaPlanilhas = useConfiguracaoTexto(CHAVE_PASTA_PLANILHAS);
   const pastaImagens = useConfiguracaoTexto(CHAVE_PASTA_IMAGENS);
   const pastaDocumentos = useConfiguracaoTexto(CHAVE_PASTA_DOCUMENTOS);
@@ -346,64 +322,21 @@ function BackupPage() {
   }
 
 
+  // Assina o estado global do backup: ao voltar para esta tela, o progresso aparece.
+  useEffect(() => assinarBackup(setEstadoBackup), []);
+
   async function backupAgora() {
+    if (estadoBackupAtual().executando) {
+      toast.info("Já existe um backup em andamento.");
+      return;
+    }
     const checagem = await verificarPastas();
     if (!checagem || checagem.some((c) => !c.ok)) {
       toast.error("Corrija as pastas do Google Drive antes de rodar o backup.");
       return;
     }
-    setBackupando(true);
-    setProgresso({ etapa: "Gerando e enviando a planilha…", enviados: 0, total: 0, falhas: 0, restante: null });
-    try {
-      const resposta = await preparar({ data: undefined });
-      if (!resposta) throw new Error("O servidor não respondeu ao preparar o backup. Tente novamente.");
-      if (!resposta.ok) throw new Error(resposta.erro || "Falha ao preparar o backup.");
-      const { planilha, arquivos, existentes } = resposta;
-      const total = arquivos.length;
-      const inicio = Date.now();
-      let enviados = 0;
-      const falhas: string[] = [];
-
-      setProgresso({ etapa: "Enviando fotos e documentos…", enviados: 0, total, falhas: 0, restante: null });
-
-      for (let i = 0; i < total; i += LOTE) {
-        const parte = arquivos.slice(i, i + LOTE);
-        const r = await enviarLote({ data: { arquivos: parte, existentes } });
-        enviados += r.enviados;
-        falhas.push(...r.falhas);
-        const processados = Math.min(i + parte.length, total);
-        const decorrido = (Date.now() - inicio) / 1000;
-        const restante = processados > 0 ? (decorrido / processados) * (total - processados) : null;
-        setProgresso({
-          etapa: "Enviando fotos e documentos…",
-          enviados: processados,
-          total,
-          falhas: falhas.length,
-          restante,
-        });
-      }
-
-      const resumo = `${planilha} · ${enviados} arquivo(s)${falhas.length ? ` · ${falhas.length} falha(s)` : ""}`;
-      const status = falhas.length > 0 ? ("falha" as const) : ("sucesso" as const);
-      await registrar({ data: { resumo, status } });
-      const quando = new Date().toISOString();
-      ultimoAvisadoRef.current = quando;
-      setUltimo({ ultimo_backup: quando, ultimo_resultado: resumo });
-      setProgresso({ etapa: "Backup concluído", enviados: total, total, falhas: falhas.length, restante: 0 });
-      notificar(falhas.length > 0 ? "Backup concluído com falhas" : "Backup concluído", resumo, falhas.length > 0);
-    } catch (err) {
-      setProgresso(null);
-      const mensagem = err instanceof Error ? err.message : "Falha no backup";
-      try {
-        await registrar({ data: { resumo: mensagem, status: "falha" } });
-      } catch {
-        /* o erro principal já será exibido */
-      }
-      notificar("Falha no backup", mensagem, true);
-    } finally {
-      setBackupando(false);
-    }
-
+    // O envio roda fora da tela: trocar de página não interrompe o backup.
+    void executarBackupGlobal().then(() => void atualizarStatus(false));
   }
 
   const jaLiberado = liberado || (typeof sessionStorage !== "undefined" && sessionStorage.getItem(CHAVE_LIBERADO) === "1");
@@ -474,13 +407,18 @@ function BackupPage() {
             </div>
           ) : null}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button disabled={backupando || verificando} onClick={() => void backupAgora()}>
               <CloudUpload className="size-4" /> {backupando ? "Enviando..." : "Fazer Backup"}
             </Button>
             <Button variant="outline" disabled={verificando || backupando} onClick={() => void verificarPastas()}>
               <CheckCircle2 className="size-4" /> {verificando ? "Verificando..." : "Verificar pastas"}
             </Button>
+            {backupando ? (
+              <span className="text-xs text-muted-foreground">
+                Você pode trocar de tela: o backup continua em segundo plano.
+              </span>
+            ) : null}
           </div>
 
           {checagens ? (

@@ -186,6 +186,7 @@ function AlunosPage() {
   const [inativando, setInativando] = useState<Aluno[] | null>(null);
   const [motivoInativacao, setMotivoInativacao] = useState("");
   const [exportandoPlanilha, setExportandoPlanilha] = useState(false);
+  const [progressoPlanilha, setProgressoPlanilha] = useState<{ etapa: string; feitos: number; total: number } | null>(null);
   const cancelarPlanilhaRef = useRef<AbortController | null>(null);
 
   async function carregar() {

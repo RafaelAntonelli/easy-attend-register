@@ -818,10 +818,7 @@ function AlunosPage() {
     try {
       const buffer = await montarPlanilhaAlunos({
         alunos: alunos as AlunoPlanilha[],
-        turmaDoAluno: (id) => {
-          const t = turmaDoAlunoPlanilha(id);
-          return t ? { id: t.id, nome: t.nome, modalidade: t.modalidade, horario: t.horario } : undefined;
-        },
+        turmaDoAluno: turmaDoAlunoPlanilha,
         modalidadeDoAluno: modalidadeDoAlunoPlanilha,
         sinal: controle.signal,
         baixarArquivo: async (caminho) => {

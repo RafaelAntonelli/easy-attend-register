@@ -46,7 +46,15 @@ export const Route = createFileRoute("/presenca")({
 });
 
 type Turma = { id: string; nome: string; horario: string | null; modalidade: string };
-type Aluno = { id: string; nome: string; codigo: string };
+type Aluno = { id: string; nome: string; codigo: string; foto_path: string | null };
+
+/** Iniciais do aluno (primeira e última letra do nome) para quando não há foto. */
+function iniciais(nome: string) {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  const primeira = partes[0]?.[0] ?? "?";
+  const ultima = partes.length > 1 ? (partes[partes.length - 1]?.[0] ?? "") : "";
+  return (primeira + ultima).toUpperCase();
+}
 type StatusPresenca = "presente" | "falta" | "falta_justificada";
 
 const rotuloStatus: Record<StatusPresenca, string> = {

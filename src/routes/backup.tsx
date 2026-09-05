@@ -322,64 +322,21 @@ function BackupPage() {
   }
 
 
+  // Assina o estado global do backup: ao voltar para esta tela, o progresso aparece.
+  useEffect(() => assinarBackup(setEstadoBackup), []);
+
   async function backupAgora() {
+    if (estadoBackupAtual().executando) {
+      toast.info("Já existe um backup em andamento.");
+      return;
+    }
     const checagem = await verificarPastas();
     if (!checagem || checagem.some((c) => !c.ok)) {
       toast.error("Corrija as pastas do Google Drive antes de rodar o backup.");
       return;
     }
-    setBackupando(true);
-    setProgresso({ etapa: "Gerando e enviando a planilha…", enviados: 0, total: 0, falhas: 0, restante: null });
-    try {
-      const resposta = await preparar({ data: undefined });
-      if (!resposta) throw new Error("O servidor não respondeu ao preparar o backup. Tente novamente.");
-      if (!resposta.ok) throw new Error(resposta.erro || "Falha ao preparar o backup.");
-      const { planilha, arquivos, existentes } = resposta;
-      const total = arquivos.length;
-      const inicio = Date.now();
-      let enviados = 0;
-      const falhas: string[] = [];
-
-      setProgresso({ etapa: "Enviando fotos e documentos…", enviados: 0, total, falhas: 0, restante: null });
-
-      for (let i = 0; i < total; i += LOTE) {
-        const parte = arquivos.slice(i, i + LOTE);
-        const r = await enviarLote({ data: { arquivos: parte, existentes } });
-        enviados += r.enviados;
-        falhas.push(...r.falhas);
-        const processados = Math.min(i + parte.length, total);
-        const decorrido = (Date.now() - inicio) / 1000;
-        const restante = processados > 0 ? (decorrido / processados) * (total - processados) : null;
-        setProgresso({
-          etapa: "Enviando fotos e documentos…",
-          enviados: processados,
-          total,
-          falhas: falhas.length,
-          restante,
-        });
-      }
-
-      const resumo = `${planilha} · ${enviados} arquivo(s)${falhas.length ? ` · ${falhas.length} falha(s)` : ""}`;
-      const status = falhas.length > 0 ? ("falha" as const) : ("sucesso" as const);
-      await registrar({ data: { resumo, status } });
-      const quando = new Date().toISOString();
-      ultimoAvisadoRef.current = quando;
-      setUltimo({ ultimo_backup: quando, ultimo_resultado: resumo });
-      setProgresso({ etapa: "Backup concluído", enviados: total, total, falhas: falhas.length, restante: 0 });
-      notificar(falhas.length > 0 ? "Backup concluído com falhas" : "Backup concluído", resumo, falhas.length > 0);
-    } catch (err) {
-      setProgresso(null);
-      const mensagem = err instanceof Error ? err.message : "Falha no backup";
-      try {
-        await registrar({ data: { resumo: mensagem, status: "falha" } });
-      } catch {
-        /* o erro principal já será exibido */
-      }
-      notificar("Falha no backup", mensagem, true);
-    } finally {
-      setBackupando(false);
-    }
-
+    // O envio roda fora da tela: trocar de página não interrompe o backup.
+    void executarBackupGlobal().then(() => void atualizarStatus(false));
   }
 
   const jaLiberado = liberado || (typeof sessionStorage !== "undefined" && sessionStorage.getItem(CHAVE_LIBERADO) === "1");

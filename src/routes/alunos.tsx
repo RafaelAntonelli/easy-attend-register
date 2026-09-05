@@ -795,6 +795,67 @@ function AlunosPage() {
     return;
   }
 
+  function turmaDoAlunoPlanilha(id: string) {
+    const m = matriculas.find((x) => x.aluno_id === id);
+    return turmas.find((t) => t.id === (m?.turma_id ?? ""));
+  }
+
+  function modalidadeDoAlunoPlanilha(id: string) {
+    const m = matriculas.find((x) => x.aluno_id === id);
+    return m?.modalidade ?? turmaDoAlunoPlanilha(id)?.modalidade ?? "";
+  }
+
+  async function exportarPlanilha() {
+    if (!alunos.length) return toast.error("Nenhum aluno para exportar");
+    const controle = new AbortController();
+    cancelarPlanilhaRef.current = controle;
+    setExportandoPlanilha(true);
+    const idToast = toast.loading("Preparando planilha...");
+    try {
+      const buffer = await montarPlanilhaAlunos({
+        alunos: alunos as AlunoPlanilha[],
+        turmaDoAluno: (id) => {
+          const t = turmaDoAlunoPlanilha(id);
+          return t ? { id: t.id, nome: t.nome, modalidade: t.modalidade, horario: t.horario } : undefined;
+        },
+        modalidadeDoAluno: modalidadeDoAlunoPlanilha,
+        sinal: controle.signal,
+        baixarArquivo: async (caminho) => {
+          const { data } = await supabase.storage.from("fotos-alunos").download(caminho);
+          return data ? await data.arrayBuffer() : null;
+        },
+        linksArquivos: async (caminhos) => {
+          const mapa: Record<string, string> = {};
+          const unicos = Array.from(new Set(caminhos));
+          for (let i = 0; i < unicos.length; i += 100) {
+            const lote = unicos.slice(i, i + 100);
+            const { data } = await supabase.storage.from("fotos-alunos").createSignedUrls(lote, 60 * 60 * 24 * 7);
+            data?.forEach((s, j) => {
+              const caminho = lote[j];
+              if (s.signedUrl && caminho) mapa[caminho] = s.signedUrl;
+            });
+          }
+          return mapa;
+        },
+      });
+      const url = URL.createObjectURL(
+        new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `alunos-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Planilha exportada em ordem crescente de idade", { id: idToast });
+    } catch (err) {
+      if (err instanceof ExportacaoCancelada) toast.info("Exportação cancelada", { id: idToast });
+      else toast.error(err instanceof Error ? err.message : "Erro ao exportar planilha", { id: idToast });
+    } finally {
+      cancelarPlanilhaRef.current = null;
+      setExportandoPlanilha(false);
+    }
+  }
+
 
   const filtrados = alunos
     .filter((a) => {

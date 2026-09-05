@@ -795,18 +795,22 @@ function AlunosPage() {
     return;
   }
 
-  function turmaDoAlunoPlanilha(id: string) {
+  function turmaDoAlunoPlanilha(id: string): { id: string; nome: string; modalidade: string | null; horario: string | null } | undefined {
     const m = matriculas.find((x) => x.aluno_id === id);
-    return turmas.find((t) => t.id === (m?.turma_id ?? ""));
+    const t = turmas.find((t) => t.id === (m?.turma_id ?? ""));
+    return t ? { id: t.id, nome: t.nome, modalidade: t.modalidade, horario: t.horario } : undefined;
   }
 
-  function modalidadeDoAlunoPlanilha(id: string) {
+  function modalidadeDoAlunoPlanilha(id: string): string {
     const m = matriculas.find((x) => x.aluno_id === id);
     return m?.modalidade ?? turmaDoAlunoPlanilha(id)?.modalidade ?? "";
   }
 
-  async function exportarPlanilha() {
-    if (!alunos.length) return toast.error("Nenhum aluno para exportar");
+  async function exportarPlanilha(): Promise<void> {
+    if (!alunos.length) {
+      toast.error("Nenhum aluno para exportar");
+      return;
+    }
     const controle = new AbortController();
     cancelarPlanilhaRef.current = controle;
     setExportandoPlanilha(true);

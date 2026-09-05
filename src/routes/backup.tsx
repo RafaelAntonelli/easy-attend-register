@@ -183,12 +183,11 @@ function SenhaAdmin({ email, onLiberar }: { email: string; onLiberar: () => void
 function BackupPage() {
   const { isAdmin, user } = useAuth();
   const [liberado, setLiberado] = useState(false);
-  const [backupando, setBackupando] = useState(false);
-  const [progresso, setProgresso] = useState<Progresso | null>(null);
+  // Estado global: o backup continua rodando mesmo ao trocar de tela.
+  const [estadoBackup, setEstadoBackup] = useState<EstadoBackup>(() => estadoBackupAtual());
+  const backupando = estadoBackup.executando;
+  const progresso = estadoBackup.progresso;
   const [ultimo, setUltimo] = useState<{ ultimo_backup: string | null; ultimo_resultado: string | null } | null>(null);
-  const preparar = useServerFn(prepararBackupFn);
-  const enviarLote = useServerFn(enviarLoteBackupFn);
-  const registrar = useServerFn(registrarBackupFn);
   const pastaPlanilhas = useConfiguracaoTexto(CHAVE_PASTA_PLANILHAS);
   const pastaImagens = useConfiguracaoTexto(CHAVE_PASTA_IMAGENS);
   const pastaDocumentos = useConfiguracaoTexto(CHAVE_PASTA_DOCUMENTOS);

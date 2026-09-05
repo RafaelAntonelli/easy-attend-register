@@ -72,6 +72,7 @@ const GRUPOS_DIAS = [
 function PresencaPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [fotos, setFotos] = useState<Record<string, string>>({});
   const [matriculas, setMatriculas] = useState<{ aluno_id: string; turma_id: string }[]>([]);
   const [turmaId, setTurmaId] = useState("");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
@@ -105,13 +106,26 @@ function PresencaPage() {
       }
       const [t, a, m] = await Promise.all([
         supabase.from("turmas").select("id,nome,horario,modalidade").order("nome"),
-        supabase.from("alunos").select("id,nome,codigo").eq("ativo", true).order("nome"),
+        supabase.from("alunos").select("id,nome,codigo,foto_path").eq("ativo", true).order("nome"),
         supabase.from("matriculas").select("aluno_id,turma_id").eq("status", "ativa"),
       ]);
       if (t.data) setTurmas(t.data as Turma[]);
-      if (a.data) setAlunos(a.data as Aluno[]);
+      const listaAlunos = (a.data ?? []) as Aluno[];
+      if (a.data) setAlunos(listaAlunos);
       if (m.data) setMatriculas(m.data as { aluno_id: string; turma_id: string }[]);
       void salvarCache("presenca", { turmas: t.data ?? [], alunos: a.data ?? [], matriculas: m.data ?? [] });
+      const comFoto = listaAlunos.filter((x) => x.foto_path);
+      if (comFoto.length) {
+        const { data: signed } = await supabase.storage
+          .from("fotos-alunos")
+          .createSignedUrls(comFoto.map((x) => x.foto_path as string), 3600);
+        const mapa: Record<string, string> = {};
+        comFoto.forEach((x, i) => {
+          const url = signed?.[i]?.signedUrl;
+          if (url) mapa[x.id] = url;
+        });
+        setFotos(mapa);
+      }
     })();
   }, []);
 
@@ -414,9 +428,23 @@ function PresencaPage() {
                     const atual = statusPorAluno[a.id];
                     return (
                       <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 px-3 py-2">
-                        <div className="min-w-32 flex-1">
-                          <span className="text-sm">{a.nome}</span>
-                          {atual ? <p className="text-xs text-muted-foreground">{rotuloStatus[atual]}</p> : null}
+                        <div className="flex min-w-32 flex-1 items-center gap-2.5">
+                          {fotos[a.id] ? (
+                            <img
+                              src={fotos[a.id]}
+                              alt={`Foto de ${a.nome}`}
+                              loading="lazy"
+                              className="size-10 shrink-0 rounded-full border border-border object-cover"
+                            />
+                          ) : (
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-secondary text-xs font-semibold text-muted-foreground">
+                              {iniciais(a.nome)}
+                            </span>
+                          )}
+                          <div className="min-w-0">
+                            <span className="text-sm">{a.nome}</span>
+                            {atual ? <p className="text-xs text-muted-foreground">{rotuloStatus[atual]}</p> : null}
+                          </div>
                         </div>
                         <div className="flex gap-1">
                           <Button size="sm" variant={atual === "presente" ? "default" : "outline"} onClick={() => void registrar(a, "manual", "presente")}>

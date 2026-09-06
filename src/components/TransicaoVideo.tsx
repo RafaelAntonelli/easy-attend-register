@@ -28,8 +28,13 @@ export function TransicaoVideo() {
   const abriu = useRef(false);
 
   useEffect(() => {
+    // A imagem só sai de cena quando o vídeo está pronto para tocar,
+    // evitando tela vazia em conexões lentas ou codecs indisponíveis.
     const t1 = window.setTimeout(() => {
-      setMostrarVideo(true);
+      const v = videoRef.current;
+      if (v && v.readyState >= 3 && !v.error) {
+        setMostrarVideo(true);
+      }
     }, TEMPO_IMAGEM);
     const t2 = window.setTimeout(() => {
       abriu.current = true;
@@ -57,6 +62,17 @@ export function TransicaoVideo() {
     if (!v) return;
     if (visivel) void v.play().catch(() => undefined);
   }, [visivel]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    // Se o vídeo terminar de carregar depois do tempo da imagem, faz o fade na hora.
+    const aoPoderTocar = () => {
+      if (!abriu.current) setMostrarVideo(true);
+    };
+    v.addEventListener("canplay", aoPoderTocar);
+    return () => v.removeEventListener("canplay", aoPoderTocar);
+  }, []);
 
   return (
     <div

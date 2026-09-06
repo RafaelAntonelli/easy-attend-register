@@ -91,7 +91,7 @@ export function TransicaoVideo() {
         playsInline
         {...({ "webkit-playsinline": "true" } as Record<string, string>)}
         preload="auto"
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-contain"
       />
       {/* Imagem por cima, com crossfade de saída quando o vídeo assume */}
       <img
@@ -99,7 +99,7 @@ export function TransicaoVideo() {
         alt="Programa Esporte 360"
         fetchPriority="high"
         draggable={false}
-        className={`absolute inset-0 h-full w-full object-cover transition-opacity ease-in-out ${
+        className={`absolute inset-0 h-full w-full object-contain transition-opacity ease-in-out ${
           mostrarVideo ? "opacity-0" : "opacity-100"
         }`}
         style={{ transitionDuration: `${DURACAO_FADE}ms` }}

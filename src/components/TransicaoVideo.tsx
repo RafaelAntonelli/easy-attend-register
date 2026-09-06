@@ -64,7 +64,7 @@ export function TransicaoVideo() {
         <img
           src={programaEsporte360.url}
           alt="Programa Esporte 360"
-          className="max-h-full max-w-full object-contain"
+          className="h-full w-full object-cover"
         />
       ) : (
         <video

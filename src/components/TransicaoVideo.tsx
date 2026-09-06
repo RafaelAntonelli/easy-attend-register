@@ -10,10 +10,15 @@ const TEMPO_IMAGEM = 2500;
 const TEMPO_VIDEO = 2200;
 /** Tempo mínimo de exibição para o vídeo não "piscar" (ms). */
 const MINIMO = 900;
+/** Duração do crossfade entre imagem e vídeo (ms). */
+const DURACAO_FADE = 600;
 
 /**
  * Tela de carregamento: imagem do Programa Esporte 360 seguida do vídeo da Arena Aquática.
- * O elemento <video> nunca é desmontado, apenas escondido, para não recarregar.
+ * Imagem e vídeo ficam sempre montados em camadas sobrepostas; a transição é um
+ * crossfade por opacidade, sem desmontar nada (evita recarregar o vídeo e barras
+ * no PWA/Android). Ambos usam object-cover para cobrir 100% da tela em qualquer
+ * resolução, mantendo o aspecto sem distorcer.
  */
 export function TransicaoVideo() {
   const carregando = useRouterState({ select: (s) => s.status === "pending" || s.isLoading });
@@ -23,8 +28,13 @@ export function TransicaoVideo() {
   const abriu = useRef(false);
 
   useEffect(() => {
+    // A imagem só sai de cena quando o vídeo está pronto para tocar,
+    // evitando tela vazia em conexões lentas ou codecs indisponíveis.
     const t1 = window.setTimeout(() => {
-      setMostrarVideo(true);
+      const v = videoRef.current;
+      if (v && v.readyState >= 3 && !v.error) {
+        setMostrarVideo(true);
+      }
     }, TEMPO_IMAGEM);
     const t2 = window.setTimeout(() => {
       abriu.current = true;
@@ -50,34 +60,50 @@ export function TransicaoVideo() {
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    if (visivel && mostrarVideo) void v.play().catch(() => undefined);
-  }, [visivel, mostrarVideo]);
+    if (visivel) void v.play().catch(() => undefined);
+  }, [visivel]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    // Se o vídeo terminar de carregar depois do tempo da imagem, faz o fade na hora.
+    const aoPoderTocar = () => {
+      if (!abriu.current) setMostrarVideo(true);
+    };
+    v.addEventListener("canplay", aoPoderTocar);
+    return () => v.removeEventListener("canplay", aoPoderTocar);
+  }, []);
 
   return (
     <div
       aria-hidden={!visivel}
-      className={`fixed inset-0 z-[90] flex items-center justify-center bg-[#0d2270] transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[90] overflow-hidden bg-[#0d2270] transition-opacity duration-500 ease-out ${
         visivel ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     >
-      {!mostrarVideo ? (
-        <img
-          src={programaEsporte360.url}
-          alt="Programa Esporte 360"
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <video
-          ref={videoRef}
-          src={abertura.url}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          className="max-h-full max-w-full object-contain"
-        />
-      )}
+      {/* Vídeo em camada de fundo, sempre montado e já carregando para não atrasar o fade */}
+      <video
+        ref={videoRef}
+        src={abertura.url}
+        autoPlay
+        muted
+        loop
+        playsInline
+        {...({ "webkit-playsinline": "true" } as Record<string, string>)}
+        preload="auto"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {/* Imagem por cima, com crossfade de saída quando o vídeo assume */}
+      <img
+        src={programaEsporte360.url}
+        alt="Programa Esporte 360"
+        fetchPriority="high"
+        draggable={false}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity ease-in-out ${
+          mostrarVideo ? "opacity-0" : "opacity-100"
+        }`}
+        style={{ transitionDuration: `${DURACAO_FADE}ms` }}
+      />
     </div>
   );
 }

@@ -73,8 +73,7 @@ export function TransicaoVideo() {
         muted
         loop
         playsInline
-        // @ts-expect-error atributo legado para iOS antigo
-        webkit-playsinline="true"
+        {...({ "webkit-playsinline": "true" } as Record<string, string>)}
         preload="auto"
         className="absolute inset-0 h-full w-full object-cover"
       />

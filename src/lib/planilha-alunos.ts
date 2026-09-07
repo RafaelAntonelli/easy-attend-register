@@ -9,6 +9,16 @@ export const DOCUMENTOS_PLANILHA = [
 
 export type CampoDocPlanilha = (typeof DOCUMENTOS_PLANILHA)[number]["campo"];
 
+/** Chave curta do tipo de arquivo, igual à usada no marcador do nome no Drive. */
+export function tipoArquivoPlanilha(campo: string) {
+  return campo === "foto_path" ? "foto" : campo.replace(/^doc_|_path$/g, "");
+}
+
+/** Chave do mapa de links do Drive: 8 primeiros caracteres do id + tipo. */
+export function chaveLinkDrive(alunoId: string, campo: string) {
+  return `${alunoId.slice(0, 8)}|${tipoArquivoPlanilha(campo)}`;
+}
+
 export type AlunoPlanilha = {
   id: string;
   nome: string;
@@ -48,14 +58,15 @@ export type OpcoesPlanilha = {
   alunos: AlunoPlanilha[];
   turmaDoAluno: (id: string) => TurmaPlanilha | undefined;
   modalidadeDoAluno: (id: string) => string;
-  /** Baixa um arquivo do storage para embutir a imagem na planilha. */
-  baixarArquivo?: (caminho: string) => Promise<ArrayBuffer | null>;
-  /** Permite cancelar a exportação no meio (o download das imagens é o passo demorado). */
+  /** Permite cancelar a exportação no meio. */
   sinal?: AbortSignal | undefined;
-  /** Progresso do processamento das linhas com imagens. */
+  /** Progresso do processamento das linhas. */
   aoProgredir?: ((feitos: number, total: number) => void) | undefined;
-  /** Gera links (URLs) para os arquivos: foto do aluno e documentos. */
-  linksArquivos?: ((caminhos: string[]) => Promise<Record<string, string>>) | undefined;
+  /**
+   * Links dos arquivos no Google Drive (onde ficam os backups).
+   * Devolve um mapa com a chave de `chaveLinkDrive(alunoId, campo)`.
+   */
+  linksDrive?: (() => Promise<Record<string, string>>) | undefined;
 };
 
 
@@ -83,7 +94,7 @@ function larguraTexto(texto: string) {
   return largura;
 }
 
-/** Monta a planilha de alunos em ordem crescente de idade, com as imagens dos documentos. */
+/** Monta a planilha de alunos em ordem crescente de idade, com links dos arquivos no Drive. */
 export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<ArrayBuffer> {
   const ExcelJS = (await import("exceljs")).default;
   const wb = new ExcelJS.Workbook();
@@ -94,13 +105,11 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
     "Responsável", "Rede de ensino", "Escola", "PCD", "Condições PCD", "Atestado entregue",
     "Data do atestado", "Modalidade", "Turma", "Horário", "Turno", "Situação", "Observações",
   ];
-  const cabecalho = [
-    ...colunasBase,
-    "Foto do aluno",
-    ...DOCUMENTOS_PLANILHA.map((d) => `Arquivo - ${d.rotulo}`),
-    "Link da foto do aluno",
-    ...DOCUMENTOS_PLANILHA.map((d) => `Link - ${d.rotulo}`),
+  const arquivos = [
+    { campo: "foto_path", rotulo: "Foto do aluno" },
+    ...DOCUMENTOS_PLANILHA.map((d) => ({ campo: d.campo as string, rotulo: d.rotulo })),
   ];
+  const cabecalho = [...colunasBase, ...arquivos.map((a) => `Link - ${a.rotulo}`)];
   ws.addRow(cabecalho);
   ws.getRow(1).font = { bold: true };
   ws.getRow(1).alignment = { vertical: "middle", horizontal: "center", wrapText: true };
@@ -114,18 +123,17 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
   });
 
   let links: Record<string, string> = {};
-  if (opcoes.linksArquivos) {
-    const caminhos = ordenados.flatMap((a) =>
-      [a.foto_path, ...DOCUMENTOS_PLANILHA.map((d) => a[d.campo])].filter((c): c is string => !!c),
-    );
-    if (caminhos.length) links = await opcoes.linksArquivos(caminhos);
+  if (opcoes.linksDrive) {
+    try {
+      links = await opcoes.linksDrive();
+    } catch {
+      links = {};
+    }
   }
-  const linkDe = (caminho?: string | null) => (caminho ? (links[caminho] ?? "") : "");
-  const nomeArquivo = (caminho?: string | null) => (caminho ? (caminho.split("/").pop() || "") : "");
+  if (opcoes.sinal?.aborted) throw new ExportacaoCancelada();
+  const linkDe = (aluno: AlunoPlanilha, campo: string) => links[chaveLinkDrive(aluno.id, campo)] ?? "";
 
-  const colunaNomeFoto = colunasBase.length;
-  const colunaNomeDocsInicial = colunaNomeFoto + 1;
-  const colunaLinkFoto = colunaNomeDocsInicial + DOCUMENTOS_PLANILHA.length;
+  const colunaLinkInicial = colunasBase.length + 1;
 
   const linhas = ordenados.map((a) => {
     const t = opcoes.turmaDoAluno(a.id);
@@ -156,38 +164,41 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
         turnoDoHorario(t?.horario),
         a.ativo === false ? "Inativo" : "Ativo",
         a.observacoes ?? "",
-        nomeArquivo(a.foto_path),
-        ...DOCUMENTOS_PLANILHA.map((d) => nomeArquivo(a[d.campo])),
-        linkDe(a.foto_path),
-        ...DOCUMENTOS_PLANILHA.map((d) => linkDe(a[d.campo])),
+        ...arquivos.map(() => ""),
       ] as (string | number)[],
     };
   });
 
   linhas.forEach((l) => ws.addRow(l.valores));
 
-  // Links clicáveis, com o nome do arquivo como texto exibido
+  // Links clicáveis para os arquivos no Google Drive
   for (let li = 0; li < linhas.length; li++) {
+    if (opcoes.sinal?.aborted) throw new ExportacaoCancelada();
+    opcoes.aoProgredir?.(li, linhas.length);
     const item = linhas[li];
     if (!item) continue;
     const linhaExcel = li + 2;
-    const arquivos = [item.aluno.foto_path, ...DOCUMENTOS_PLANILHA.map((d) => item.aluno[d.campo])];
-    arquivos.forEach((caminho, i) => {
-      const url = linkDe(caminho);
-      if (!url || !caminho) return;
-      const celula = ws.getCell(linhaExcel, colunaLinkFoto + i + 1);
-      celula.value = { text: nomeArquivo(caminho) || "Abrir arquivo", hyperlink: url };
+    arquivos.forEach((arq, i) => {
+      const temArquivo = Boolean((item.aluno as Record<string, unknown>)[arq.campo]);
+      if (!temArquivo) return;
+      const url = linkDe(item.aluno, arq.campo);
+      const celula = ws.getCell(linhaExcel, colunaLinkInicial + i);
+      if (!url) {
+        celula.value = "Não enviado ao Drive";
+        return;
+      }
+      celula.value = { text: `${arq.rotulo} - ${item.aluno.nome}`, hyperlink: url };
       celula.font = { color: { argb: "FF0563C1" }, underline: true };
     });
   }
+  opcoes.aoProgredir?.(linhas.length, linhas.length);
 
-  const colunasLargas = new Set(["Observações", "Condições PCD", "E-mail", "Escola", "Responsável", "Foto do aluno", "Link da foto do aluno"]);
+  const colunasLargas = new Set(["Observações", "Condições PCD", "E-mail", "Escola", "Responsável"]);
   const colunasFixas = new Set(["Sexo", "Idade", "PCD", "Atestado entregue"]);
 
   cabecalho.forEach((titulo, i) => {
     const col = ws.getColumn(i + 1);
     let maxLargura = larguraTexto(titulo);
-    let maxLinhas = 1;
     col.eachCell({ includeEmpty: false }, (celula, numeroLinha) => {
       if (numeroLinha === 1) return;
       const v = celula.value as unknown;
@@ -196,14 +207,13 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
           ? String((v as { text: unknown }).text ?? "")
           : String(v ?? "");
       maxLargura = Math.max(maxLargura, larguraTexto(texto));
-      maxLinhas = Math.max(maxLinhas, texto.split("\n").length, texto.split(" | ").length);
     });
 
     const quebra = colunasLargas.has(titulo);
     if (colunasFixas.has(titulo)) {
       col.width = Math.max(maxLargura + 2, 10);
-    } else if (titulo.startsWith("Link - ") || titulo.startsWith("Arquivo - ")) {
-      col.width = Math.min(Math.max(maxLargura + 3, 14), 38);
+    } else if (titulo.startsWith("Link - ")) {
+      col.width = Math.min(Math.max(maxLargura + 3, 18), 42);
     } else {
       col.width = Math.min(Math.max(maxLargura + 3, 10), quebra ? 55 : 36);
     }
@@ -217,43 +227,12 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
     cabecalho.forEach((titulo, ci) => {
       if (!colunasLargas.has(titulo)) return;
       const celula = ws.getCell(linhaExcel, ci + 1);
-      const v = celula.value as unknown;
-      const texto =
-        v && typeof v === "object" && "text" in (v as Record<string, unknown>)
-          ? String((v as { text: unknown }).text ?? "")
-          : String(v ?? "");
+      const texto = String(celula.value ?? "");
       const linhasTexto = Math.ceil(texto.length / ((ws.getColumn(ci + 1).width ?? 10) / 1.1));
       altura = Math.max(altura, Math.min(linhasTexto, 8) * 14);
     });
     ws.getRow(linhaExcel).height = altura;
   });
-
-  if (opcoes.baixarArquivo) {
-    for (let li = 0; li < linhas.length; li++) {
-      if (opcoes.sinal?.aborted) throw new ExportacaoCancelada();
-      opcoes.aoProgredir?.(li, linhas.length);
-      const item = linhas[li];
-      if (!item) continue;
-      const linhaExcel = li + 2;
-      let temImagem = false;
-      for (let di = 0; di < DOCUMENTOS_PLANILHA.length; di++) {
-        const doc = DOCUMENTOS_PLANILHA[di];
-        const caminho = doc ? item.aluno[doc.campo] : null;
-        if (!caminho) continue;
-        const ext = (caminho.split(".").pop() ?? "").toLowerCase();
-        if (!["png", "jpg", "jpeg"].includes(ext)) continue;
-        const buffer = await opcoes.baixarArquivo(caminho);
-        if (!buffer) continue;
-        const imageId = wb.addImage({ buffer, extension: ext === "png" ? "png" : "jpeg" });
-        ws.addImage(imageId, {
-          tl: { col: colunaNomeDocsInicial + di + 0.05, row: linhaExcel - 1 + 0.05 },
-          ext: { width: 90, height: 60 },
-        });
-        temImagem = true;
-      }
-      if (temImagem) ws.getRow(linhaExcel).height = Math.max(ws.getRow(linhaExcel).height ?? 15, 55);
-    }
-  }
 
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cabecalho.length } };
   return (await wb.xlsx.writeBuffer()) as ArrayBuffer;

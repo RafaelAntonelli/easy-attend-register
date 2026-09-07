@@ -264,7 +264,81 @@ async function baixarArquivoStorage(caminho: string) {
   return data ? await data.arrayBuffer() : null;
 }
 
-/** Gera e envia a planilha do dia e devolve a relação de fotos/documentos a enviar. */
+/**
+ * Monta o mapa de links dos arquivos que já estão no Drive.
+ * Chave: 8 primeiros caracteres do id do aluno + tipo (ex.: "a1b2c3d4|foto").
+ */
+export async function linksArquivosDrive(): Promise<Record<string, string>> {
+  const pastas = await pastasDrive();
+  const alvos = new Set<string>([pastas.fotos, pastas.documentos]);
+  for (const tipo of TIPOS_DOCUMENTO) {
+    const sub = pastas.subpastas[tipo.campo];
+    if (sub) {
+      try {
+        alvos.add(await garantirSubpasta(sub, pastas.documentos));
+      } catch {
+        /* subpasta indisponível: ignora */
+      }
+    }
+  }
+  const mapa: Record<string, string> = {};
+  const listagens = await Promise.all(
+    Array.from(alvos).map(async (p) => {
+      try {
+        return await listarPasta(p);
+      } catch {
+        return [] as ArquivoDrive[];
+      }
+    }),
+  );
+  for (const arquivos of listagens) {
+    for (const arquivo of arquivos) {
+      const m = arquivo.name.match(/\[([0-9a-zA-Z-]{8})-([a-z]+)\]/);
+      if (!m?.[1] || !m[2]) continue;
+      mapa[`${m[1]}|${m[2]}`] = `https://drive.google.com/file/d/${arquivo.id}/view`;
+    }
+  }
+  return mapa;
+}
+
+/** Gera a planilha (com os links do Drive) e envia para a pasta de planilhas. */
+export async function gerarPlanilhaBackup(): Promise<string> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const [{ data: alunos, error: erroAlunos }, { data: turmas }, { data: matriculas }] = await Promise.all([
+    supabaseAdmin.from("alunos").select("*"),
+    supabaseAdmin.from("turmas").select("*"),
+    supabaseAdmin.from("matriculas").select("*"),
+  ]);
+  if (erroAlunos) throw erroAlunos;
+
+  const lista = (alunos ?? []) as AlunoPlanilha[];
+  const matriculaDoAluno = (id: string) => (matriculas ?? []).find((m) => m.aluno_id === id);
+  const turmaDoAluno = (id: string) => {
+    const m = matriculaDoAluno(id);
+    return m ? (turmas ?? []).find((t) => t.id === m.turma_id) : undefined;
+  };
+
+  // A planilha não embute imagens: cada foto/documento vira um link
+  // para o arquivo correspondente no Google Drive.
+  const buffer = await montarPlanilhaAlunos({
+    alunos: lista,
+    turmaDoAluno,
+    modalidadeDoAluno: (id) => matriculaDoAluno(id)?.modalidade ?? turmaDoAluno(id)?.modalidade ?? "",
+    linksDrive: linksArquivosDrive,
+  });
+
+  const pastas = await pastasDrive();
+  const data = new Date().toISOString().slice(0, 10);
+  const planilha = await enviarParaDrive({
+    nome: `alunos-${data}.xlsx`,
+    pasta: pastas.planilhas,
+    conteudo: buffer,
+    tipo: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  return planilha.nome;
+}
+
+/** Prepara a fila de fotos/documentos a enviar para o Drive. */
 export async function prepararBackup(): Promise<{
   planilha: string;
   arquivos: ArquivoBackup[];
@@ -280,37 +354,11 @@ export async function prepararBackup(): Promise<{
     );
   }
 
-  const [{ data: alunos, error: erroAlunos }, { data: turmas }, { data: matriculas }] = await Promise.all([
-    supabaseAdmin.from("alunos").select("*"),
-    supabaseAdmin.from("turmas").select("*"),
-    supabaseAdmin.from("matriculas").select("*"),
-  ]);
+  const { data: alunos, error: erroAlunos } = await supabaseAdmin.from("alunos").select("*");
   if (erroAlunos) throw erroAlunos;
-
   const lista = (alunos ?? []) as AlunoPlanilha[];
-  const matriculaDoAluno = (id: string) => (matriculas ?? []).find((m) => m.aluno_id === id);
-  const turmaDoAluno = (id: string) => {
-    const m = matriculaDoAluno(id);
-    return m ? (turmas ?? []).find((t) => t.id === m.turma_id) : undefined;
-  };
-
-  // A planilha do backup não embute as fotos: elas são enviadas separadamente
-  // para o Drive. Embutir centenas de imagens estourava o tempo do servidor.
-  const buffer = await montarPlanilhaAlunos({
-    alunos: lista,
-    turmaDoAluno,
-    modalidadeDoAluno: (id) => matriculaDoAluno(id)?.modalidade ?? turmaDoAluno(id)?.modalidade ?? "",
-  });
-
 
   const pastas = await pastasDrive();
-  const data = new Date().toISOString().slice(0, 10);
-  const planilha = await enviarParaDrive({
-    nome: `alunos-${data}.xlsx`,
-    pasta: pastas.planilhas,
-    conteudo: buffer,
-    tipo: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
 
   // Resolve (criando se necessário) as subpastas de cada tipo de documento.
   const pastaPorTipo: Record<string, string> = {};
@@ -353,8 +401,9 @@ export async function prepararBackup(): Promise<{
   pastasUsadas.forEach((p, i) => {
     existentes[p] = listagens[i] ?? [];
   });
-  return { planilha: planilha.nome, arquivos, existentes };
+  return { planilha: "", arquivos, existentes };
 }
+
 
 /** Envia um lote de fotos/documentos para a pasta correspondente no Drive. */
 export async function enviarLoteBackup(
@@ -400,7 +449,10 @@ export async function enviarLoteBackup(
 
 /** Exporta a planilha do dia e todas as fotos/documentos para as pastas do Google Drive. */
 export async function executarBackupCompleto(): Promise<Resultado> {
-  const { planilha, arquivos, existentes } = await prepararBackup();
+  const { arquivos, existentes } = await prepararBackup();
   const { enviados, falhas } = await enviarLoteBackup(arquivos, existentes);
+  // A planilha é gerada depois do envio para que os links apontem para os arquivos já no Drive.
+  const planilha = await gerarPlanilhaBackup();
   return { planilha, imagens: enviados, falhas };
 }
+

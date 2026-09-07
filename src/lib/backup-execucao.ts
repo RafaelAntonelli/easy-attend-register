@@ -1,6 +1,12 @@
 import { toast } from "sonner";
 
-import { enviarLoteBackupFn, prepararBackupFn, registrarBackupFn } from "@/lib/backup.functions";
+import {
+  enviarLoteBackupFn,
+  gerarPlanilhaBackupFn,
+  prepararBackupFn,
+  registrarBackupFn,
+} from "@/lib/backup.functions";
+
 
 const LOTE = 8;
 
@@ -67,13 +73,13 @@ export async function executarBackupGlobal(): Promise<void> {
   if (estado.executando) return;
   atualizar({
     executando: true,
-    progresso: { etapa: "Gerando e enviando a planilha…", enviados: 0, total: 0, falhas: 0, restante: null },
+    progresso: { etapa: "Preparando o backup…", enviados: 0, total: 0, falhas: 0, restante: null },
   });
   try {
     const resposta = await prepararBackupFn({ data: undefined });
     if (!resposta) throw new Error("O servidor não respondeu ao preparar o backup. Tente novamente.");
     if (!resposta.ok) throw new Error(resposta.erro || "Falha ao preparar o backup.");
-    const { planilha, arquivos, existentes } = resposta;
+    const { arquivos, existentes } = resposta;
     const total = arquivos.length;
     const inicio = Date.now();
     let enviados = 0;
@@ -102,7 +108,13 @@ export async function executarBackupGlobal(): Promise<void> {
       });
     }
 
+    atualizar({
+      progresso: { etapa: "Gerando a planilha com os links…", enviados: total, total, falhas: falhas.length, restante: null },
+    });
+    const { planilha } = await gerarPlanilhaBackupFn({ data: undefined });
+
     const resumo = `${planilha} · ${enviados} arquivo(s)${falhas.length ? ` · ${falhas.length} falha(s)` : ""}`;
+
     const status = falhas.length > 0 ? ("falha" as const) : ("sucesso" as const);
     await registrarBackupFn({ data: { resumo, status } });
     atualizar({

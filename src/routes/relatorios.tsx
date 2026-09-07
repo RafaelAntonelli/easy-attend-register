@@ -102,23 +102,8 @@ function RelatoriosPage() {
         modalidadeDoAluno,
         sinal: controle.signal,
         aoProgredir: (feitos, total) => setProgressoPlanilha({ feitos, total }),
-        baixarArquivo: async (caminho) => {
-          const { data } = await supabase.storage.from("fotos-alunos").download(caminho);
-          return data ? await data.arrayBuffer() : null;
-        },
-        linksArquivos: async (caminhos) => {
-          const mapa: Record<string, string> = {};
-          const unicos = Array.from(new Set(caminhos));
-          for (let i = 0; i < unicos.length; i += 100) {
-            const lote = unicos.slice(i, i + 100);
-            const { data } = await supabase.storage.from("fotos-alunos").createSignedUrls(lote, 60 * 60 * 24 * 7);
-            data?.forEach((s, j) => {
-              const caminho = lote[j];
-              if (s.signedUrl && caminho) mapa[caminho] = s.signedUrl;
-            });
-          }
-          return mapa;
-        },
+        linksDrive: async () => await linksArquivosDriveFn({ data: undefined }),
+
       });
       const url = URL.createObjectURL(
         new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),

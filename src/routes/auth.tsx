@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Waves } from "lucide-react";
 import { toast } from "sonner";
+import loginImagem from "@/assets/login-esporte-360.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 
 import { useAuth } from "@/lib/auth";
@@ -112,21 +113,20 @@ function AuthPage() {
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="relative hidden flex-col justify-between bg-pool p-12 text-primary-foreground lg:flex">
-        <div className="flex items-center gap-3">
+      <div className="relative hidden flex-col justify-between overflow-hidden p-12 text-primary-foreground lg:flex">
+        <img
+          src={loginImagem.url}
+          alt="Programa Esporte 360"
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-transparent to-primary/60" />
+        <div className="relative z-10 flex items-center gap-3">
           <Waves className="size-7" />
           <span className="font-display text-xl font-semibold">Arena Aquática</span>
         </div>
-        <div>
-          <h2 className="font-display text-4xl font-semibold leading-tight">
-            Matrículas e presença
-            <br />em um só lugar.
-          </h2>
-          <p className="mt-4 max-w-sm text-primary-foreground/80">
-            Cadastre alunos, organize turmas e registre a presença por QR Code direto da borda da piscina.
-          </p>
+        <div className="relative z-10">
+          <p className="text-sm text-primary-foreground/80">Acesso exclusivo da equipe</p>
         </div>
-        <p className="text-sm text-primary-foreground/60">Acesso exclusivo da equipe</p>
       </div>
 
       <div className="flex items-center justify-center p-6">

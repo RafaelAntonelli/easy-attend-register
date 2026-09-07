@@ -318,13 +318,13 @@ export async function gerarPlanilhaBackup(): Promise<string> {
     return m ? (turmas ?? []).find((t) => t.id === m.turma_id) : undefined;
   };
 
-  // A planilha não embute imagens: cada foto/documento vira um link
-  // para o arquivo correspondente no Google Drive.
+  // A planilha não embute imagens: cada foto/documento vira um link direto
+  // do próprio sistema, que abre sem precisar solicitar acesso.
   const buffer = await montarPlanilhaAlunos({
     alunos: lista,
     turmaDoAluno,
     modalidadeDoAluno: (id) => matriculaDoAluno(id)?.modalidade ?? turmaDoAluno(id)?.modalidade ?? "",
-    linksDrive: linksArquivosDrive,
+    linksDrive: (await import("@/lib/links-arquivos.server")).linksArquivosStorage,
   });
 
   const pastas = await pastasDrive();

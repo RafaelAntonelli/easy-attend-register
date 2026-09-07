@@ -184,7 +184,7 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
       const url = linkDe(item.aluno, arq.campo);
       const celula = ws.getCell(linhaExcel, colunaLinkInicial + i);
       if (!url) {
-        celula.value = "Não enviado ao Drive";
+        celula.value = "Arquivo indisponível";
         return;
       }
       celula.value = { text: `${arq.rotulo} - ${item.aluno.nome}`, hyperlink: url };

@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { atestadoVencendo, atestadoVencido, diasParaVencer, vencimentoAtestado } from "@/lib/atestado";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
-import { linksArquivosDriveFn } from "@/lib/backup.functions";
+import { linksArquivosFn } from "@/lib/links-arquivos.functions";
 
 import { gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { faixaEtariaECA, turnoDoHorario } from "@/lib/turnos";
@@ -104,7 +104,7 @@ function RelatoriosPage() {
         modalidadeDoAluno,
         sinal: controle.signal,
         aoProgredir: (feitos, total) => setProgressoPlanilha({ feitos, total }),
-        linksDrive: async () => await linksArquivosDriveFn({ data: undefined }),
+        linksDrive: async () => await linksArquivosFn({ data: undefined }),
 
       });
       const url = URL.createObjectURL(

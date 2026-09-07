@@ -17,7 +17,7 @@ import { atestadoVencido, atestadoVencendo, diasParaVencer } from "@/lib/atestad
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { useAuth } from "@/lib/auth";
 import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
-import { linksArquivosDriveFn } from "@/lib/backup.functions";
+import { linksArquivosFn } from "@/lib/links-arquivos.functions";
 
 
 import { AppShell } from "@/components/AppShell";
@@ -828,7 +828,7 @@ function AlunosPage() {
         sinal: controle.signal,
         aoProgredir: (feitos, total) =>
           setProgressoPlanilha({ etapa: "Processando alunos e documentos...", feitos, total }),
-        linksDrive: async () => await linksArquivosDriveFn({ data: undefined }),
+        linksDrive: async () => await linksArquivosFn({ data: undefined }),
 
       });
       const url = URL.createObjectURL(

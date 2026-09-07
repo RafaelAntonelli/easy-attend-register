@@ -449,7 +449,10 @@ export async function enviarLoteBackup(
 
 /** Exporta a planilha do dia e todas as fotos/documentos para as pastas do Google Drive. */
 export async function executarBackupCompleto(): Promise<Resultado> {
-  const { planilha, arquivos, existentes } = await prepararBackup();
+  const { arquivos, existentes } = await prepararBackup();
   const { enviados, falhas } = await enviarLoteBackup(arquivos, existentes);
+  // A planilha é gerada depois do envio para que os links apontem para os arquivos já no Drive.
+  const planilha = await gerarPlanilhaBackup();
   return { planilha, imagens: enviados, falhas };
 }
+

@@ -1,6 +1,12 @@
 import { toast } from "sonner";
 
-import { enviarLoteBackupFn, prepararBackupFn, registrarBackupFn } from "@/lib/backup.functions";
+import {
+  enviarLoteBackupFn,
+  gerarPlanilhaBackupFn,
+  prepararBackupFn,
+  registrarBackupFn,
+} from "@/lib/backup.functions";
+
 
 const LOTE = 8;
 

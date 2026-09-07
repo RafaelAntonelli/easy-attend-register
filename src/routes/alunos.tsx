@@ -17,6 +17,8 @@ import { atestadoVencido, atestadoVencendo, diasParaVencer } from "@/lib/atestad
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { useAuth } from "@/lib/auth";
 import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
+import { linksArquivosDriveFn } from "@/lib/backup.functions";
+
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";

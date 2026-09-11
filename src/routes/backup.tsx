@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarClock, CheckCircle2, CloudUpload, FolderCog, FolderTree, KeyRound, ShieldAlert, XCircle } from "lucide-react";
+import { AtSign, CalendarClock, CheckCircle2, CloudUpload, FolderCog, FolderTree, KeyRound, ShieldAlert, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +26,9 @@ import {
   validarPastasDriveFn,
   statusBackupFn,
   salvarAgendamentoFn,
+  contaDriveFn,
 } from "@/lib/backup.functions";
+
 import { assinarBackup, estadoBackupAtual, executarBackupGlobal, notificar, type EstadoBackup } from "@/lib/backup-execucao";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

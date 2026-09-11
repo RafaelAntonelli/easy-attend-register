@@ -331,7 +331,7 @@ function BackupPage() {
 
     const t = window.setInterval(() => void atualizarStatus(true), 60_000);
     return () => window.clearInterval(t);
-  }, [isAdmin, atualizarStatus]);
+  }, [isAdmin, atualizarStatus, carregarConta]);
 
   async function gravarAgendamento() {
     setSalvandoAgenda(true);

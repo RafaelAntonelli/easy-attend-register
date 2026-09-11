@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { TURNOS, turnoDoHorario } from "@/lib/turnos";
 import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
 import { correspondeBusca, relevanciaBusca } from "@/lib/formatacao";
+import { useGruposDias } from "@/lib/dias";
 
 
 

@@ -71,6 +71,7 @@ const GRUPOS_DIAS = [
 ];
 
 function PresencaPage() {
+  const { lista: listaGrupos } = useGruposDias();
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [fotos, setFotos] = useState<Record<string, string>>({});
@@ -78,6 +79,7 @@ function PresencaPage() {
   const [turmaId, setTurmaId] = useState("");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
   const [filtroTurno, setFiltroTurno] = useState("todos");
+  const [filtroDias, setFiltroDias] = useState("todos");
   const [scanning, setScanning] = useState(false);
   const [busca, setBusca] = useState("");
   const [statusPorAluno, setStatusPorAluno] = useState<Record<string, StatusPresenca>>({});

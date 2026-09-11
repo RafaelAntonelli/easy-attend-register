@@ -46,7 +46,7 @@ export const Route = createFileRoute("/presenca")({
   }),
 });
 
-type Turma = { id: string; nome: string; horario: string | null; modalidade: string };
+type Turma = { id: string; nome: string; horario: string | null; modalidade: string; dias_semana: string[] | null };
 type Aluno = { id: string; nome: string; codigo: string; foto_path: string | null };
 
 /** Iniciais do aluno (primeira e última letra do nome) para quando não há foto. */

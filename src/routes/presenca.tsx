@@ -108,7 +108,7 @@ function PresencaPage() {
         return;
       }
       const [t, a, m] = await Promise.all([
-        supabase.from("turmas").select("id,nome,horario,modalidade").order("nome"),
+        supabase.from("turmas").select("id,nome,horario,modalidade,dias_semana").order("nome"),
         supabase.from("alunos").select("id,nome,codigo,foto_path").eq("ativo", true).order("nome"),
         supabase.from("matriculas").select("aluno_id,turma_id").eq("status", "ativa"),
       ]);

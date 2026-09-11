@@ -282,13 +282,27 @@ function PresencaPage() {
       if (turmaId && t?.id !== turmaId) return false;
       if (filtroModalidade !== "todas" && (t?.modalidade ?? "") !== filtroModalidade) return false;
       if (filtroTurno !== "todos" && turnoDoHorario(t?.horario) !== filtroTurno) return false;
+      if (filtroDias !== "todos") {
+        const grupo = listaGrupos.find((g) => g.label === filtroDias);
+        const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
+        const diasTurma = t?.dias_semana ?? [];
+        if (!diasEsperados.length || !diasEsperados.every((d) => diasTurma.includes(d))) return false;
+      }
       return true;
     })
     .sort((a, b) => relevanciaBusca(a.nome, busca) - relevanciaBusca(b.nome, busca) || a.nome.localeCompare(b.nome));
   const turmasVisiveis = turmas.filter(
-    (t) =>
-      (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
-      (filtroTurno === "todos" || turnoDoHorario(t.horario) === filtroTurno),
+    (t) => {
+      if (filtroModalidade !== "todas" && t.modalidade !== filtroModalidade) return false;
+      if (filtroTurno !== "todos" && turnoDoHorario(t.horario) !== filtroTurno) return false;
+      if (filtroDias !== "todos") {
+        const grupo = listaGrupos.find((g) => g.label === filtroDias);
+        const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
+        const diasTurma = t.dias_semana ?? [];
+        if (!diasEsperados.length || !diasEsperados.every((d) => diasTurma.includes(d))) return false;
+      }
+      return true;
+    },
   );
 
   return (

@@ -200,6 +200,30 @@ function BackupPage() {
   const [checagens, setChecagens] = useState<ChecagemPasta[] | null>(null);
   const [verificando, setVerificando] = useState(false);
   const validarPastas = useServerFn(validarPastasDriveFn);
+  const lerConta = useServerFn(contaDriveFn);
+  const [conta, setConta] = useState<{ email: string | null; nome: string | null; erro?: string } | null>(null);
+  const [lendoConta, setLendoConta] = useState(false);
+
+  const carregarConta = useCallback(async () => {
+    setLendoConta(true);
+    try {
+      const dados = await lerConta({ data: undefined });
+      setConta(dados);
+      return dados;
+    } catch {
+      setConta({ email: null, nome: null, erro: "Não foi possível consultar a conta conectada." });
+      return null;
+    } finally {
+      setLendoConta(false);
+    }
+  }, [lerConta]);
+
+  async function verificarConta() {
+    const dados = await carregarConta();
+    if (dados?.email) toast.success(`Backup guardado na conta ${dados.email}.`);
+    else toast.error(dados?.erro ?? "Não foi possível identificar a conta conectada.");
+  }
+
 
   async function verificarPastas() {
     setVerificando(true);

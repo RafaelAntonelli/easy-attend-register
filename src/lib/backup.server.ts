@@ -87,7 +87,27 @@ function nomeArquivoSeguro(texto: string) {
   return texto.replace(/[\\/:*?"<>|]/g, "-").replace(/\s+/g, " ").trim();
 }
 
+// ------------------------------------------------------------- conta Google
+
+/** Lê a conta Google (email) que está guardando os backups. */
+export async function contaDrive(): Promise<{ email: string | null; nome: string | null; erro?: string }> {
+  try {
+    const resp = await fetch(`${GATEWAY}/drive/v3/about?fields=user(displayName,emailAddress)`, {
+      headers: cabecalhosDrive(),
+    });
+    if (!resp.ok) {
+      const corpo = await resp.text();
+      return { email: null, nome: null, erro: `Drive respondeu ${resp.status}: ${corpo.slice(0, 160)}` };
+    }
+    const json = (await resp.json()) as { user?: { displayName?: string; emailAddress?: string } };
+    return { email: json.user?.emailAddress ?? null, nome: json.user?.displayName ?? null };
+  } catch (err) {
+    return { email: null, nome: null, erro: err instanceof Error ? err.message : "Falha ao consultar o Google Drive." };
+  }
+}
+
 // ---------------------------------------------------------------- validação
+
 
 export type ChecagemPasta = {
   chave: string;

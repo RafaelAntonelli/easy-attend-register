@@ -80,7 +80,17 @@ export const enviarLoteBackupFn = createServerFn({ method: "POST" })
     return await enviarLoteBackup(data.arquivos, data.existentes);
   });
 
+/** Conta Google (email) onde os backups estão sendo guardados. */
+export const contaDriveFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await garantirAdmin(context);
+    const { contaDrive } = await import("@/lib/backup.server");
+    return await contaDrive();
+  });
+
 /** Verifica se as pastas do Drive configuradas existem e aceitam novos arquivos. */
+
 export const validarPastasDriveFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

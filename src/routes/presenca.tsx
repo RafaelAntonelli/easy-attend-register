@@ -307,7 +307,7 @@ function PresencaPage() {
 
   return (
     <AppShell title="Presença" subtitle={`Registros de ${data.toLocaleDateString("pt-BR")}`}>
-      <div className="mb-6 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-2">
 
           <Label>Data do registro</Label>
@@ -363,6 +363,24 @@ function PresencaPage() {
               <SelectItem value="todas">Todas as modalidades</SelectItem>
               <SelectItem value="Natação">Natação</SelectItem>
               <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Dias</Label>
+          <Select
+            value={filtroDias}
+            onValueChange={(v) => {
+              setFiltroDias(v);
+              setTurmaId("");
+            }}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-80">
+              <SelectItem value="todos">Todos os dias</SelectItem>
+              {listaGrupos.map((g) => (
+                <SelectItem key={g.id} value={g.label}>{g.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

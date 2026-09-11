@@ -327,6 +327,8 @@ function BackupPage() {
   useEffect(() => {
     if (!isAdmin) return;
     void atualizarStatus(false);
+    void carregarConta();
+
     const t = window.setInterval(() => void atualizarStatus(true), 60_000);
     return () => window.clearInterval(t);
   }, [isAdmin, atualizarStatus]);

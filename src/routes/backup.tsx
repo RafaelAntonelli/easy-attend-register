@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarClock, CheckCircle2, CloudUpload, FolderCog, FolderTree, KeyRound, ShieldAlert, XCircle } from "lucide-react";
+import { AtSign, CalendarClock, CheckCircle2, CloudUpload, FolderCog, FolderTree, KeyRound, ShieldAlert, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +26,9 @@ import {
   validarPastasDriveFn,
   statusBackupFn,
   salvarAgendamentoFn,
+  contaDriveFn,
 } from "@/lib/backup.functions";
+
 import { assinarBackup, estadoBackupAtual, executarBackupGlobal, notificar, type EstadoBackup } from "@/lib/backup-execucao";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -198,6 +200,30 @@ function BackupPage() {
   const [checagens, setChecagens] = useState<ChecagemPasta[] | null>(null);
   const [verificando, setVerificando] = useState(false);
   const validarPastas = useServerFn(validarPastasDriveFn);
+  const lerConta = useServerFn(contaDriveFn);
+  const [conta, setConta] = useState<{ email: string | null; nome: string | null; erro?: string } | null>(null);
+  const [lendoConta, setLendoConta] = useState(false);
+
+  const carregarConta = useCallback(async () => {
+    setLendoConta(true);
+    try {
+      const dados = await lerConta({ data: undefined });
+      setConta(dados);
+      return dados;
+    } catch {
+      setConta({ email: null, nome: null, erro: "Não foi possível consultar a conta conectada." });
+      return null;
+    } finally {
+      setLendoConta(false);
+    }
+  }, [lerConta]);
+
+  async function verificarConta() {
+    const dados = await carregarConta();
+    if (dados?.email) toast.success(`Backup guardado na conta ${dados.email}.`);
+    else toast.error(dados?.erro ?? "Não foi possível identificar a conta conectada.");
+  }
+
 
   async function verificarPastas() {
     setVerificando(true);
@@ -301,9 +327,11 @@ function BackupPage() {
   useEffect(() => {
     if (!isAdmin) return;
     void atualizarStatus(false);
+    void carregarConta();
+
     const t = window.setInterval(() => void atualizarStatus(true), 60_000);
     return () => window.clearInterval(t);
-  }, [isAdmin, atualizarStatus]);
+  }, [isAdmin, atualizarStatus, carregarConta]);
 
   async function gravarAgendamento() {
     setSalvandoAgenda(true);
@@ -543,6 +571,38 @@ function BackupPage() {
         </CardContent>
       </Card>
       <Card className="mt-4 max-w-2xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 font-display text-base">
+            <AtSign className="size-4" /> Conta Google do backup
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
+            <p>
+              <span className="text-muted-foreground">Email em uso: </span>
+              {conta === null ? "—" : (conta.email ?? "não identificado")}
+            </p>
+            {conta?.nome ? (
+              <p>
+                <span className="text-muted-foreground">Conta: </span>
+                {conta.nome}
+              </p>
+            ) : null}
+            {conta?.erro ? <p className="text-destructive">{conta.erro}</p> : null}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Para guardar os backups em outro email, é preciso trocar a conta Google conectada ao sistema. Peça essa
+            troca ao responsável pelo aplicativo: a nova conta precisa entrar e autorizar o acesso ao Google Drive, e
+            depois as pastas de destino acima devem ser atualizadas com pastas dessa conta.
+          </p>
+          <Button variant="outline" disabled={lendoConta} onClick={() => void verificarConta()}>
+            <AtSign className="size-4" /> {lendoConta ? "Consultando..." : "Verificar conta conectada"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 max-w-2xl">
+
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">
             <FolderTree className="size-4" /> Subpastas por tipo de documento

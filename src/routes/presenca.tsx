@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { TURNOS, turnoDoHorario } from "@/lib/turnos";
 import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
 import { correspondeBusca, relevanciaBusca } from "@/lib/formatacao";
+import { useGruposDias } from "@/lib/dias";
 
 
 
@@ -45,7 +46,7 @@ export const Route = createFileRoute("/presenca")({
   }),
 });
 
-type Turma = { id: string; nome: string; horario: string | null; modalidade: string };
+type Turma = { id: string; nome: string; horario: string | null; modalidade: string; dias_semana: string[] | null };
 type Aluno = { id: string; nome: string; codigo: string; foto_path: string | null };
 
 /** Iniciais do aluno (primeira e última letra do nome) para quando não há foto. */
@@ -70,6 +71,7 @@ const GRUPOS_DIAS = [
 ];
 
 function PresencaPage() {
+  const { lista: listaGrupos } = useGruposDias();
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [fotos, setFotos] = useState<Record<string, string>>({});
@@ -77,6 +79,7 @@ function PresencaPage() {
   const [turmaId, setTurmaId] = useState("");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
   const [filtroTurno, setFiltroTurno] = useState("todos");
+  const [filtroDias, setFiltroDias] = useState("todos");
   const [scanning, setScanning] = useState(false);
   const [busca, setBusca] = useState("");
   const [statusPorAluno, setStatusPorAluno] = useState<Record<string, StatusPresenca>>({});
@@ -105,7 +108,7 @@ function PresencaPage() {
         return;
       }
       const [t, a, m] = await Promise.all([
-        supabase.from("turmas").select("id,nome,horario,modalidade").order("nome"),
+        supabase.from("turmas").select("id,nome,horario,modalidade,dias_semana").order("nome"),
         supabase.from("alunos").select("id,nome,codigo,foto_path").eq("ativo", true).order("nome"),
         supabase.from("matriculas").select("aluno_id,turma_id").eq("status", "ativa"),
       ]);
@@ -279,18 +282,32 @@ function PresencaPage() {
       if (turmaId && t?.id !== turmaId) return false;
       if (filtroModalidade !== "todas" && (t?.modalidade ?? "") !== filtroModalidade) return false;
       if (filtroTurno !== "todos" && turnoDoHorario(t?.horario) !== filtroTurno) return false;
+      if (filtroDias !== "todos") {
+        const grupo = listaGrupos.find((g) => g.label === filtroDias);
+        const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
+        const diasTurma = t?.dias_semana ?? [];
+        if (!diasEsperados.length || !diasEsperados.every((d) => diasTurma.includes(d))) return false;
+      }
       return true;
     })
     .sort((a, b) => relevanciaBusca(a.nome, busca) - relevanciaBusca(b.nome, busca) || a.nome.localeCompare(b.nome));
   const turmasVisiveis = turmas.filter(
-    (t) =>
-      (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
-      (filtroTurno === "todos" || turnoDoHorario(t.horario) === filtroTurno),
+    (t) => {
+      if (filtroModalidade !== "todas" && t.modalidade !== filtroModalidade) return false;
+      if (filtroTurno !== "todos" && turnoDoHorario(t.horario) !== filtroTurno) return false;
+      if (filtroDias !== "todos") {
+        const grupo = listaGrupos.find((g) => g.label === filtroDias);
+        const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
+        const diasTurma = t.dias_semana ?? [];
+        if (!diasEsperados.length || !diasEsperados.every((d) => diasTurma.includes(d))) return false;
+      }
+      return true;
+    },
   );
 
   return (
     <AppShell title="Presença" subtitle={`Registros de ${data.toLocaleDateString("pt-BR")}`}>
-      <div className="mb-6 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-2">
 
           <Label>Data do registro</Label>
@@ -346,6 +363,24 @@ function PresencaPage() {
               <SelectItem value="todas">Todas as modalidades</SelectItem>
               <SelectItem value="Natação">Natação</SelectItem>
               <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Dias</Label>
+          <Select
+            value={filtroDias}
+            onValueChange={(v) => {
+              setFiltroDias(v);
+              setTurmaId("");
+            }}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-80">
+              <SelectItem value="todos">Todos os dias</SelectItem>
+              {listaGrupos.map((g) => (
+                <SelectItem key={g.id} value={g.label}>{g.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

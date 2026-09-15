@@ -102,7 +102,6 @@ function TurmasPage() {
   const [contagem, setContagem] = useState<Record<string, number>>({});
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Turma | null>(null);
-  const [nome, setNome] = useState("");
   const [modalidade, setModalidade] = useState("Natação");
   const [professor, setProfessor] = useState("");
   const [grupo, setGrupo] = useState("");
@@ -139,7 +138,6 @@ function TurmasPage() {
 
   function abrirNova() {
     setEditando(null);
-    setNome("");
     setModalidade("Natação");
     setProfessor("");
     setGrupo("");
@@ -150,7 +148,6 @@ function TurmasPage() {
 
   function abrirEdicao(t: Turma) {
     setEditando(t);
-    setNome(t.nome);
     setModalidade(t.modalidade);
     setProfessor(t.professor ?? "");
     setGrupo(grupoDosDias(t.dias_semana));
@@ -164,8 +161,9 @@ function TurmasPage() {
     const dias = listaGrupos.find((g) => g.label === grupo)?.dias ?? [];
     if (!dias.length) return toast.error("Selecione os dias da semana");
     if (!horario) return toast.error("Selecione o horário");
+    const nomeAutomatico = `${modalidade} · ${grupo} · ${horario}`;
     const payload = {
-      nome,
+      nome: nomeAutomatico,
       modalidade,
       professor: professor || null,
       dias_semana: [...dias],
@@ -340,6 +338,7 @@ function TurmasPage() {
       (filtroTurno === "todos" || turnoDoHorario(t.horario) === filtroTurno) &&
       (filtroDias === "todos" || grupoDosDias(t.dias_semana) === filtroDias),
   );
+  const nomeAutomatico = [modalidade, grupo, horario].filter(Boolean).join(" · ");
 
 
   return (
@@ -397,7 +396,7 @@ function TurmasPage() {
           <form onSubmit={salvar} className="space-y-4">
             <div className="space-y-2">
               <Label>Nome da turma</Label>
-              <Input required value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Natação Infantil A" />
+              <Input value={nomeAutomatico} placeholder="Preenchido automaticamente" readOnly aria-readonly="true" />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">

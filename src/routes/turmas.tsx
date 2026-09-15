@@ -4,7 +4,7 @@ import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays }
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useHorarios } from "@/lib/horarios";
-import { FAIXAS_ETARIAS, TURNOS, faixaEtariaECA, turnoDoHorario } from "@/lib/turnos";
+import { TURNOS, turnoDoHorario } from "@/lib/turnos";
 
 import { useGruposDias, diasDoLabel } from "@/lib/dias";
 import { AppShell } from "@/components/AppShell";
@@ -52,7 +52,6 @@ type Turma = {
 };
 
 type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean; foto_path: string | null };
-type AlunoFaixa = { data_nascimento: string | null; idade: number | null };
 type StatusPresenca = "presente" | "falta" | "falta_justificada";
 
 const ROTULO_PRESENCA: Record<StatusPresenca, string> = {
@@ -111,9 +110,6 @@ function TurmasPage() {
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
   const [filtroHorario, setFiltroHorario] = useState("todos");
   const [filtroTurno, setFiltroTurno] = useState("todos");
-  const [filtroFaixaEtaria, setFiltroFaixaEtaria] = useState("todas");
-  const [faixasPorTurma, setFaixasPorTurma] = useState<Record<string, Set<string>>>({});
-
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [statusPresenca, setStatusPresenca] = useState<Record<string, StatusPresenca>>({});
   const [observacoesPresenca, setObservacoesPresenca] = useState<Record<string, string>>({});
@@ -125,23 +121,15 @@ function TurmasPage() {
   async function carregar() {
     const [t, m] = await Promise.all([
       supabase.from("turmas").select("*").order("nome"),
-      supabase.from("matriculas").select("turma_id,alunos(data_nascimento,idade)"),
+      supabase.from("matriculas").select("turma_id"),
     ]);
     if (t.data) setTurmas(t.data as Turma[]);
     if (m.data) {
       const c: Record<string, number> = {};
-      const faixas: Record<string, Set<string>> = {};
-      for (const row of m.data as { turma_id: string; alunos: AlunoFaixa | null }[]) {
+      for (const row of m.data as { turma_id: string }[]) {
         c[row.turma_id] = (c[row.turma_id] ?? 0) + 1;
-        const faixa = faixaEtariaECA(row.alunos?.data_nascimento, row.alunos?.idade);
-        if (faixa) {
-          const faixasDaTurma = faixas[row.turma_id] ?? new Set<string>();
-          faixasDaTurma.add(faixa);
-          faixas[row.turma_id] = faixasDaTurma;
-        }
       }
       setContagem(c);
-      setFaixasPorTurma(faixas);
     }
   }
 
@@ -349,7 +337,6 @@ function TurmasPage() {
       (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
       (filtroHorario === "todos" || t.horario === filtroHorario) &&
       (filtroTurno === "todos" || turnoDoHorario(t.horario) === filtroTurno) &&
-      (filtroFaixaEtaria === "todas" || faixasPorTurma[t.id]?.has(filtroFaixaEtaria)) &&
       (filtroDias === "todos" || grupoDosDias(t.dias_semana) === filtroDias),
   );
   const nomeAutomatico = [modalidade, grupo, horario].filter(Boolean).join(" · ");
@@ -392,15 +379,6 @@ function TurmasPage() {
               <SelectItem value="todos">Todos os horários</SelectItem>
               {listaHorarios.map((h) => (
                 <SelectItem key={h} value={h}>{h}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filtroFaixaEtaria} onValueChange={setFiltroFaixaEtaria}>
-            <SelectTrigger className="sm:w-48"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as faixas etárias</SelectItem>
-              {FAIXAS_ETARIAS.map((faixa) => (
-                <SelectItem key={faixa} value={faixa}>{faixa}</SelectItem>
               ))}
             </SelectContent>
           </Select>

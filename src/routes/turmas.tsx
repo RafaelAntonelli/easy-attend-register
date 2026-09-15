@@ -135,8 +135,9 @@ function TurmasPage() {
         c[row.turma_id] = (c[row.turma_id] ?? 0) + 1;
         const faixa = faixaEtariaECA(row.alunos?.data_nascimento, row.alunos?.idade);
         if (faixa) {
-          faixas[row.turma_id] ??= new Set<string>();
-          faixas[row.turma_id].add(faixa);
+          const faixasDaTurma = faixas[row.turma_id] ?? new Set<string>();
+          faixasDaTurma.add(faixa);
+          faixas[row.turma_id] = faixasDaTurma;
         }
       }
       setContagem(c);

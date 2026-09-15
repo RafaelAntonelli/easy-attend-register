@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Check, Search, X, FileCheck, CalendarIcon } from "lucide-react";
+import { Camera, CameraOff, Check, Search, X, FileCheck, CalendarIcon, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -13,6 +13,12 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +33,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { TURNOS, turnoDoHorario } from "@/lib/turnos";
+import { FAIXAS_ETARIAS, faixaEtariaECA, TURNOS, turnoDoHorario, type FaixaEtaria } from "@/lib/turnos";
 import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
 import { correspondeBusca, relevanciaBusca } from "@/lib/formatacao";
 import { useGruposDias } from "@/lib/dias";
@@ -47,7 +53,14 @@ export const Route = createFileRoute("/presenca")({
 });
 
 type Turma = { id: string; nome: string; horario: string | null; modalidade: string; dias_semana: string[] | null };
-type Aluno = { id: string; nome: string; codigo: string; foto_path: string | null };
+type Aluno = {
+  id: string;
+  nome: string;
+  codigo: string;
+  foto_path: string | null;
+  data_nascimento: string | null;
+  idade: number | null;
+};
 
 /** Iniciais do aluno (primeira e última letra do nome) para quando não há foto. */
 function iniciais(nome: string) {
@@ -80,6 +93,7 @@ function PresencaPage() {
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [filtroDias, setFiltroDias] = useState("todos");
+  const [filtrosFaixaEtaria, setFiltrosFaixaEtaria] = useState<FaixaEtaria[]>([]);
   const [scanning, setScanning] = useState(false);
   const [busca, setBusca] = useState("");
   const [statusPorAluno, setStatusPorAluno] = useState<Record<string, StatusPresenca>>({});
@@ -109,7 +123,7 @@ function PresencaPage() {
       }
       const [t, a, m] = await Promise.all([
         supabase.from("turmas").select("id,nome,horario,modalidade,dias_semana").order("nome"),
-        supabase.from("alunos").select("id,nome,codigo,foto_path").eq("ativo", true).order("nome"),
+        supabase.from("alunos").select("id,nome,codigo,foto_path,data_nascimento,idade").eq("ativo", true).order("nome"),
         supabase.from("matriculas").select("aluno_id,turma_id").eq("status", "ativa"),
       ]);
       if (t.data) setTurmas(t.data as Turma[]);
@@ -275,6 +289,18 @@ function PresencaPage() {
     return m ? turmas.find((t) => t.id === m.turma_id) ?? null : null;
   };
 
+  function alternarFaixaEtaria(faixa: FaixaEtaria, marcada: boolean) {
+    setFiltrosFaixaEtaria((atuais) =>
+      marcada ? [...atuais, faixa] : atuais.filter((item) => item !== faixa),
+    );
+  }
+
+  const rotuloFaixas = filtrosFaixaEtaria.length === 0
+    ? "Todas as faixas etárias"
+    : filtrosFaixaEtaria.length === 1
+      ? filtrosFaixaEtaria[0]
+      : `${filtrosFaixaEtaria.length} faixas selecionadas`;
+
   const filtrados = alunos
     .filter((a) => {
       if (!correspondeBusca(a, busca)) return false;
@@ -282,6 +308,10 @@ function PresencaPage() {
       if (turmaId && t?.id !== turmaId) return false;
       if (filtroModalidade !== "todas" && (t?.modalidade ?? "") !== filtroModalidade) return false;
       if (filtroTurno !== "todos" && turnoDoHorario(t?.horario) !== filtroTurno) return false;
+      if (filtrosFaixaEtaria.length > 0) {
+        const faixa = faixaEtariaECA(a.data_nascimento, a.idade);
+        if (!faixa || !filtrosFaixaEtaria.includes(faixa)) return false;
+      }
       if (filtroDias !== "todos") {
         const grupo = listaGrupos.find((g) => g.label === filtroDias);
         const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
@@ -307,7 +337,7 @@ function PresencaPage() {
 
   return (
     <AppShell title="Presença" subtitle={`Registros de ${data.toLocaleDateString("pt-BR")}`}>
-      <div className="mb-6 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-6 grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <div className="space-y-2">
 
           <Label>Data do registro</Label>
@@ -383,6 +413,45 @@ function PresencaPage() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Faixa etária</Label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-between font-normal"
+                aria-label={`Filtrar por faixa etária: ${rotuloFaixas}`}
+              >
+                <span className="truncate">{rotuloFaixas}</span>
+                <ChevronDown className="size-4 shrink-0 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]" align="start">
+              {FAIXAS_ETARIAS.map((faixa) => (
+                <DropdownMenuCheckboxItem
+                  key={faixa}
+                  checked={filtrosFaixaEtaria.includes(faixa)}
+                  onCheckedChange={(marcada) => alternarFaixaEtaria(faixa, marcada === true)}
+                  onSelect={(evento) => evento.preventDefault()}
+                >
+                  {faixa}
+                </DropdownMenuCheckboxItem>
+              ))}
+              {filtrosFaixaEtaria.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="mt-1 w-full justify-start"
+                  onClick={() => setFiltrosFaixaEtaria([])}
+                >
+                  <X className="size-4" /> Limpar seleção
+                </Button>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <div className="space-y-2">
           <Label>Turma da aula</Label>

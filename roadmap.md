@@ -1,6 +1,7 @@
 # Roadmap
 
-- [x] Turmas: adicionar filtro por faixa etária.
+- [x] Turmas: remover filtro por faixa etária.
+- [x] Presença: adicionar filtro múltiplo por faixa etária.
 - [x] Presença: adicionar rolagem em Registros do dia.
 - [x] Presença: aumentar a lista manual e as fotos dos alunos.
 - [x] Alunos: notificar alunos sem atestado médico.

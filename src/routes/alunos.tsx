@@ -156,11 +156,11 @@ function AlunosPage() {
     "todos" | "ativos" | "inativos" | "sem_atestado" | "atestado_vencido" | "atestado_vencer" | "excesso_faltas"
   >("todos");
   const [listasNotificacoes, setListasNotificacoes] = useState<Record<string, boolean>>({
-    inativos: true,
-    sem_atestado: true,
-    atestado_vencido: true,
-    atestado_vencer: true,
-    excesso_faltas: true,
+    inativos: false,
+    sem_atestado: false,
+    atestado_vencido: false,
+    atestado_vencer: false,
+    excesso_faltas: false,
   });
   const { valor: prazoAviso } = usePrazoAvisoAtestado();
   const [gerandoCrachas, setGerandoCrachas] = useState(false);

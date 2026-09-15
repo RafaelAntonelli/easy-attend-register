@@ -1,8 +1,18 @@
-const CACHE = "arena-aquatica-v5";
+const CACHE = "arena-aquatica-v6-abertura";
+const RECURSOS_INICIAIS = [
+  "/",
+  "/manifest.webmanifest",
+  "/favicon.png",
+  "/icons/icon-192x192.png",
+  "/icons/icon-512x512.png",
+  "/icons/apple-touch-icon.png",
+  "/__l5e/assets-v1/a5d19cad-0c09-4153-ab96-9d4a730210b9/abertura-seculje-atual.png",
+  "/__l5e/assets-v1/fc8e833a-0b40-4e95-90e7-3d2f13da9acd/abertura-esporte-360.png",
+];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/manifest.webmanifest", "/favicon.ico", "/icons/icon-192x192.png", "/icons/icon-512x512.png", "/icons/apple-touch-icon.png", "/__l5e/assets-v1/b7812670-724f-4961-abc6-5886da4afd01/abertura.mp4"]).catch(() => undefined)));
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(RECURSOS_INICIAIS).catch(() => undefined)));
 });
 
 self.addEventListener("activate", (event) => {

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -153,8 +153,15 @@ function AlunosPage() {
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [turnoForm, setTurnoForm] = useState("todos");
   const [filtroNotificacao, setFiltroNotificacao] = useState<
-    "todos" | "ativos" | "inativos" | "atestado_vencido" | "atestado_vencer" | "excesso_faltas"
+    "todos" | "ativos" | "inativos" | "sem_atestado" | "atestado_vencido" | "atestado_vencer" | "excesso_faltas"
   >("todos");
+  const [listasNotificacoes, setListasNotificacoes] = useState<Record<string, boolean>>({
+    inativos: true,
+    sem_atestado: true,
+    atestado_vencido: true,
+    atestado_vencer: true,
+    excesso_faltas: true,
+  });
   const { valor: prazoAviso } = usePrazoAvisoAtestado();
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
   const [mostrarGuias, setMostrarGuias] = useState(false);
@@ -861,6 +868,7 @@ function AlunosPage() {
       if (!correspondeBusca(a, busca)) return false;
       if (filtroNotificacao === "ativos" && !a.ativo) return false;
       if (filtroNotificacao === "inativos" && a.ativo) return false;
+      if (filtroNotificacao === "sem_atestado" && a.atestado_entregue) return false;
       if (filtroNotificacao === "atestado_vencido" && !(a.atestado_entregue && atestadoVencido(a.atestado_data))) return false;
       if (filtroNotificacao === "atestado_vencer" && !(a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso))) return false;
       if (filtroNotificacao === "excesso_faltas" && (faltasPorAluno[a.id] ?? 0) < 5) return false;
@@ -895,12 +903,16 @@ function AlunosPage() {
 
 
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
+  const semAtestado = alunos.filter((a) => !a.atestado_entregue).sort((a, b) => a.nome.localeCompare(b.nome));
   const proximosVencimento = alunos.filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso));
   const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
   const inativos = alunos.filter((a) => !a.ativo).sort((a, b) => a.nome.localeCompare(b.nome));
 
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
   const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
+  const alternarListaNotificacao = (lista: string) => {
+    setListasNotificacoes((atual) => ({ ...atual, [lista]: !atual[lista] }));
+  };
 
   return (
     <AppShell title="Alunos" subtitle="Cadastro e matrículas da Arena Aquática">
@@ -913,10 +925,15 @@ function AlunosPage() {
           onClick={() => setFiltroNotificacao(filtroNotificacao === "inativos" ? "todos" : "inativos")}
         >
           <CardContent className="space-y-2 py-4">
-            <p className="flex items-center gap-2 font-medium text-muted-foreground">
-              <UserX className="size-4" /> Notificações · {inativos.length} aluno(s) inativo(s)
-            </p>
-            <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-2 font-medium text-muted-foreground">
+                <UserX className="size-4" /> Notificações · {inativos.length} aluno(s) inativo(s)
+              </p>
+              <Button variant="ghost" size="icon" title={listasNotificacoes["inativos"] ? "Esconder lista" : "Mostrar lista"} onClick={(e) => { e.stopPropagation(); alternarListaNotificacao("inativos"); }}>
+                {listasNotificacoes["inativos"] ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+              </Button>
+            </div>
+            {listasNotificacoes["inativos"] ? <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {inativos.map((a) => (
                 <button
                   key={a.id}
@@ -934,7 +951,43 @@ function AlunosPage() {
                   </span>
                 </button>
               ))}
+            </div> : null}
+          </CardContent>
+        </Card>
+      ) : null}
+      {semAtestado.length ? (
+        <Card
+          className={cn(
+            "mb-6 cursor-pointer border-primary/40 bg-primary/5 transition-shadow hover:opacity-90",
+            filtroNotificacao === "sem_atestado" && "ring-2 ring-primary ring-offset-2",
+          )}
+          onClick={() => setFiltroNotificacao(filtroNotificacao === "sem_atestado" ? "todos" : "sem_atestado")}
+        >
+          <CardContent className="space-y-2 py-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-2 font-medium text-primary">
+                <Bell className="size-4" /> Notificações · {semAtestado.length} aluno(s) sem atestado médico
+              </p>
+              <Button variant="ghost" size="icon" title={listasNotificacoes["sem_atestado"] ? "Esconder lista" : "Mostrar lista"} onClick={(e) => { e.stopPropagation(); alternarListaNotificacao("sem_atestado"); }}>
+                {listasNotificacoes["sem_atestado"] ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+              </Button>
             </div>
+            {listasNotificacoes["sem_atestado"] ? <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
+              {semAtestado.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    abrirEdicao(a);
+                  }}
+                  className="flex w-full items-center justify-between gap-2 rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                >
+                  <span>{a.nome}</span>
+                  <span className="text-xs text-muted-foreground">Atestado não entregue</span>
+                </button>
+              ))}
+            </div> : null}
           </CardContent>
         </Card>
       ) : null}
@@ -947,11 +1000,16 @@ function AlunosPage() {
           onClick={() => setFiltroNotificacao(filtroNotificacao === "atestado_vencido" ? "todos" : "atestado_vencido")}
         >
           <CardContent className="space-y-2 py-4">
-            <p className="flex items-center gap-2 font-medium text-destructive">
-              <Bell className="size-4" /> Notificações · {vencidos.length} atestado(s) vencido(s)
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-2 font-medium text-destructive">
+                <Bell className="size-4" /> Notificações · {vencidos.length} atestado(s) vencido(s)
+              </p>
+              <Button variant="ghost" size="icon" title={listasNotificacoes["atestado_vencido"] ? "Esconder lista" : "Mostrar lista"} onClick={(e) => { e.stopPropagation(); alternarListaNotificacao("atestado_vencido"); }}>
+                {listasNotificacoes["atestado_vencido"] ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+              </Button>
+            </div>
 
-            <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
+            {listasNotificacoes["atestado_vencido"] ? <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {vencidos.map((a) => (
                 <button
                   key={a.id}
@@ -968,7 +1026,7 @@ function AlunosPage() {
                   </span>
                 </button>
               ))}
-            </div>
+            </div> : null}
           </CardContent>
         </Card>
       ) : null}
@@ -981,10 +1039,15 @@ function AlunosPage() {
           onClick={() => setFiltroNotificacao(filtroNotificacao === "atestado_vencer" ? "todos" : "atestado_vencer")}
         >
           <CardContent className="space-y-2 py-4">
-            <p className="flex items-center gap-2 font-medium text-orange-600">
-              <Bell className="size-4" /> Notificações · {proximosVencimento.length} atestado(s) vencendo em até {prazoAviso} dias
-            </p>
-            <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-2 font-medium text-orange-600">
+                <Bell className="size-4" /> Notificações · {proximosVencimento.length} atestado(s) vencendo em até {prazoAviso} dias
+              </p>
+              <Button variant="ghost" size="icon" title={listasNotificacoes["atestado_vencer"] ? "Esconder lista" : "Mostrar lista"} onClick={(e) => { e.stopPropagation(); alternarListaNotificacao("atestado_vencer"); }}>
+                {listasNotificacoes["atestado_vencer"] ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+              </Button>
+            </div>
+            {listasNotificacoes["atestado_vencer"] ? <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {proximosVencimento.map((a) => (
                 <button
                   key={a.id}
@@ -1001,7 +1064,7 @@ function AlunosPage() {
                   </span>
                 </button>
               ))}
-            </div>
+            </div> : null}
           </CardContent>
         </Card>
       ) : null}
@@ -1014,10 +1077,15 @@ function AlunosPage() {
           onClick={() => setFiltroNotificacao(filtroNotificacao === "excesso_faltas" ? "todos" : "excesso_faltas")}
         >
           <CardContent className="space-y-2 py-4">
-            <p className="flex items-center gap-2 font-medium text-amber-600">
-              <AlertTriangle className="size-4" /> Notificações · {excessoFaltas.length} aluno(s) com 5 faltas ou mais
-            </p>
-            <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-2 font-medium text-amber-600">
+                <AlertTriangle className="size-4" /> Notificações · {excessoFaltas.length} aluno(s) com 5 faltas ou mais
+              </p>
+              <Button variant="ghost" size="icon" title={listasNotificacoes["excesso_faltas"] ? "Esconder lista" : "Mostrar lista"} onClick={(e) => { e.stopPropagation(); alternarListaNotificacao("excesso_faltas"); }}>
+                {listasNotificacoes["excesso_faltas"] ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+              </Button>
+            </div>
+            {listasNotificacoes["excesso_faltas"] ? <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {excessoFaltas.map((a) => (
                 <button
                   key={a.id}
@@ -1032,7 +1100,7 @@ function AlunosPage() {
                   <span className="text-xs text-muted-foreground">{faltasPorAluno[a.id]} faltas</span>
                 </button>
               ))}
-            </div>
+            </div> : null}
           </CardContent>
         </Card>
       ) : null}
@@ -1042,6 +1110,7 @@ function AlunosPage() {
           <Badge variant="secondary">
             {filtroNotificacao === "ativos" && "Ativos"}
             {filtroNotificacao === "inativos" && "Inativos"}
+            {filtroNotificacao === "sem_atestado" && "Sem atestado médico"}
             {filtroNotificacao === "atestado_vencido" && "Atestado vencido"}
             {filtroNotificacao === "atestado_vencer" && "Atestado a vencer"}
             {filtroNotificacao === "excesso_faltas" && "Excesso de faltas"}
@@ -1058,6 +1127,7 @@ function AlunosPage() {
             <SelectItem value="todos">Todas as situações</SelectItem>
             <SelectItem value="ativos">Ativos</SelectItem>
             <SelectItem value="inativos">Inativos</SelectItem>
+            <SelectItem value="sem_atestado">Sem atestado médico</SelectItem>
             <SelectItem value="atestado_vencido">Atestado vencido</SelectItem>
             <SelectItem value="atestado_vencer">Atestado a vencer</SelectItem>
             <SelectItem value="excesso_faltas">Excesso de faltas</SelectItem>

@@ -5,4 +5,4 @@
 - [x] Presença: aumentar a lista manual e as fotos dos alunos.
 - [x] Alunos: notificar alunos sem atestado médico.
 - [x] Alunos: permitir ocultar/exibir cada lista de notificações separadamente.
-- [ ] Validar as alterações no preview.
+- [x] Validar as alterações no preview.

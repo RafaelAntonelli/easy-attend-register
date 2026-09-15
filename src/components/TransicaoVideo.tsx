@@ -1,7 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
-import aberturaSeculje from "@/assets/abertura-seculje.png.asset.json";
+import aberturaSeculje from "@/assets/abertura-seculje-atual.png.asset.json";
 import aberturaEsporte360 from "@/assets/abertura-esporte-360.png.asset.json";
 
 /** Tempo de exibição da primeira imagem (ms). */

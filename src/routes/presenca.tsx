@@ -412,7 +412,7 @@ function PresencaPage() {
       </div>
 
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <Tabs defaultValue="qr">
           <TabsList>
             <TabsTrigger value="qr">QR Code</TabsTrigger>
@@ -458,26 +458,26 @@ function PresencaPage() {
                   />
                   <p className="text-xs text-muted-foreground">O texto é salvo no histórico do aluno junto com o registro.</p>
                 </div>
-                <div className="max-h-96 space-y-2 overflow-y-auto">
+                <div className="max-h-[36rem] space-y-3 overflow-y-auto pr-1">
                   {filtrados.map((a) => {
                     const atual = statusPorAluno[a.id];
                     return (
-                      <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 px-3 py-2">
-                        <div className="flex min-w-32 flex-1 items-center gap-2.5">
+                      <div key={a.id} className="flex min-h-20 flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 px-4 py-3">
+                        <div className="flex min-w-40 flex-1 items-center gap-3">
                           {fotos[a.id] ? (
                             <img
                               src={fotos[a.id]}
                               alt={`Foto de ${a.nome}`}
                               loading="lazy"
-                              className="size-10 shrink-0 rounded-full border border-border object-cover"
+                              className="size-16 shrink-0 rounded-full border border-border object-cover"
                             />
                           ) : (
-                            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-secondary text-xs font-semibold text-muted-foreground">
+                            <span className="flex size-16 shrink-0 items-center justify-center rounded-full border border-border bg-secondary text-sm font-semibold text-muted-foreground">
                               {iniciais(a.nome)}
                             </span>
                           )}
                           <div className="min-w-0">
-                            <span className="text-sm">{a.nome}</span>
+                            <span className="font-medium">{a.nome}</span>
                             {atual ? <p className="text-xs text-muted-foreground">{rotuloStatus[atual]}</p> : null}
                           </div>
                         </div>
@@ -504,8 +504,9 @@ function PresencaPage() {
 
         <Card className="border-border/70">
           <CardHeader><CardTitle className="font-display text-lg">Registros do dia ({registros.length})</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            {registros.map((r, i) => (
+          <CardContent>
+            <div className="max-h-[42rem] space-y-2 overflow-y-auto pr-1">
+              {registros.map((r, i) => (
               <div key={i} className="rounded-lg bg-secondary/60 px-3 py-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span>{r.nome}</span>
@@ -513,8 +514,9 @@ function PresencaPage() {
                 </div>
                 {r.obs ? <p className="mt-0.5 text-xs text-muted-foreground">Obs.: {r.obs}</p> : null}
               </div>
-            ))}
-            {!registros.length && <p className="py-8 text-center text-sm text-muted-foreground">Nenhum registro nesta data.</p>}
+              ))}
+              {!registros.length && <p className="py-8 text-center text-sm text-muted-foreground">Nenhum registro nesta data.</p>}
+            </div>
           </CardContent>
         </Card>
       </div>

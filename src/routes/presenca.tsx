@@ -309,6 +309,27 @@ function PresencaPage() {
       ? filtrosFaixaEtaria[0]
       : `${filtrosFaixaEtaria.length} faixas selecionadas`;
 
+  const turmasVisiveis = turmas.filter(
+    (t) => {
+      if (filtroModalidade !== "todas" && t.modalidade !== filtroModalidade) return false;
+      if (filtroTurno !== "todos" && turnoDoHorario(t.horario) !== filtroTurno) return false;
+      if (filtroDias !== "todos") {
+        const grupo = listaGrupos.find((g) => g.label === filtroDias);
+        const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
+        const diasTurma = t.dias_semana ?? [];
+        if (!diasEsperados.length || !diasEsperados.every((d) => diasTurma.includes(d))) return false;
+      }
+      return true;
+    },
+  );
+  const turmasVisiveisIds = new Set(turmasVisiveis.map((turma) => turma.id));
+  const turmaIdsValidos = turmaIds.filter((id) => turmasVisiveisIds.has(id));
+  const rotuloTurmas = turmaIdsValidos.length === 0
+    ? "Todas as turmas"
+    : turmaIdsValidos.length === 1
+      ? turmas.find((turma) => turma.id === turmaIdsValidos[0])?.nome ?? "1 turma selecionada"
+      : `${turmaIdsValidos.length} turmas selecionadas`;
+
   const filtrados = alunos
     .filter((a) => {
       if (!correspondeBusca(a, busca)) return false;
@@ -334,27 +355,6 @@ function PresencaPage() {
       return true;
     })
     .sort((a, b) => relevanciaBusca(a.nome, busca) - relevanciaBusca(b.nome, busca) || a.nome.localeCompare(b.nome));
-  const turmasVisiveis = turmas.filter(
-    (t) => {
-      if (filtroModalidade !== "todas" && t.modalidade !== filtroModalidade) return false;
-      if (filtroTurno !== "todos" && turnoDoHorario(t.horario) !== filtroTurno) return false;
-      if (filtroDias !== "todos") {
-        const grupo = listaGrupos.find((g) => g.label === filtroDias);
-        const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
-        const diasTurma = t.dias_semana ?? [];
-        if (!diasEsperados.length || !diasEsperados.every((d) => diasTurma.includes(d))) return false;
-      }
-      return true;
-    },
-  );
-  const turmasVisiveisIds = new Set(turmasVisiveis.map((turma) => turma.id));
-  const turmaIdsValidos = turmaIds.filter((id) => turmasVisiveisIds.has(id));
-  const rotuloTurmas = turmaIdsValidos.length === 0
-    ? "Todas as turmas"
-    : turmaIdsValidos.length === 1
-      ? turmas.find((turma) => turma.id === turmaIdsValidos[0])?.nome ?? "1 turma selecionada"
-      : `${turmaIdsValidos.length} turmas selecionadas`;
-
   return (
     <AppShell title="Presença" subtitle={`Registros de ${data.toLocaleDateString("pt-BR")}`}>
       <div className="mb-6 grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

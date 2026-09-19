@@ -181,7 +181,7 @@ function PresencaPage() {
     const turmasSelecionadasOrdenadas = turmasVisiveis.filter((turma) => turmaIdsValidos.includes(turma.id));
     const turmaIdRegistro = turmasSelecionadasOrdenadas.find((turma) =>
       matriculas.some((matricula) => matricula.aluno_id === aluno.id && matricula.turma_id === turma.id),
-    )?.id ?? matriculas.find((matricula) => matricula.aluno_id === aluno.id)?.turma_id ?? null;
+    )?.id ?? null;
 
     if (!estaOnline()) {
       await enfileirar({

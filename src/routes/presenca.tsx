@@ -178,9 +178,10 @@ function PresencaPage() {
   async function registrar(aluno: Aluno, metodo: "qrcode" | "manual", status: StatusPresenca = "presente") {
     const obs = observacao.trim() ? observacao.trim() : null;
     const agoraIso = new Date().toISOString();
-    const turmaIdRegistro = matriculas.find(
-      (matricula) => matricula.aluno_id === aluno.id && turmaIds.includes(matricula.turma_id),
-    )?.turma_id ?? matriculas.find((matricula) => matricula.aluno_id === aluno.id)?.turma_id ?? null;
+    const turmasSelecionadasOrdenadas = turmasVisiveis.filter((turma) => turmaIdsValidos.includes(turma.id));
+    const turmaIdRegistro = turmasSelecionadasOrdenadas.find((turma) =>
+      matriculas.some((matricula) => matricula.aluno_id === aluno.id && matricula.turma_id === turma.id),
+    )?.id ?? matriculas.find((matricula) => matricula.aluno_id === aluno.id)?.turma_id ?? null;
 
     if (!estaOnline()) {
       await enfileirar({
@@ -287,9 +288,9 @@ function PresencaPage() {
     };
   }, []);
 
-  const turmaDoAluno = (id: string) => {
-    const m = matriculas.find((x) => x.aluno_id === id);
-    return m ? turmas.find((t) => t.id === m.turma_id) ?? null : null;
+  const turmasDoAluno = (id: string) => {
+    const ids = new Set(matriculas.filter((matricula) => matricula.aluno_id === id).map((matricula) => matricula.turma_id));
+    return turmas.filter((turma) => ids.has(turma.id));
   };
 
   function alternarFaixaEtaria(faixa: FaixaEtaria, marcada: boolean) {
@@ -311,10 +312,13 @@ function PresencaPage() {
   const filtrados = alunos
     .filter((a) => {
       if (!correspondeBusca(a, busca)) return false;
-      const t = turmaDoAluno(a.id);
-       if (turmaIds.length > 0 && (!t || !turmaIds.includes(t.id))) return false;
-      if (filtroModalidade !== "todas" && (t?.modalidade ?? "") !== filtroModalidade) return false;
-      if (filtroTurno !== "todos" && turnoDoHorario(t?.horario) !== filtroTurno) return false;
+      const turmasAluno = turmasDoAluno(a.id);
+      const turmasSelecionadas = turmaIdsValidos.length > 0
+        ? turmasAluno.filter((turma) => turmaIdsValidos.includes(turma.id))
+        : turmasAluno;
+      if (turmaIdsValidos.length > 0 && turmasSelecionadas.length === 0) return false;
+      if (filtroModalidade !== "todas" && !turmasSelecionadas.some((turma) => turma.modalidade === filtroModalidade)) return false;
+      if (filtroTurno !== "todos" && !turmasSelecionadas.some((turma) => turnoDoHorario(turma.horario) === filtroTurno)) return false;
       if (filtrosFaixaEtaria.length > 0) {
         const faixa = faixaEtariaECA(a.data_nascimento, a.idade);
         if (!faixa || !filtrosFaixaEtaria.includes(faixa)) return false;
@@ -322,8 +326,10 @@ function PresencaPage() {
       if (filtroDias !== "todos") {
         const grupo = listaGrupos.find((g) => g.label === filtroDias);
         const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
-        const diasTurma = t?.dias_semana ?? [];
-        if (!diasEsperados.length || !diasEsperados.every((d) => diasTurma.includes(d))) return false;
+        if (!diasEsperados.length || !turmasSelecionadas.some((turma) => {
+          const diasTurma = turma.dias_semana ?? [];
+          return diasEsperados.every((dia) => diasTurma.includes(dia));
+        })) return false;
       }
       return true;
     })

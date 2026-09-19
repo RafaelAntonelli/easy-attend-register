@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -89,7 +89,7 @@ function PresencaPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [matriculas, setMatriculas] = useState<{ aluno_id: string; turma_id: string }[]>([]);
-  const [turmaId, setTurmaId] = useState("");
+  const [turmaIds, setTurmaIds] = useState<string[]>([]);
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [filtroDias, setFiltroDias] = useState("todos");
@@ -178,12 +178,15 @@ function PresencaPage() {
   async function registrar(aluno: Aluno, metodo: "qrcode" | "manual", status: StatusPresenca = "presente") {
     const obs = observacao.trim() ? observacao.trim() : null;
     const agoraIso = new Date().toISOString();
+    const turmaIdRegistro = matriculas.find(
+      (matricula) => matricula.aluno_id === aluno.id && turmaIds.includes(matricula.turma_id),
+    )?.turma_id ?? matriculas.find((matricula) => matricula.aluno_id === aluno.id)?.turma_id ?? null;
 
     if (!estaOnline()) {
       await enfileirar({
         tipo: "presenca",
         aluno_id: aluno.id,
-        turma_id: turmaId || null,
+        turma_id: turmaIdRegistro,
         data: hoje,
         status,
         metodo,
@@ -210,7 +213,7 @@ function PresencaPage() {
     if (existente.data) {
       const { error } = await supabase
         .from("presencas")
-        .update({ status, metodo, turma_id: turmaId || null, horario: agoraIso, observacoes: obs })
+        .update({ status, metodo, turma_id: turmaIdRegistro, horario: agoraIso, observacoes: obs })
         .eq("id", existente.data.id);
       if (error) {
         toast.error(error.message);
@@ -219,7 +222,7 @@ function PresencaPage() {
     } else {
       const { error } = await supabase.from("presencas").insert({
         aluno_id: aluno.id,
-        turma_id: turmaId || null,
+        turma_id: turmaIdRegistro,
         data: hoje,
         metodo,
         status,
@@ -295,6 +298,10 @@ function PresencaPage() {
     );
   }
 
+  function alternarTurma(id: string, marcada: boolean) {
+    setTurmaIds((atuais) => marcada ? [...atuais, id] : atuais.filter((turmaId) => turmaId !== id));
+  }
+
   const rotuloFaixas = filtrosFaixaEtaria.length === 0
     ? "Todas as faixas etárias"
     : filtrosFaixaEtaria.length === 1
@@ -305,7 +312,7 @@ function PresencaPage() {
     .filter((a) => {
       if (!correspondeBusca(a, busca)) return false;
       const t = turmaDoAluno(a.id);
-      if (turmaId && t?.id !== turmaId) return false;
+       if (turmaIds.length > 0 && (!t || !turmaIds.includes(t.id))) return false;
       if (filtroModalidade !== "todas" && (t?.modalidade ?? "") !== filtroModalidade) return false;
       if (filtroTurno !== "todos" && turnoDoHorario(t?.horario) !== filtroTurno) return false;
       if (filtrosFaixaEtaria.length > 0) {
@@ -334,6 +341,13 @@ function PresencaPage() {
       return true;
     },
   );
+  const turmasVisiveisIds = new Set(turmasVisiveis.map((turma) => turma.id));
+  const turmaIdsValidos = turmaIds.filter((id) => turmasVisiveisIds.has(id));
+  const rotuloTurmas = turmaIdsValidos.length === 0
+    ? "Todas as turmas"
+    : turmaIdsValidos.length === 1
+      ? turmas.find((turma) => turma.id === turmaIdsValidos[0])?.nome ?? "1 turma selecionada"
+      : `${turmaIdsValidos.length} turmas selecionadas`;
 
   return (
     <AppShell title="Presença" subtitle={`Registros de ${data.toLocaleDateString("pt-BR")}`}>
@@ -366,7 +380,10 @@ function PresencaPage() {
             value={filtroTurno}
             onValueChange={(v) => {
               setFiltroTurno(v);
-              setTurmaId("");
+               setTurmaIds((atuais) => atuais.filter((id) => {
+                 const turma = turmas.find((item) => item.id === id);
+                 return Boolean(turma && (v === "todos" || turnoDoHorario(turma.horario) === v));
+               }));
             }}
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -385,7 +402,10 @@ function PresencaPage() {
             value={filtroModalidade}
             onValueChange={(v) => {
               setFiltroModalidade(v);
-              setTurmaId("");
+               setTurmaIds((atuais) => atuais.filter((id) => {
+                 const turma = turmas.find((item) => item.id === id);
+                 return Boolean(turma && (v === "todas" || turma.modalidade === v));
+               }));
             }}
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -402,7 +422,12 @@ function PresencaPage() {
             value={filtroDias}
             onValueChange={(v) => {
               setFiltroDias(v);
-              setTurmaId("");
+               const grupo = listaGrupos.find((item) => item.label === v);
+               const diasEsperados = grupo?.dias ?? [];
+               setTurmaIds((atuais) => atuais.filter((id) => {
+                 const turma = turmas.find((item) => item.id === id);
+                 return Boolean(turma && (v === "todos" || diasEsperados.every((dia) => (turma.dias_semana ?? []).includes(dia))));
+               }));
             }}
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -455,28 +480,61 @@ function PresencaPage() {
         </div>
         <div className="space-y-2">
           <Label>Turma da aula</Label>
-          <Select value={turmaId} onValueChange={setTurmaId}>
-            <SelectTrigger><SelectValue placeholder="Selecione a turma (opcional)" /></SelectTrigger>
-            <SelectContent className="max-h-80">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-between font-normal"
+                aria-label={`Filtrar por turma da aula: ${rotuloTurmas}`}
+              >
+                <span className="truncate">{rotuloTurmas}</span>
+                <ChevronDown className="size-4 shrink-0 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="max-h-80 w-[var(--radix-dropdown-menu-trigger-width)] overflow-y-auto" align="start">
               {GRUPOS_DIAS.map((g) => {
                 const doGrupo = turmasVisiveis.filter((t) => t.nome.toLowerCase().startsWith(g.prefixo));
                 if (!doGrupo.length) return null;
                 return (
-                  <SelectGroup key={g.rotulo}>
-                    <SelectLabel>{g.rotulo}</SelectLabel>
+                  <div key={`${g.prefixo}-${g.rotulo}`}>
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{g.rotulo}</div>
                     {doGrupo.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
+                      <DropdownMenuCheckboxItem
+                        key={t.id}
+                        checked={turmaIdsValidos.includes(t.id)}
+                        onCheckedChange={(marcada) => alternarTurma(t.id, marcada === true)}
+                        onSelect={(evento) => evento.preventDefault()}
+                      >
                         {t.nome.replace(g.remover, "")}
-                      </SelectItem>
+                      </DropdownMenuCheckboxItem>
                     ))}
-                  </SelectGroup>
+                  </div>
                 );
               })}
               {turmasVisiveis.filter((t) => !GRUPOS_DIAS.some((g) => t.nome.toLowerCase().startsWith(g.prefixo))).map((t) => (
-                <SelectItem key={t.id} value={t.id}>{t.nome}{t.horario ? ` · ${t.horario}` : ""}</SelectItem>
+                <DropdownMenuCheckboxItem
+                  key={t.id}
+                  checked={turmaIdsValidos.includes(t.id)}
+                  onCheckedChange={(marcada) => alternarTurma(t.id, marcada === true)}
+                  onSelect={(evento) => evento.preventDefault()}
+                >
+                  {t.nome}{t.horario ? ` · ${t.horario}` : ""}
+                </DropdownMenuCheckboxItem>
               ))}
-            </SelectContent>
-          </Select>
+              {turmaIdsValidos.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="mt-1 w-full justify-start"
+                  onClick={() => setTurmaIds([])}
+                >
+                  <X className="size-4" /> Limpar seleção
+                </Button>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

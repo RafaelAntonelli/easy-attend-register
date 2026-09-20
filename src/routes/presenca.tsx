@@ -4,6 +4,7 @@ import { Camera, CameraOff, Check, Search, X, FileCheck, CalendarIcon, ChevronDo
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
+import { PerfilAluno } from "@/components/PerfilAluno";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -108,6 +109,7 @@ function PresencaPage() {
   const scannerRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
   const lastRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
   const [confirmacao, setConfirmacao] = useState<{ aluno: Aluno; jaRegistrado: StatusPresenca | null } | null>(null);
+  const [perfilAlunoId, setPerfilAlunoId] = useState<string | null>(null);
   const statusRef = useRef<Record<string, StatusPresenca>>({});
   statusRef.current = statusPorAluno;
 
@@ -616,7 +618,15 @@ function PresencaPage() {
                             </span>
                           )}
                           <div className="min-w-0">
-                            <span className="font-medium">{a.nome}</span>
+                            <Button
+                              type="button"
+                              variant="link"
+                              className="h-auto max-w-full justify-start p-0 text-left font-medium"
+                              onClick={() => setPerfilAlunoId(a.id)}
+                              title={`Ver perfil de ${a.nome}`}
+                            >
+                              <span className="truncate">{a.nome}</span>
+                            </Button>
                             {atual ? <p className="text-xs text-muted-foreground">{rotuloStatus[atual]}</p> : null}
                           </div>
                         </div>
@@ -659,6 +669,8 @@ function PresencaPage() {
           </CardContent>
         </Card>
       </div>
+
+      <PerfilAluno alunoId={perfilAlunoId} onFechar={() => setPerfilAlunoId(null)} />
 
       <AlertDialog open={Boolean(confirmacao)} onOpenChange={(aberto) => !aberto && setConfirmacao(null)}>
         <AlertDialogContent>

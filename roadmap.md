@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Presença: remover horário duplicado nas opções de Turma da aula.
 - [x] Presença: permitir múltipla escolha em Turma da aula.
 - [x] Alunos: manter as listas de notificações escondidas por padrão.
 - [x] Turmas: remover filtro por faixa etária.

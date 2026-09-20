@@ -69,6 +69,12 @@ function iniciais(nome: string) {
   const ultima = partes.length > 1 ? (partes[partes.length - 1]?.[0] ?? "") : "";
   return (primeira + ultima).toUpperCase();
 }
+
+function rotuloTurma(turma: Turma, nome = turma.nome) {
+  if (!turma.horario || nome.includes(turma.horario)) return nome;
+  return `${nome} · ${turma.horario}`;
+}
+
 type StatusPresenca = "presente" | "falta" | "falta_justificada";
 
 const rotuloStatus: Record<StatusPresenca, string> = {
@@ -512,7 +518,7 @@ function PresencaPage() {
                         onCheckedChange={(marcada) => alternarTurma(t.id, marcada === true)}
                         onSelect={(evento) => evento.preventDefault()}
                       >
-                        {t.nome.replace(g.remover, "")}
+                         {rotuloTurma(t, t.nome.replace(g.remover, ""))}
                       </DropdownMenuCheckboxItem>
                     ))}
                   </div>
@@ -525,7 +531,7 @@ function PresencaPage() {
                   onCheckedChange={(marcada) => alternarTurma(t.id, marcada === true)}
                   onSelect={(evento) => evento.preventDefault()}
                 >
-                  {t.nome}{t.horario ? ` · ${t.horario}` : ""}
+                   {rotuloTurma(t)}
                 </DropdownMenuCheckboxItem>
               ))}
               {turmaIdsValidos.length > 0 ? (

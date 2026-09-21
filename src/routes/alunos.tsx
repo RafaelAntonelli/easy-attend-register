@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +32,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
@@ -148,7 +148,7 @@ function AlunosPage() {
   const [filtroPcd, setFiltroPcd] = useState("todos");
   const [filtroSexo, setFiltroSexo] = useState("todos");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
-  const [filtroHorario, setFiltroHorario] = useState("todos");
+  const [filtrosHorario, setFiltrosHorario] = useState<string[]>([]);
   const [filtroDias, setFiltroDias] = useState("todos");
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [turnoForm, setTurnoForm] = useState("todos");
@@ -863,6 +863,18 @@ function AlunosPage() {
   }
 
 
+  const rotuloHorarios = filtrosHorario.length === 0
+    ? "Todos os horários"
+    : filtrosHorario.length === 1
+      ? filtrosHorario[0]
+      : `${filtrosHorario.length} horários selecionados`;
+
+  function alternarHorario(horario: string, marcado: boolean) {
+    setFiltrosHorario((atuais) => marcado
+      ? [...atuais, horario].filter((item, indice, lista) => lista.indexOf(item) === indice)
+      : atuais.filter((item) => item !== horario));
+  }
+
   const filtrados = alunos
     .filter((a) => {
       if (!correspondeBusca(a, busca)) return false;
@@ -878,7 +890,7 @@ function AlunosPage() {
       const turma = turmaDoAluno(a.id);
       const modalidade = matriculaDoAluno(a.id)?.modalidade ?? turma?.modalidade ?? "";
       if (filtroModalidade !== "todas" && modalidade !== filtroModalidade) return false;
-      if (filtroHorario !== "todos" && turma?.horario !== filtroHorario) return false;
+      if (filtrosHorario.length > 0 && !filtrosHorario.includes(turma?.horario ?? "")) return false;
       if (filtroDias !== "todos") {
         const grupo = listaGrupos.find((g) => g.label === filtroDias);
         const diasEsperados = grupo?.dias?.length ? grupo.dias : [];
@@ -1155,15 +1167,42 @@ function AlunosPage() {
             <SelectItem value="Hidroginástica">Hidroginástica</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={filtroHorario} onValueChange={setFiltroHorario}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent className="max-h-80">
-            <SelectItem value="todos">Todos os horários</SelectItem>
-            {listaHorarios.map((h) => (
-              <SelectItem key={h} value={h}>{h}</SelectItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-between font-normal"
+              aria-label={`Filtrar por horário: ${rotuloHorarios}`}
+            >
+              <span className="truncate">{rotuloHorarios}</span>
+              <ChevronDown className="size-4 shrink-0 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="max-h-80 w-[var(--radix-dropdown-menu-trigger-width)] overflow-y-auto" align="start">
+            {listaHorarios.map((horario) => (
+              <DropdownMenuCheckboxItem
+                key={horario}
+                checked={filtrosHorario.includes(horario)}
+                onCheckedChange={(marcado) => alternarHorario(horario, marcado === true)}
+                onSelect={(evento) => evento.preventDefault()}
+              >
+                {horario}
+              </DropdownMenuCheckboxItem>
             ))}
-          </SelectContent>
-        </Select>
+            {filtrosHorario.length > 0 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="mt-1 w-full justify-start"
+                onClick={() => setFiltrosHorario([])}
+              >
+                <X className="size-4" /> Limpar seleção
+              </Button>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Select value={filtroDias} onValueChange={setFiltroDias}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent className="max-h-80">

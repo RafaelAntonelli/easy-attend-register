@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Alunos: permitir selecionar vários horários simultaneamente no filtro.
 - [x] Presença: abrir o perfil do aluno ao clicar no nome na Lista manual.
 - [x] Presença: remover horário duplicado nas opções de Turma da aula.
 - [x] Presença: permitir múltipla escolha em Turma da aula.

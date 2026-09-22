@@ -883,7 +883,7 @@ function AlunosPage() {
       if (filtroNotificacao === "sem_atestado" && a.atestado_entregue) return false;
       if (filtroNotificacao === "atestado_vencido" && !(a.atestado_entregue && atestadoVencido(a.atestado_data))) return false;
       if (filtroNotificacao === "atestado_vencer" && !(a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso))) return false;
-      if (filtroNotificacao === "excesso_faltas" && (faltasPorAluno[a.id] ?? 0) < 5) return false;
+      if (filtroNotificacao === "excesso_faltas" && (!a.ativo || (faltasPorAluno[a.id] ?? 0) < 5)) return false;
       if (filtroSexo !== "todos" && (a.sexo ?? "") !== filtroSexo) return false;
       if (idadeMin && (a.idade ?? -1) < Number(idadeMin)) return false;
       if (idadeMax && (a.idade ?? 999) > Number(idadeMax)) return false;
@@ -917,7 +917,7 @@ function AlunosPage() {
   const vencidos = alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data));
   const semAtestado = alunos.filter((a) => !a.atestado_entregue).sort((a, b) => a.nome.localeCompare(b.nome));
   const proximosVencimento = alunos.filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso));
-  const excessoFaltas = alunos.filter((a) => (faltasPorAluno[a.id] ?? 0) >= 5);
+  const excessoFaltas = alunos.filter((a) => a.ativo && (faltasPorAluno[a.id] ?? 0) >= 5);
   const inativos = alunos.filter((a) => !a.ativo).sort((a, b) => a.nome.localeCompare(b.nome));
 
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));

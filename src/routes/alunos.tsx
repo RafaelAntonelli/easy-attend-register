@@ -358,6 +358,11 @@ function AlunosPage() {
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
+    const temAtestadoAnexado = Boolean(docs.doc_atestado_path || editando?.doc_atestado_path);
+    if (temAtestadoAnexado && (!form.atestado_entregue || !form.atestado_data)) {
+      toast.error("Para anexar o atestado médico, marque que ele foi entregue e informe a data.");
+      return;
+    }
     if (form.cpf && !cpfValido(form.cpf)) {
       toast.error("CPF inválido. Verifique os números digitados.");
       return;
@@ -1377,7 +1382,12 @@ function AlunosPage() {
                 {form.atestado_entregue ? (
                   <div className="space-y-2">
                     <Label>Data do atestado</Label>
-                    <Input type="date" value={form.atestado_data} onChange={(e) => setForm({ ...form, atestado_data: e.target.value })} />
+                    <Input
+                      type="date"
+                      required={Boolean(docs.doc_atestado_path || editando?.doc_atestado_path)}
+                      value={form.atestado_data}
+                      onChange={(e) => setForm({ ...form, atestado_data: e.target.value })}
+                    />
                     {atestadoVencido(form.atestado_data) ? (
                       <p className="flex items-center gap-1 text-sm font-medium text-destructive">
                         <AlertTriangle className="size-4" /> Atestado vencido!
@@ -1594,7 +1604,13 @@ function AlunosPage() {
                         id={`doc-${d.campo}`}
                         type="file"
                         accept="image/*,application/pdf"
-                        onChange={(e) => setDocs((s) => ({ ...s, [d.campo]: e.target.files?.[0] ?? null }))}
+                        onChange={(e) => {
+                          const arquivo = e.target.files?.[0] ?? null;
+                          setDocs((s) => ({ ...s, [d.campo]: arquivo }));
+                          if (d.campo === "doc_atestado_path" && arquivo) {
+                            setForm((f) => ({ ...f, atestado_entregue: true }));
+                          }
+                        }}
                       />
                       <Button
                         type="button"

@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Alunos: exigir confirmação de entrega e data ao anexar o atestado médico.
 - [x] Alunos: remover alunos inativados ou excluídos da notificação por faltas.
 - [x] Alunos: permitir selecionar vários horários simultaneamente no filtro.
 - [x] Presença: abrir o perfil do aluno ao clicar no nome na Lista manual.

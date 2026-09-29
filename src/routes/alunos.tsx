@@ -98,13 +98,15 @@ function gerarCodigoMatricula(codigosExistentes: Set<string>) {
 
   do {
     const codigo = [
-      letras[crypto.getRandomValues(new Uint32Array(1))[0] % letras.length],
-      numeros[crypto.getRandomValues(new Uint32Array(1))[0] % numeros.length],
-      ...Array.from({ length: 5 }, () => caracteres[crypto.getRandomValues(new Uint32Array(1))[0] % caracteres.length]),
+      letras.charAt(crypto.getRandomValues(new Uint32Array(1))[0] % letras.length),
+      numeros.charAt(crypto.getRandomValues(new Uint32Array(1))[0] % numeros.length),
+      ...Array.from({ length: 5 }, () => caracteres.charAt(crypto.getRandomValues(new Uint32Array(1))[0] % caracteres.length)),
     ];
     for (let i = codigo.length - 1; i > 0; i--) {
       const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1);
-      [codigo[i], codigo[j]] = [codigo[j], codigo[i]];
+      const atual = codigo[i];
+      const troca = codigo[j];
+      if (atual !== undefined && troca !== undefined) [codigo[i], codigo[j]] = [troca, atual];
     }
     const resultado = codigo.join("");
     if (!codigosExistentes.has(resultado)) return resultado;

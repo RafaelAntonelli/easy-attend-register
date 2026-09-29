@@ -125,6 +125,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
 
   useEffect(() => {
     if (!alunoId) return;
+    const idSelecionado = alunoId;
     let vivo = true;
     setAluno(null);
     setFotoUrl(null);
@@ -136,7 +137,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
     setNovaAnotacao("");
 
     async function carregar() {
-      const { data: a, error } = await supabase.from("alunos").select("*").eq("id", alunoId).maybeSingle();
+      const { data: a, error } = await supabase.from("alunos").select("*").eq("id", idSelecionado).maybeSingle();
       if (!vivo) return;
       if (error || !a) {
         toast.error(error?.message ?? "Aluno não encontrado");

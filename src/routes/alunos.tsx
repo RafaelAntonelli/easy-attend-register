@@ -91,6 +91,29 @@ type Aluno = {
   inativado_por: string | null;
 };
 
+function gerarCodigoMatricula(codigosExistentes: Set<string>) {
+  const letras = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const numeros = "23456789";
+  const caracteres = `${letras}${numeros}`;
+  const indiceAleatorio = (limite: number) => (crypto.getRandomValues(new Uint32Array(1)).at(0) ?? 0) % limite;
+
+  do {
+    const codigo = [
+      letras.charAt(indiceAleatorio(letras.length)),
+      numeros.charAt(indiceAleatorio(numeros.length)),
+      ...Array.from({ length: 5 }, () => caracteres.charAt(indiceAleatorio(caracteres.length))),
+    ];
+    for (let i = codigo.length - 1; i > 0; i--) {
+      const j = indiceAleatorio(i + 1);
+      const atual = codigo[i];
+      const troca = codigo[j];
+      if (atual !== undefined && troca !== undefined) [codigo[i], codigo[j]] = [troca, atual];
+    }
+    const resultado = codigo.join("");
+    if (!codigosExistentes.has(resultado)) return resultado;
+  } while (true);
+}
+
 const DOCUMENTOS = [
   { campo: "doc_atestado_path", rotulo: "Atestado médico" },
   { campo: "doc_residencia_path", rotulo: "Comprovante de residência" },
@@ -405,6 +428,8 @@ function AlunosPage() {
       idade: form.idade ? Number(form.idade) : null,
       sexo: form.sexo || null,
     };
+    const codigoNovo = editando ? null : gerarCodigoMatricula(new Set(alunos.map((aluno) => aluno.codigo)));
+    const payloadNovo = codigoNovo ? { ...payload, codigo: codigoNovo } : payload;
 
     if (turmaId) {
       const jaMatriculado = matriculas.some((m) => m.aluno_id === editando?.id && m.turma_id === turmaId);
@@ -426,8 +451,8 @@ function AlunosPage() {
         await enfileirar({ tipo: "aluno_update", aluno_id: idLocal, dados: payload, foto: foto ?? null, fotoNome: foto?.name ?? null });
         setAlunos((lista) => lista.map((a) => (a.id === idLocal ? ({ ...a, ...payload } as Aluno) : a)));
       } else {
-        await enfileirar({ tipo: "aluno_novo", aluno: { id: idLocal, ...payload }, foto: foto ?? null, fotoNome: foto?.name ?? null });
-        setAlunos((lista) => [...lista, { id: idLocal, ativo: true, ...payload } as unknown as Aluno]);
+        await enfileirar({ tipo: "aluno_novo", aluno: { id: idLocal, ...payloadNovo }, foto: foto ?? null, fotoNome: foto?.name ?? null });
+        setAlunos((lista) => [...lista, { id: idLocal, ativo: true, ...payloadNovo } as unknown as Aluno]);
       }
       if (turmaId) {
         await enfileirar({ tipo: "matricula", aluno_id: idLocal, turma_id: turmaId, modalidade: form.modalidade, registrado_por: user?.id ?? null });
@@ -448,7 +473,7 @@ function AlunosPage() {
         const { error } = await supabase.from("alunos").update(payload).eq("id", editando.id);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase.from("alunos").insert(payload).select("id").single();
+        const { data, error } = await supabase.from("alunos").insert(payloadNovo).select("id").single();
         if (error) throw error;
         alunoId = data.id;
       }

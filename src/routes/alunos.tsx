@@ -359,8 +359,14 @@ function AlunosPage() {
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     const temAtestadoAnexado = Boolean(docs.doc_atestado_path || editando?.doc_atestado_path);
-    if (temAtestadoAnexado && (!form.atestado_entregue || !form.atestado_data)) {
-      toast.error("Para anexar o atestado médico, marque que ele foi entregue e informe a data.");
+    if (temAtestadoAnexado && !form.atestado_entregue) {
+      toast.error('Marque o campo "Entregou atestado?" para continuar.');
+      document.getElementById("atestado")?.focus();
+      return;
+    }
+    if (temAtestadoAnexado && !form.atestado_data) {
+      toast.error("Informe a data do atestado médico para continuar.");
+      document.getElementById("atestado-data")?.focus();
       return;
     }
     if (form.cpf && !cpfValido(form.cpf)) {
@@ -1376,6 +1382,7 @@ function AlunosPage() {
                   <Switch
                     id="atestado"
                     checked={form.atestado_entregue}
+                     aria-invalid={Boolean((docs.doc_atestado_path || editando?.doc_atestado_path) && !form.atestado_entregue)}
                     onCheckedChange={(v) => setForm({ ...form, atestado_entregue: v })}
                   />
                 </div>
@@ -1383,8 +1390,9 @@ function AlunosPage() {
                   <div className="space-y-2">
                     <Label>Data do atestado</Label>
                     <Input
+                       id="atestado-data"
                       type="date"
-                      required={Boolean(docs.doc_atestado_path || editando?.doc_atestado_path)}
+                       aria-invalid={Boolean((docs.doc_atestado_path || editando?.doc_atestado_path) && !form.atestado_data)}
                       value={form.atestado_data}
                       onChange={(e) => setForm({ ...form, atestado_data: e.target.value })}
                     />
@@ -1608,7 +1616,7 @@ function AlunosPage() {
                           const arquivo = e.target.files?.[0] ?? null;
                           setDocs((s) => ({ ...s, [d.campo]: arquivo }));
                           if (d.campo === "doc_atestado_path" && arquivo) {
-                            setForm((f) => ({ ...f, atestado_entregue: true }));
+                             toast.warning('Preencha "Entregou atestado?" e a data antes de salvar.');
                           }
                         }}
                       />
@@ -1624,6 +1632,11 @@ function AlunosPage() {
                         <Trash2 className="size-4" />
                       </Button>
                     </div>
+                     {d.campo === "doc_atestado_path" && docs.doc_atestado_path && (!form.atestado_entregue || !form.atestado_data) ? (
+                       <p className="flex items-center gap-1 text-xs font-medium text-destructive" role="alert">
+                         <AlertTriangle className="size-3.5 shrink-0" /> Marque “Entregou atestado?” e informe a data para salvar.
+                       </p>
+                     ) : null}
                   </div>
                 ))}
               </div>

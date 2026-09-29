@@ -18,6 +18,7 @@ type Anotacao = {
 
 type AlunoPerfil = {
   id: string;
+  codigo: string;
   nome: string;
   data_nascimento: string | null;
   telefone: string | null;
@@ -135,7 +136,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
     setNovaAnotacao("");
 
     async function carregar() {
-      const { data: a, error } = await supabase.from("alunos").select("*").eq("id", alunoId!).maybeSingle();
+      const { data: a, error } = await supabase.from("alunos").select("*").eq("id", alunoId).maybeSingle();
       if (!vivo) return;
       if (error || !a) {
         toast.error(error?.message ?? "Aluno não encontrado");
@@ -230,6 +231,9 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                 </div>
               )}
               <div className="text-sm text-muted-foreground">
+                <p>
+                  Matrícula: <span className="font-medium text-foreground">{aluno.codigo}</span>
+                </p>
                 <p>{aluno.telefone ?? "Sem telefone"}</p>
                 <p>{aluno.email ?? "Sem e-mail"}</p>
                 <p>{aluno.responsavel ? `Responsável: ${aluno.responsavel}` : "Sem responsável"}</p>

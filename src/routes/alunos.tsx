@@ -757,7 +757,7 @@ function AlunosPage() {
 
   }
 
-  const CABECALHO_LISTA = ["Nome", "Idade", "Sexo", "Telefone", "Responsável", "CPF", "RG", "Modalidade", "Turma", "Horário", "PCD", "Situação", "Faltas", "Atestado"];
+  const CABECALHO_LISTA = ["Código", "Nome", "Idade", "Sexo", "Telefone", "Responsável", "CPF", "RG", "Modalidade", "Turma", "Horário", "PCD", "Situação", "Faltas", "Atestado"];
 
   function linhasLista(lista: Aluno[]) {
     return lista.map((a) => {
@@ -765,6 +765,7 @@ function AlunosPage() {
       const modalidade = matriculaDoAluno(a.id)?.modalidade ?? turma?.modalidade ?? "";
       const atestado = !a.atestado_entregue ? "Não entregue" : atestadoVencido(a.atestado_data) ? "Vencido" : "Em dia";
       return [
+        a.codigo,
         a.nome,
         a.idade != null ? String(a.idade) : "",
         a.sexo ?? "",
@@ -801,7 +802,7 @@ function AlunosPage() {
     if (!filtrados.length) return toast.error("Nenhum aluno na lista filtrada");
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    const larguras = [44, 10, 16, 24, 34, 24, 20, 22, 30, 16, 10, 14, 10, 18];
+    const larguras = [17, 38, 9, 14, 22, 30, 22, 18, 20, 27, 15, 9, 12, 9, 16];
     let y = 18;
 
     doc.setFont("helvetica", "bold");
@@ -1816,6 +1817,7 @@ function AlunosPage() {
                   <button type="button" onClick={() => void abrirDetalhe(aluno)} className="text-left font-medium text-foreground hover:text-primary hover:underline">
                     {aluno.nome}
                   </button>
+                  <p className="text-xs font-medium text-foreground">Matrícula {aluno.codigo}</p>
                   <p className="text-sm text-muted-foreground">
                     {turmasDoAluno.length ? turmasDoAluno.join(", ") : "Sem turma"}
                     {aluno.telefone ? ` · ${aluno.telefone}` : ""}
@@ -1859,6 +1861,9 @@ function AlunosPage() {
                   </div>
                 )}
                 <div className="text-sm text-muted-foreground">
+                  <p>
+                    Matrícula: <span className="font-medium text-foreground">{detalhe.codigo}</span>
+                  </p>
                   <p>{detalhe.telefone ?? "Sem telefone"}</p>
                   <p>{detalhe.email ?? "Sem e-mail"}</p>
                   <p>{detalhe.responsavel ? `Responsável: ${detalhe.responsavel}` : "Sem responsável"}</p>

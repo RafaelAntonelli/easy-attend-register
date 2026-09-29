@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Os códigos de matrícula são gerados no banco como 7 caracteres alfanuméricos, com letra e número, e são únicos; a geração local replica o formato para cadastros offline.

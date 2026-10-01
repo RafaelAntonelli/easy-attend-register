@@ -90,6 +90,42 @@ const GRUPOS_DIAS = [
   { rotulo: "Quarta e Sexta", prefixo: "quarta e sexta", remover: "Quarta e Sexta - " },
 ];
 
+const CHAVE_FILTROS_PRESENCA = "arena-aquatica:filtros-presenca";
+
+type FiltrosPresencaSalvos = {
+  data: string;
+  turno: string;
+  modalidade: string;
+  dias: string;
+  faixasEtarias: FaixaEtaria[];
+  turmaIds: string[];
+};
+
+function lerFiltrosPresenca(): Partial<FiltrosPresencaSalvos> | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const valor = JSON.parse(localStorage.getItem(CHAVE_FILTROS_PRESENCA) ?? "null") as unknown;
+    if (!valor || typeof valor !== "object" || Array.isArray(valor)) return null;
+    const filtros = valor as Record<string, unknown>;
+    const resultado: Partial<FiltrosPresencaSalvos> = {};
+    if (typeof filtros["data"] === "string") resultado.data = filtros["data"];
+    if (typeof filtros["turno"] === "string") resultado.turno = filtros["turno"];
+    if (typeof filtros["modalidade"] === "string") resultado.modalidade = filtros["modalidade"];
+    if (typeof filtros["dias"] === "string") resultado.dias = filtros["dias"];
+    if (Array.isArray(filtros["faixasEtarias"])) {
+      resultado.faixasEtarias = filtros["faixasEtarias"].filter(
+        (faixa): faixa is FaixaEtaria => FAIXAS_ETARIAS.includes(faixa as FaixaEtaria),
+      );
+    }
+    if (Array.isArray(filtros["turmaIds"])) {
+      resultado.turmaIds = filtros["turmaIds"].filter((id): id is string => typeof id === "string");
+    }
+    return resultado;
+  } catch {
+    return null;
+  }
+}
+
 function PresencaPage() {
   const { lista: listaGrupos } = useGruposDias();
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -111,12 +147,45 @@ function PresencaPage() {
   const [confirmacao, setConfirmacao] = useState<{ aluno: Aluno; jaRegistrado: StatusPresenca | null } | null>(null);
   const [perfilAlunoId, setPerfilAlunoId] = useState<string | null>(null);
   const statusRef = useRef<Record<string, StatusPresenca>>({});
+  const filtrosRestauradosRef = useRef(false);
+  const ignorarPrimeiraPersistenciaRef = useRef(true);
   statusRef.current = statusPorAluno;
 
 
 
   const [data, setData] = useState<Date>(new Date());
   const hoje = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
+
+  useEffect(() => {
+    const filtros = lerFiltrosPresenca();
+    if (filtros?.data) {
+      const dataSalva = new Date(`${filtros.data}T12:00:00`);
+      if (!Number.isNaN(dataSalva.getTime())) setData(dataSalva);
+    }
+    if (filtros?.turno) setFiltroTurno(filtros.turno);
+    if (filtros?.modalidade) setFiltroModalidade(filtros.modalidade);
+    if (filtros?.dias) setFiltroDias(filtros.dias);
+    if (filtros?.faixasEtarias) setFiltrosFaixaEtaria(filtros.faixasEtarias);
+    if (filtros?.turmaIds) setTurmaIds(filtros.turmaIds);
+    filtrosRestauradosRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!filtrosRestauradosRef.current || typeof localStorage === "undefined") return;
+    if (ignorarPrimeiraPersistenciaRef.current) {
+      ignorarPrimeiraPersistenciaRef.current = false;
+      return;
+    }
+    const filtros: FiltrosPresencaSalvos = {
+      data: hoje,
+      turno: filtroTurno,
+      modalidade: filtroModalidade,
+      dias: filtroDias,
+      faixasEtarias: filtrosFaixaEtaria,
+      turmaIds,
+    };
+    localStorage.setItem(CHAVE_FILTROS_PRESENCA, JSON.stringify(filtros));
+  }, [filtroDias, filtroModalidade, filtrosFaixaEtaria, filtroTurno, hoje, turmaIds]);
 
   useEffect(() => {
     void (async () => {

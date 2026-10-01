@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Presença: manter filtros ativos ao trocar de tela.
 - [x] Alunos e relatórios: exibir e exportar o código de matrícula nas listas.
 - [x] Alunos: gerar código de matrícula único, alfanumérico e com 7 caracteres e exibi-lo no perfil.
 - [x] Alunos: exigir confirmação de entrega e data ao anexar o atestado médico.

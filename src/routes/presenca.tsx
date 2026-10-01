@@ -107,18 +107,20 @@ function lerFiltrosPresenca(): Partial<FiltrosPresencaSalvos> | null {
     const valor = JSON.parse(localStorage.getItem(CHAVE_FILTROS_PRESENCA) ?? "null") as unknown;
     if (!valor || typeof valor !== "object" || Array.isArray(valor)) return null;
     const filtros = valor as Record<string, unknown>;
-    return {
-      data: typeof filtros.data === "string" ? filtros.data : undefined,
-      turno: typeof filtros.turno === "string" ? filtros.turno : undefined,
-      modalidade: typeof filtros.modalidade === "string" ? filtros.modalidade : undefined,
-      dias: typeof filtros.dias === "string" ? filtros.dias : undefined,
-      faixasEtarias: Array.isArray(filtros.faixasEtarias)
-        ? filtros.faixasEtarias.filter((faixa): faixa is FaixaEtaria => FAIXAS_ETARIAS.includes(faixa as FaixaEtaria))
-        : undefined,
-      turmaIds: Array.isArray(filtros.turmaIds)
-        ? filtros.turmaIds.filter((id): id is string => typeof id === "string")
-        : undefined,
-    };
+    const resultado: Partial<FiltrosPresencaSalvos> = {};
+    if (typeof filtros["data"] === "string") resultado.data = filtros["data"];
+    if (typeof filtros["turno"] === "string") resultado.turno = filtros["turno"];
+    if (typeof filtros["modalidade"] === "string") resultado.modalidade = filtros["modalidade"];
+    if (typeof filtros["dias"] === "string") resultado.dias = filtros["dias"];
+    if (Array.isArray(filtros["faixasEtarias"])) {
+      resultado.faixasEtarias = filtros["faixasEtarias"].filter(
+        (faixa): faixa is FaixaEtaria => FAIXAS_ETARIAS.includes(faixa as FaixaEtaria),
+      );
+    }
+    if (Array.isArray(filtros["turmaIds"])) {
+      resultado.turmaIds = filtros["turmaIds"].filter((id): id is string => typeof id === "string");
+    }
+    return resultado;
   } catch {
     return null;
   }
@@ -146,6 +148,7 @@ function PresencaPage() {
   const [perfilAlunoId, setPerfilAlunoId] = useState<string | null>(null);
   const statusRef = useRef<Record<string, StatusPresenca>>({});
   const filtrosRestauradosRef = useRef(false);
+  const ignorarPrimeiraPersistenciaRef = useRef(true);
   statusRef.current = statusPorAluno;
 
 
@@ -169,6 +172,10 @@ function PresencaPage() {
 
   useEffect(() => {
     if (!filtrosRestauradosRef.current || typeof localStorage === "undefined") return;
+    if (ignorarPrimeiraPersistenciaRef.current) {
+      ignorarPrimeiraPersistenciaRef.current = false;
+      return;
+    }
     const filtros: FiltrosPresencaSalvos = {
       data: hoje,
       turno: filtroTurno,

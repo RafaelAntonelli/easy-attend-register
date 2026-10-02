@@ -98,7 +98,7 @@ function nomeArquivoSeguro(texto: string) {
  * Gera a planilha do backup com SheetJS, que funciona no servidor publicado.
  * ExcelJS continua reservado às exportações feitas diretamente no navegador.
  */
-async function montarPlanilhaBackup(opcoes: {
+export async function montarPlanilhaBackup(opcoes: {
   alunos: AlunoPlanilha[];
   turmaDoAluno: (id: string) => TurmaPlanilha | undefined;
   modalidadeDoAluno: (id: string) => string;

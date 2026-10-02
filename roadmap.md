@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Backup: corrigir falha ao gerar a planilha no servidor.
+- [x] Backup: corrigir falha ao gerar a planilha no servidor.
 - [x] Presença: manter filtros ativos ao trocar de tela.
 - [x] Alunos e relatórios: exibir e exportar o código de matrícula nas listas.
 - [x] Alunos: gerar código de matrícula único, alfanumérico e com 7 caracteres e exibi-lo no perfil.

@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Os códigos de matrícula são gerados no banco como 7 caracteres alfanuméricos, com letra e número, e são únicos; a geração local replica o formato para cadastros offline.
+- A planilha do backup no servidor usa SheetJS; ExcelJS permanece apenas nas exportações do navegador porque não é compatível com o ambiente publicado.

@@ -7,7 +7,14 @@ import {
   extrairIdPastaDrive,
   limparNomeSubpasta,
 } from "@/lib/configuracoes-chaves";
-import { montarPlanilhaAlunos, type AlunoPlanilha } from "@/lib/planilha-alunos";
+import {
+  DOCUMENTOS_PLANILHA,
+  chaveLinkDrive,
+  idadeEfetiva,
+  type AlunoPlanilha,
+  type TurmaPlanilha,
+} from "@/lib/planilha-alunos";
+import { turnoDoHorario } from "@/lib/turnos";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_drive";
 const MIME_PASTA = "application/vnd.google-apps.folder";
@@ -85,6 +92,73 @@ async function erroDrive(resp: Response) {
 
 function nomeArquivoSeguro(texto: string) {
   return texto.replace(/[\\/:*?"<>|]/g, "-").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Gera a planilha do backup com SheetJS, que funciona no servidor publicado.
+ * ExcelJS continua reservado às exportações feitas diretamente no navegador.
+ */
+async function montarPlanilhaBackup(opcoes: {
+  alunos: AlunoPlanilha[];
+  turmaDoAluno: (id: string) => TurmaPlanilha | undefined;
+  modalidadeDoAluno: (id: string) => string;
+  links: Record<string, string>;
+}): Promise<ArrayBuffer> {
+  const XLSX = await import("xlsx");
+  const arquivos = [
+    { campo: "foto_path", rotulo: "Foto do aluno" },
+    ...DOCUMENTOS_PLANILHA.map((documento) => ({ campo: documento.campo as string, rotulo: documento.rotulo })),
+  ];
+  const cabecalho = [
+    "Código de matrícula", "Nome", "Sexo", "Idade", "Faixa etária", "Nascimento", "CPF", "RG", "Celular",
+    "Celular 2", "E-mail", "Responsável", "Rede de ensino", "Escola", "PCD", "Condições PCD",
+    "Atestado entregue", "Data do atestado", "Modalidade", "Turma", "Horário", "Turno", "Situação",
+    "Observações", ...arquivos.map((arquivo) => `Link - ${arquivo.rotulo}`),
+  ];
+  const ordenados = [...opcoes.alunos].sort((a, b) => {
+    const diferenca = idadeEfetiva(a) - idadeEfetiva(b);
+    if (diferenca !== 0 && Number.isFinite(diferenca)) return diferenca;
+    return a.nome.localeCompare(b.nome, "pt-BR");
+  });
+  const linhas = ordenados.map((aluno) => {
+    const turma = opcoes.turmaDoAluno(aluno.id);
+    const idade = idadeEfetiva(aluno);
+    return [
+      aluno.codigo ?? "", aluno.nome, aluno.sexo ?? "", Number.isFinite(idade) ? idade : (aluno.idade ?? ""),
+      aluno.faixa_etaria ?? "", aluno.data_nascimento ?? "", aluno.cpf ?? "", aluno.rg ?? "", aluno.telefone ?? "",
+      aluno.telefone2 ?? "", aluno.email ?? "", aluno.responsavel ?? "", aluno.rede_ensino ?? "", aluno.escola ?? "",
+      aluno.pcd ? "Sim" : "Não", (aluno.pcd_condicoes ?? []).join(" | "), aluno.atestado_entregue ? "Sim" : "Não",
+      aluno.atestado_data ?? "", opcoes.modalidadeDoAluno(aluno.id), turma?.nome ?? "", turma?.horario ?? "",
+      turnoDoHorario(turma?.horario), aluno.ativo === false ? "Inativo" : "Ativo", aluno.observacoes ?? "",
+      ...arquivos.map((arquivo) => {
+        const temArquivo = Boolean((aluno as Record<string, unknown>)[arquivo.campo]);
+        if (!temArquivo) return "";
+        return opcoes.links[chaveLinkDrive(aluno.id, arquivo.campo)] ?? "Arquivo indisponível";
+      }),
+    ];
+  });
+  const planilha = XLSX.utils.aoa_to_sheet([cabecalho, ...linhas]);
+  planilha["!autofilter"] = { ref: `A1:${XLSX.utils.encode_col(cabecalho.length - 1)}1` };
+  planilha["!cols"] = cabecalho.map((titulo) => ({
+    wch: titulo.startsWith("Link - ") ? 42 : Math.min(Math.max(titulo.length + 3, 10), titulo === "Observações" ? 55 : 36),
+  }));
+  const primeiraColunaLink = cabecalho.length - arquivos.length;
+  linhas.forEach((linha, indiceLinha) => {
+    arquivos.forEach((_, indiceArquivo) => {
+      const coluna = primeiraColunaLink + indiceArquivo;
+      const valor = linha[coluna];
+      if (typeof valor !== "string" || !valor.startsWith("http")) return;
+      const endereco = XLSX.utils.encode_cell({ r: indiceLinha + 1, c: coluna });
+      const celula = planilha[endereco];
+      if (celula) celula.l = { Target: valor };
+    });
+  });
+  const livro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(livro, planilha, "Alunos");
+  const resultado = XLSX.write(livro, { type: "array", bookType: "xlsx", compression: true });
+  return resultado instanceof ArrayBuffer
+    ? resultado
+    : resultado.buffer.slice(resultado.byteOffset, resultado.byteOffset + resultado.byteLength);
 }
 
 // ------------------------------------------------------------- conta Google
@@ -340,11 +414,12 @@ export async function gerarPlanilhaBackup(): Promise<string> {
 
   // A planilha não embute imagens: cada foto/documento vira um link direto
   // do próprio sistema, que abre sem precisar solicitar acesso.
-  const buffer = await montarPlanilhaAlunos({
+  const links = await (await import("@/lib/links-arquivos.server")).linksArquivosStorage();
+  const buffer = await montarPlanilhaBackup({
     alunos: lista,
     turmaDoAluno,
     modalidadeDoAluno: (id) => matriculaDoAluno(id)?.modalidade ?? turmaDoAluno(id)?.modalidade ?? "",
-    linksDrive: (await import("@/lib/links-arquivos.server")).linksArquivosStorage,
+    links,
   });
 
   const pastas = await pastasDrive();

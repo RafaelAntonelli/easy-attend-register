@@ -40,8 +40,14 @@ export const gerarPlanilhaBackupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await garantirAdmin(context);
-    const { gerarPlanilhaBackup } = await import("@/lib/backup.server");
-    return { planilha: await gerarPlanilhaBackup() };
+    try {
+      const { gerarPlanilhaBackup } = await import("@/lib/backup.server");
+      return { planilha: await gerarPlanilhaBackup() };
+    } catch (err) {
+      const erro = err instanceof Error ? err.message : "Falha ao gerar a planilha do backup.";
+      console.error("[backup] gerarPlanilhaBackup falhou:", erro);
+      throw new Error(`Não foi possível gerar a planilha do backup: ${erro}`);
+    }
   });
 
 /** Links dos arquivos (fotos e documentos) já enviados ao Google Drive. */

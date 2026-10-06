@@ -15,6 +15,15 @@ export function atestadoVencido(data: string | null | undefined) {
   return limite ? limite < new Date() : false;
 }
 
+/** Notificações de vencimento são restritas aos alunos ativos. */
+export function notificarAtestadoVencido(aluno: {
+  ativo: boolean;
+  atestado_entregue: boolean;
+  atestado_data: string | null;
+}) {
+  return aluno.ativo && aluno.atestado_entregue && atestadoVencido(aluno.atestado_data);
+}
+
 /** Vence dentro do prazo de aviso configurado (ainda válido). */
 export function atestadoVencendo(data: string | null | undefined, dias = PRAZO_AVISO_PADRAO) {
   const limite = vencimentoAtestado(data);

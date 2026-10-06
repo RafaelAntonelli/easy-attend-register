@@ -18,3 +18,4 @@
 - [x] Alunos: notificar alunos sem atestado médico.
 - [x] Alunos: permitir ocultar/exibir cada lista de notificações separadamente.
 - [x] Validar as alterações no preview.
+- [x] Alunos: remover alunos inativados das notificações e do filtro de atestados vencidos; validar com teste.

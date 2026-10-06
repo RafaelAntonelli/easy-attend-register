@@ -34,6 +34,15 @@ export function atestadoVencendo(data: string | null | undefined, dias = PRAZO_A
   return limite >= hoje && limite <= aviso;
 }
 
+/** Avisos de atestado a vencer são restritos aos alunos ativos. */
+export function notificarAtestadoVencendo(aluno: {
+  ativo: boolean;
+  atestado_entregue: boolean;
+  atestado_data: string | null;
+}, dias = PRAZO_AVISO_PADRAO) {
+  return aluno.ativo && aluno.atestado_entregue && atestadoVencendo(aluno.atestado_data, dias);
+}
+
 export function diasParaVencer(data: string | null | undefined) {
   const limite = vencimentoAtestado(data);
   if (!limite) return 0;

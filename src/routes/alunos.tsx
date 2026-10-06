@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { encontrarAlunoDuplicado } from "@/lib/duplicidade";
 import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/lib/turnos";
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
-import { atestadoVencido, atestadoVencendo, diasParaVencer, notificarAtestadoVencido } from "@/lib/atestado";
+import { atestadoVencido, diasParaVencer, notificarAtestadoVencido, notificarAtestadoVencendo } from "@/lib/atestado";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { useAuth } from "@/lib/auth";
 import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
@@ -55,6 +55,8 @@ export const Route = createFileRoute("/alunos")({
       { name: "description", content: "Cadastre alunos, faça matrículas em turmas e gere o QR Code de presença." },
       { property: "og:title", content: "Alunos e matrículas | Arena Aquática" },
       { property: "og:description", content: "Cadastro de alunos e matrículas da Arena Aquática." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
@@ -919,7 +921,7 @@ function AlunosPage() {
       if (filtroNotificacao === "inativos" && a.ativo) return false;
       if (filtroNotificacao === "sem_atestado" && a.atestado_entregue) return false;
       if (filtroNotificacao === "atestado_vencido" && !notificarAtestadoVencido(a)) return false;
-      if (filtroNotificacao === "atestado_vencer" && !(a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso))) return false;
+      if (filtroNotificacao === "atestado_vencer" && !notificarAtestadoVencendo(a, prazoAviso)) return false;
       if (filtroNotificacao === "excesso_faltas" && (!a.ativo || (faltasPorAluno[a.id] ?? 0) < 5)) return false;
       if (filtroSexo !== "todos" && (a.sexo ?? "") !== filtroSexo) return false;
       if (idadeMin && (a.idade ?? -1) < Number(idadeMin)) return false;
@@ -953,7 +955,7 @@ function AlunosPage() {
 
   const vencidos = alunos.filter(notificarAtestadoVencido);
   const semAtestado = alunos.filter((a) => !a.atestado_entregue).sort((a, b) => a.nome.localeCompare(b.nome));
-  const proximosVencimento = alunos.filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data, prazoAviso));
+  const proximosVencimento = alunos.filter((a) => notificarAtestadoVencendo(a, prazoAviso));
   const excessoFaltas = alunos.filter((a) => a.ativo && (faltasPorAluno[a.id] ?? 0) >= 5);
   const inativos = alunos.filter((a) => !a.ativo).sort((a, b) => a.nome.localeCompare(b.nome));
 

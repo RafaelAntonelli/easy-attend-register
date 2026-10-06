@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Alunos: excluir inativados das notificações e do filtro de atestado vencendo; validar com teste.
+
 - [x] Backup: corrigir falha ao gerar a planilha no servidor.
 - [x] Presença: manter filtros ativos ao trocar de tela.
 - [x] Alunos e relatórios: exibir e exportar o código de matrícula nas listas.

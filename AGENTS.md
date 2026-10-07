@@ -14,3 +14,4 @@
 - Keep expired and soon-expiring certificate notification eligibility in src/lib/atestado.ts and reuse it for both notification lists and filters, so they cannot diverge.
 - Keep WhatsApp contact URL normalization in src/lib/whatsapp.ts and reuse ConversarWhatsApp across student forms and profiles to avoid divergent contact behavior.
 - Keep school options grouped by education network in src/lib/escolas.ts; the enrollment form consumes these lists and preserves unlisted legacy school values so existing records remain editable.
+- Keep report school grouping in src/lib/escolas.ts and reuse its network filter so per-school counts match the selected network total.

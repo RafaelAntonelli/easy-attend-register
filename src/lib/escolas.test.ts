@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { escolasDaRede, filtrarAlunosPorRede } from "./escolas";
+import { agruparAlunosPorEscola, escolasDaRede, filtrarAlunosPorRede } from "./escolas";
 
 describe("escolas por rede de ensino", () => {
   it("oferece as 44 escolas públicas informadas sem escolas privadas", () => {
@@ -38,5 +38,32 @@ describe("filtro de rede nos relatórios", () => {
 
   it("inclui alunos sem rede informada quando o filtro é Todas", () => {
     expect(filtrarAlunosPorRede(alunos, "todas").map((a) => a.id)).toEqual(["publica", "privada", "sem-rede"]);
+  });
+});
+
+describe("quantitativo por escola da rede selecionada", () => {
+  const alunos = [
+    { id: "1", rede_ensino: "Pública", escola: "Escola Municipal Vila Praiana" },
+    { id: "2", rede_ensino: "Pública", escola: "Escola Municipal Vila Praiana" },
+    { id: "3", rede_ensino: "Pública", escola: "Escola Municipal Santa Rita" },
+    { id: "4", rede_ensino: "Privada", escola: "Colégio Perfil" },
+    { id: "5", rede_ensino: "Privada", escola: "Colégio Perfil" },
+    { id: "6", rede_ensino: "Privada", escola: null },
+  ];
+
+  it("conta alunos por escola apenas da rede Pública", () => {
+    expect(agruparAlunosPorEscola(alunos, "Pública").map(({ nome, total }) => ({ nome, total }))).toEqual([
+      { nome: "Escola Municipal Vila Praiana", total: 2 },
+      { nome: "Escola Municipal Santa Rita", total: 1 },
+    ]);
+  });
+
+  it("conta alunos por escola apenas da rede Privada, sem perder os sem escola", () => {
+    const grupos = agruparAlunosPorEscola(alunos, "Privada");
+    expect(grupos.map(({ nome, total }) => ({ nome, total }))).toEqual([
+      { nome: "Colégio Perfil", total: 2 },
+      { nome: "Escola não informada", total: 1 },
+    ]);
+    expect(grupos.flatMap((grupo) => grupo.alunos.map((aluno) => aluno.id))).toEqual(["4", "5", "6"]);
   });
 });

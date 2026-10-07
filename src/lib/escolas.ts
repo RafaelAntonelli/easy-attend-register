@@ -85,3 +85,16 @@ export type FiltroRedeEnsino = "todas" | "Pública" | "Privada";
 export function filtrarAlunosPorRede<T extends { rede_ensino?: string | null }>(alunos: T[], rede: FiltroRedeEnsino): T[] {
   return rede === "todas" ? alunos : alunos.filter((aluno) => aluno.rede_ensino === rede);
 }
+
+export function agruparAlunosPorEscola<T extends { rede_ensino?: string | null; escola?: string | null }>(alunos: T[], rede: FiltroRedeEnsino) {
+  const grupos = new Map<string, T[]>();
+  for (const aluno of filtrarAlunosPorRede(alunos, rede)) {
+    const nome = aluno.escola?.trim() || "Escola não informada";
+    const grupo = grupos.get(nome);
+    if (grupo) grupo.push(aluno);
+    else grupos.set(nome, [aluno]);
+  }
+  return [...grupos.entries()]
+    .map(([nome, lista]) => ({ nome, total: lista.length, alunos: lista }))
+    .sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome, "pt-BR"));
+}

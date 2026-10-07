@@ -15,3 +15,4 @@
 - Keep WhatsApp contact URL normalization in src/lib/whatsapp.ts and reuse ConversarWhatsApp across student forms and profiles to avoid divergent contact behavior.
 - Keep school options grouped by education network in src/lib/escolas.ts; the enrollment form consumes these lists and preserves unlisted legacy school values so existing records remain editable.
 - Keep report school grouping in src/lib/escolas.ts and reuse its network filter so per-school counts match the selected network total.
+- Derive export parameters from the selected chart parameters plus the selected school network so CSV and PDF include the same per-school counts shown on screen.

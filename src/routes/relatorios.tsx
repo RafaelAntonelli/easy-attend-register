@@ -74,6 +74,8 @@ const PARAMETROS = [
   { id: "horario", rotulo: "Horários" },
   { id: "dias", rotulo: "Dias" },
   { id: "turno", rotulo: "Turno" },
+  { id: "escolas_publicas", rotulo: "Escolas públicas" },
+  { id: "escolas_privadas", rotulo: "Escolas privadas" },
 ] as const;
 
 type ParametroId = (typeof PARAMETROS)[number]["id"];
@@ -89,6 +91,9 @@ function RelatoriosPage() {
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [carregando, setCarregando] = useState(true);
   const [parametros, setParametros] = useState<ParametroId[]>(["faixa"]);
+  const parametrosSelecionados: ParametroId[] = redeEnsino === "todas"
+    ? parametros
+    : [...parametros, redeEnsino === "Pública" ? "escolas_publicas" : "escolas_privadas"];
   const [detalhe, setDetalhe] = useState<{ titulo: string; alunos: Aluno[] } | null>(null);
   const { valor: prazo, salvar: salvarPrazo } = usePrazoAvisoAtestado();
   const [prazoEditado, setPrazoEditado] = useState<string>("");
@@ -321,9 +326,11 @@ function RelatoriosPage() {
         return dias.length ? dias.join(" e ") : "";
       }),
       turno: contar((a) => turnoDoHorario(turmaDoAluno(a.id)?.horario) || ""),
+      escolas_publicas: agruparAlunosPorEscola(alunos, "Pública"),
+      escolas_privadas: agruparAlunosPorEscola(alunos, "Privada"),
     } as Record<ParametroId, PontoGrafico[]>;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alunosFiltrados, turmas, matriculas]);
+  }, [alunos, alunosFiltrados, turmas, matriculas]);
 
   function baixarArquivo(conteudo: BlobPart, nome: string, tipo: string) {
     const url = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
@@ -335,12 +342,12 @@ function RelatoriosPage() {
   }
 
   function exportarGraficosCsv() {
-    if (!parametros.length) {
+    if (!parametrosSelecionados.length) {
       toast.error("Selecione ao menos um parâmetro");
       return;
     }
     const linhas = [["Parâmetro", "Categoria", "Alunos"]];
-    for (const id of parametros) {
+    for (const id of parametrosSelecionados) {
       const rotulo = PARAMETROS.find((p) => p.id === id)?.rotulo ?? id;
       for (const ponto of graficos[id] ?? []) linhas.push([rotulo, ponto.nome, String(ponto.total)]);
     }
@@ -388,7 +395,7 @@ function RelatoriosPage() {
   }
 
   async function exportarGraficosPdf() {
-    if (!parametros.length) {
+    if (!parametrosSelecionados.length) {
       toast.error("Selecione ao menos um parâmetro");
       return;
     }
@@ -404,16 +411,16 @@ function RelatoriosPage() {
       pdf.text("Relatório de alunos por parâmetro", margem, y);
       y += 18;
       pdf.setFontSize(10);
-      pdf.text(
-        `Gerado em ${new Date().toLocaleString("pt-BR")} · ${alunosFiltrados.length} aluno(s) · Parâmetros: ${parametros
+      const resumo = pdf.splitTextToSize(
+        `Gerado em ${new Date().toLocaleString("pt-BR")} · ${alunosFiltrados.length} aluno(s) · Parâmetros: ${parametrosSelecionados
           .map((id) => PARAMETROS.find((p) => p.id === id)?.rotulo ?? id)
           .join(", ")}`,
-        margem,
-        y,
+        larguraUtil,
       );
-      y += 20;
+      pdf.text(resumo, margem, y);
+      y += resumo.length * 12 + 8;
 
-      for (const id of parametros) {
+      for (const id of parametrosSelecionados) {
         const rotulo = PARAMETROS.find((p) => p.id === id)?.rotulo ?? id;
         const svg = document.querySelector<SVGSVGElement>(`#grafico-${id} svg`);
         const dados = graficos[id] ?? [];
@@ -439,12 +446,14 @@ function RelatoriosPage() {
 
         pdf.setFontSize(9);
         for (const ponto of dados) {
-          if (y > pdf.internal.pageSize.getHeight() - margem) {
+          const linhas = pdf.splitTextToSize(`${ponto.nome}: ${ponto.total} aluno(s)`, larguraUtil);
+          const alturaLinha = linhas.length * 12;
+          if (y + alturaLinha > pdf.internal.pageSize.getHeight() - margem) {
             pdf.addPage();
             y = margem;
           }
-          pdf.text(`${ponto.nome}: ${ponto.total} aluno(s)`, margem, y);
-          y += 12;
+          pdf.text(linhas, margem, y);
+          y += alturaLinha;
         }
         y += 14;
       }
@@ -573,7 +582,7 @@ function RelatoriosPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {PARAMETROS.map((p) => {
+            {PARAMETROS.filter((p) => p.id !== "escolas_publicas" && p.id !== "escolas_privadas").map((p) => {
               const ativo = parametros.includes(p.id);
               return (
                 <Button
@@ -631,7 +640,7 @@ function RelatoriosPage() {
             </section>
           )}
 
-          {!parametros.length ? (
+          {!parametrosSelecionados.length ? (
             <p className="text-sm text-muted-foreground">Selecione um ou mais parâmetros para ver os gráficos.</p>
           ) : (
             <div className="grid gap-6 lg:grid-cols-2">

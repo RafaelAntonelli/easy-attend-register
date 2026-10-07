@@ -24,6 +24,7 @@ import { linksArquivosFn } from "@/lib/links-arquivos.functions";
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";
 import { ConversarWhatsApp } from "@/components/ConversarWhatsApp";
+import { SelecionarEscola } from "@/components/SelecionarEscola";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1420,19 +1421,7 @@ function AlunosPage() {
                 <div className="min-w-0 space-y-2">
                   <Label>Nome da escola</Label>
                   {escolasDaRede(form.rede_ensino).length > 0 ? (
-                    <Select value={form.escola} onValueChange={(v) => setForm({ ...form, escola: v })}>
-                      <SelectTrigger aria-label="Nome da escola" className="h-auto min-h-9 w-full [&>span]:min-w-0 [&>span]:whitespace-normal [&>span]:text-left [&>span]:break-words">
-                        <SelectValue placeholder="Selecione a escola" />
-                      </SelectTrigger>
-                      <SelectContent className="max-w-[min(32rem,calc(100vw-2rem))]">
-                        {form.escola && !escolasDaRede(form.rede_ensino).includes(form.escola) ? (
-                          <SelectItem value={form.escola} className="whitespace-normal break-words">{form.escola}</SelectItem>
-                        ) : null}
-                        {escolasDaRede(form.rede_ensino).map((escola) => (
-                          <SelectItem key={escola} value={escola} className="whitespace-normal break-words">{escola}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SelecionarEscola key={form.rede_ensino} rede={form.rede_ensino} value={form.escola} onChange={(escola) => setForm({ ...form, escola })} />
                   ) : (
                     <Input aria-label="Nome da escola" value={form.escola} onChange={(e) => setForm({ ...form, escola: e.target.value })} />
                   )}

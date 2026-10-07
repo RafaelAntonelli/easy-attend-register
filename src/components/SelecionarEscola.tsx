@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
 import { escolasDaRede } from "@/lib/escolas";
 import { normalizarTexto } from "@/lib/formatacao";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
@@ -12,10 +13,20 @@ export function SelecionarEscola({ rede, value, onChange }: {
   onChange: (escola: string) => void;
 }) {
   const [aberto, setAberto] = useState(false);
+  const [adicionando, setAdicionando] = useState(false);
+  const [novaEscola, setNovaEscola] = useState("");
+  const adicionar = () => {
+    const nome = novaEscola.trim();
+    if (!nome) return;
+    onChange(nome);
+    setAdicionando(false);
+    setNovaEscola("");
+  };
   const escolas = escolasDaRede(rede);
   const opcoes = value && !escolas.includes(value) ? [value, ...escolas] : escolas;
 
   return (
+    <div className="space-y-2">
     <Popover open={aberto} onOpenChange={setAberto} modal>
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" role="combobox" aria-label="Nome da escola" aria-expanded={aberto}
@@ -42,5 +53,26 @@ export function SelecionarEscola({ rede, value, onChange }: {
         </Command>
       </PopoverContent>
     </Popover>
+    {adicionando ? (
+      <div className="flex items-center gap-2">
+        <Input autoFocus aria-label="Nome da escola fora da lista" placeholder="Nome da nova escola" value={novaEscola}
+          className="min-w-0 flex-1" onChange={(event) => setNovaEscola(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") { event.preventDefault(); adicionar(); }
+            if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setAdicionando(false); }
+          }} />
+        <Button type="button" size="icon" aria-label="Adicionar escola" title="Adicionar escola" disabled={!novaEscola.trim()} onClick={adicionar}>
+          <Check />
+        </Button>
+        <Button type="button" variant="ghost" size="icon" aria-label="Cancelar adição de escola" title="Cancelar" onClick={() => setAdicionando(false)}>
+          <X />
+        </Button>
+      </div>
+    ) : (
+      <Button type="button" variant="link" className="h-auto max-w-full justify-start px-0 text-left whitespace-normal" onClick={() => { setNovaEscola(""); setAdicionando(true); }}>
+        <Plus /> Adicionar escola fora da lista
+      </Button>
+    )}
+    </div>
   );
 }

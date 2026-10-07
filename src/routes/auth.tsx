@@ -20,6 +20,8 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Acesso da equipe da Arena Aquática ao sistema de matrículas e presença." },
       { property: "og:title", content: "Entrar | Arena Aquática" },
       { property: "og:description", content: "Acesso da equipe ao sistema de matrículas e presença." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

@@ -49,6 +49,8 @@ export const Route = createFileRoute("/presenca")({
       { name: "description", content: "Registre a presença dos alunos por leitura de QR Code ou pela lista da turma." },
       { property: "og:title", content: "Registro de presença | Arena Aquática" },
       { property: "og:description", content: "Presença por QR Code na Arena Aquática." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

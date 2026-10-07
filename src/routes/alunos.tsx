@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { CONDICOES_PCD } from "@/lib/pcd";
+import { escolasDaRede } from "@/lib/escolas";
 import { useHorarios } from "@/lib/horarios";
 import { useGruposDias } from "@/lib/dias";
 import { capitalizarNome, formatarCelular, formatarCPF, cpfValido, correspondeBusca, relevanciaBusca } from "@/lib/formatacao";
@@ -1408,17 +1409,33 @@ function AlunosPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Estuda na rede</Label>
-                  <Select value={form.rede_ensino} onValueChange={(v) => setForm({ ...form, rede_ensino: v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <Select value={form.rede_ensino} onValueChange={(v) => setForm({ ...form, rede_ensino: v, escola: v === form.rede_ensino ? form.escola : "" })}>
+                    <SelectTrigger aria-label="Estuda na rede"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Pública">Pública</SelectItem>
                       <SelectItem value="Privada">Privada</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div className="min-w-0 space-y-2">
                   <Label>Nome da escola</Label>
-                  <Input value={form.escola} onChange={(e) => setForm({ ...form, escola: e.target.value })} />
+                  {escolasDaRede(form.rede_ensino).length > 0 ? (
+                    <Select value={form.escola} onValueChange={(v) => setForm({ ...form, escola: v })}>
+                      <SelectTrigger aria-label="Nome da escola" className="h-auto min-h-9 w-full [&>span]:min-w-0 [&>span]:whitespace-normal [&>span]:text-left [&>span]:break-words">
+                        <SelectValue placeholder="Selecione a escola" />
+                      </SelectTrigger>
+                      <SelectContent className="max-w-[min(32rem,calc(100vw-2rem))]">
+                        {form.escola && !escolasDaRede(form.rede_ensino).includes(form.escola) ? (
+                          <SelectItem value={form.escola} className="whitespace-normal break-words">{form.escola}</SelectItem>
+                        ) : null}
+                        {escolasDaRede(form.rede_ensino).map((escola) => (
+                          <SelectItem key={escola} value={escola} className="whitespace-normal break-words">{escola}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input aria-label="Nome da escola" value={form.escola} onChange={(e) => setForm({ ...form, escola: e.target.value })} />
+                  )}
                 </div>
               </div>
               <div className="space-y-3 rounded-lg border border-border/70 p-3">

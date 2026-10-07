@@ -1888,6 +1888,8 @@ function AlunosPage() {
                 <IdCard className="size-4" /> {gerandoCrachas ? "Gerando..." : "Gerar crachá CR-80 (PDF)"}
               </Button>
 
+              <ConversarWhatsApp telefone={detalhe.telefone} />
+
               {detalhe.observacoes ? (
                 <div className="rounded-lg border border-border/70 p-3 text-sm">
                   <p className="mb-1 font-medium">Observações</p>

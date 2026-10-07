@@ -246,15 +246,14 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
               </div>
             </div>
 
+            <ConversarWhatsApp telefone={aluno.telefone} />
+
             {aluno.observacoes ? (
-              <>
-                <ConversarWhatsApp telefone={aluno.telefone} />
               <div className="rounded-lg border border-border/70 p-3 text-sm">
                 <p className="mb-1 font-medium">Observações</p>
                 <p className="whitespace-pre-wrap text-muted-foreground">{aluno.observacoes}</p>
               </div>
-              </>
-            ) : <ConversarWhatsApp telefone={aluno.telefone} />}
+            ) : null}
 
             <div className="rounded-lg border border-border/70 p-3 text-sm">
               <p className="mb-1 font-medium">Documentos</p>

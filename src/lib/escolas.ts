@@ -82,6 +82,12 @@ export function escolasDaRede(rede: string): string[] {
 
 export type FiltroRedeEnsino = "todas" | "Pública" | "Privada";
 
+export function parametroEscolasDaRede(rede: FiltroRedeEnsino): "escolas_publicas" | "escolas_privadas" | null {
+  if (rede === "Pública") return "escolas_publicas";
+  if (rede === "Privada") return "escolas_privadas";
+  return null;
+}
+
 export function filtrarAlunosPorRede<T extends { rede_ensino?: string | null }>(alunos: T[], rede: FiltroRedeEnsino): T[] {
   return rede === "todas" ? alunos : alunos.filter((aluno) => aluno.rede_ensino === rede);
 }

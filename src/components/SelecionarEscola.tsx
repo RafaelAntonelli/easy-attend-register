@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
 import { escolasDaRede } from "@/lib/escolas";
+import { escolasPersonalizadasOptions, salvarEscolaPersonalizada } from "@/lib/escolas-personalizadas";
 import { normalizarTexto } from "@/lib/formatacao";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,14 +18,29 @@ export function SelecionarEscola({ rede, value, onChange }: {
   const [aberto, setAberto] = useState(false);
   const [adicionando, setAdicionando] = useState(false);
   const [novaEscola, setNovaEscola] = useState("");
-  const adicionar = () => {
+  const [salvando, setSalvando] = useState(false);
+  const queryClient = useQueryClient();
+  const options = escolasPersonalizadasOptions(rede);
+  const { data: personalizadas = [], isError } = useQuery(options);
+  const adicionar = async () => {
     const nome = novaEscola.trim();
-    if (!nome) return;
-    onChange(nome);
-    setAdicionando(false);
-    setNovaEscola("");
+    if (!nome || salvando) return;
+    setSalvando(true);
+    try {
+      const escola = await salvarEscolaPersonalizada(rede, nome);
+      queryClient.setQueryData(options.queryKey, (atuais: string[] | undefined) => [...new Set([...(atuais ?? []), escola])]);
+      void queryClient.invalidateQueries({ queryKey: options.queryKey });
+      onChange(escola);
+      setAdicionando(false);
+      setNovaEscola("");
+      toast.success("Escola salva na lista.");
+    } catch {
+      toast.error("Não foi possível salvar a escola na lista. Verifique a conexão e tente novamente.");
+    } finally {
+      setSalvando(false);
+    }
   };
-  const escolas = escolasDaRede(rede);
+  const escolas = [...new Set([...escolasDaRede(rede), ...personalizadas])];
   const opcoes = value && !escolas.includes(value) ? [value, ...escolas] : escolas;
 
   return (
@@ -53,18 +71,19 @@ export function SelecionarEscola({ rede, value, onChange }: {
         </Command>
       </PopoverContent>
     </Popover>
+    {isError && <p role="alert" className="text-sm text-destructive">Não foi possível carregar as escolas adicionadas. Verifique a conexão.</p>}
     {adicionando ? (
       <div className="flex items-center gap-2">
-        <Input autoFocus aria-label="Nome da escola fora da lista" placeholder="Nome da nova escola" value={novaEscola}
+        <Input autoFocus disabled={salvando} aria-label="Nome da escola fora da lista" placeholder="Nome da nova escola" value={novaEscola}
           className="min-w-0 flex-1" onChange={(event) => setNovaEscola(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") { event.preventDefault(); adicionar(); }
             if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setAdicionando(false); }
           }} />
-        <Button type="button" size="icon" aria-label="Adicionar escola" title="Adicionar escola" disabled={!novaEscola.trim()} onClick={adicionar}>
+        <Button type="button" size="icon" aria-label="Adicionar escola" title="Adicionar escola" disabled={salvando || !novaEscola.trim()} onClick={adicionar}>
           <Check />
         </Button>
-        <Button type="button" variant="ghost" size="icon" aria-label="Cancelar adição de escola" title="Cancelar" onClick={() => setAdicionando(false)}>
+        <Button type="button" variant="ghost" size="icon" aria-label="Cancelar adição de escola" title="Cancelar" disabled={salvando} onClick={() => setAdicionando(false)}>
           <X />
         </Button>
       </div>

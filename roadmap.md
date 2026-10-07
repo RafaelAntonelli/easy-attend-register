@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Alunos: adicionar botão de conversa no WhatsApp usando o celular cadastrado, sem afirmar existência de conta; validar.
+
 - [x] Alunos: excluir inativados das notificações e do filtro de atestado vencendo; validar com teste.
 
 - [x] Backup: corrigir falha ao gerar a planilha no servidor.

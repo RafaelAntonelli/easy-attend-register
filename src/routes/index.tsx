@@ -43,6 +43,8 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:title", content: "Arena Aquática | Matrículas e presença" },
       { property: "og:description", content: "Matrículas, turmas e presença por QR Code em um só painel." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

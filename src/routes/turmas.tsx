@@ -36,6 +36,8 @@ export const Route = createFileRoute("/turmas")({
       { name: "description", content: "Organize turmas de natação e hidroginástica com horários e professores." },
       { property: "og:title", content: "Turmas | Arena Aquática" },
       { property: "og:description", content: "Gestão de turmas e horários da Arena Aquática." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

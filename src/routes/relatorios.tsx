@@ -34,7 +34,7 @@ import { linksArquivosFn } from "@/lib/links-arquivos.functions";
 
 import { gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { faixaEtariaECA, turnoDoHorario } from "@/lib/turnos";
-import { filtrarAlunosPorRede, type FiltroRedeEnsino } from "@/lib/escolas";
+import { agruparAlunosPorEscola, filtrarAlunosPorRede, type FiltroRedeEnsino } from "@/lib/escolas";
 
 
 export const Route = createFileRoute("/relatorios")({
@@ -83,6 +83,7 @@ function RelatoriosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [redeEnsino, setRedeEnsino] = useState<FiltroRedeEnsino>("todas");
   const alunosFiltrados = useMemo(() => filtrarAlunosPorRede(alunos, redeEnsino), [alunos, redeEnsino]);
+  const escolas = useMemo(() => agruparAlunosPorEscola(alunos, redeEnsino), [alunos, redeEnsino]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
   const [fotos, setFotos] = useState<Record<string, string>>({});
@@ -547,25 +548,25 @@ function RelatoriosPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="filtro-rede-relatorios">Rede de ensino</Label>
-              <Select value={redeEnsino} onValueChange={(valor) => {
-                if (valor !== "todas" && valor !== "Pública" && valor !== "Privada") return;
-                setRedeEnsino(valor);
-                setDetalhe(null);
-              }}>
-                <SelectTrigger id="filtro-rede-relatorios" aria-label="Rede de ensino" className="w-52">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas as redes</SelectItem>
-                  <SelectItem value="Pública">Pública</SelectItem>
-                  <SelectItem value="Privada">Privada</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Rede de ensino">
+              {(["todas", "Pública", "Privada"] as const).map((rede) => (
+                <Button
+                  key={rede}
+                  type="button"
+                  size="sm"
+                  variant={redeEnsino === rede ? "default" : "outline"}
+                  aria-pressed={redeEnsino === rede}
+                  onClick={() => {
+                    setRedeEnsino(rede);
+                    setDetalhe(null);
+                  }}
+                >
+                  {rede === "todas" ? "Todas as redes" : rede}
+                </Button>
+              ))}
             </div>
-            <p className="pb-2 text-sm font-medium" aria-live="polite">
+            <p className="text-sm font-medium" aria-live="polite">
               {carregando ? "Carregando..." : redeEnsino === "todas"
                 ? `Todas as redes: ${alunosFiltrados.length} aluno(s)`
                 : `Rede ${redeEnsino}: ${alunosFiltrados.length} aluno(s)`}
@@ -591,6 +592,44 @@ function RelatoriosPage() {
               );
             })}
           </div>
+
+          {redeEnsino !== "todas" && (
+            <section aria-label={`Alunos por escola — Rede ${redeEnsino}`} className="space-y-3">
+              <h3 className="text-sm font-medium">Alunos por escola — Rede {redeEnsino}</h3>
+              {carregando ? (
+                <p className="text-sm text-muted-foreground">Carregando...</p>
+              ) : !escolas.length ? (
+                <p className="text-sm text-muted-foreground">Nenhum aluno nesta rede.</p>
+              ) : (
+                <div className="max-h-96 overflow-y-auto rounded-lg border border-border">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-muted">
+                      <tr className="border-b border-border">
+                        <th scope="col" className="px-3 py-2 text-left font-medium">Escola</th>
+                        <th scope="col" className="px-3 py-2 text-right font-medium">Alunos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {escolas.map((escola) => (
+                        <tr key={escola.nome} className="border-b border-border last:border-0">
+                          <td className="px-3 py-2">
+                            <Button
+                              variant="link"
+                              className="h-auto max-w-full justify-start whitespace-normal p-0 text-left"
+                              onClick={() => setDetalhe({ titulo: `Rede ${redeEnsino}: ${escola.nome}`, alunos: escola.alunos })}
+                            >
+                              {escola.nome}
+                            </Button>
+                          </td>
+                          <td className="px-3 py-2 text-right font-medium tabular-nums">{escola.total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
 
           {!parametros.length ? (
             <p className="text-sm text-muted-foreground">Selecione um ou mais parâmetros para ver os gráficos.</p>

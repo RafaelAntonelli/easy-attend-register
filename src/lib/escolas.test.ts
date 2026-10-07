@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { escolasDaRede } from "./escolas";
+import { escolasDaRede, filtrarAlunosPorRede } from "./escolas";
 
 describe("escolas por rede de ensino", () => {
   it("oferece as 44 escolas públicas informadas sem escolas privadas", () => {
@@ -18,5 +18,25 @@ describe("escolas por rede de ensino", () => {
     expect(escolas).toContain("Colégio Perfil");
     expect(escolas).toContain("Escola Brazílio");
     expect(escolas).not.toContain("Colégio Estadual Bartolomeu de Gusmão");
+  });
+});
+
+describe("filtro de rede nos relatórios", () => {
+  const alunos = [
+    { id: "publica", rede_ensino: "Pública" },
+    { id: "privada", rede_ensino: "Privada" },
+    { id: "sem-rede", rede_ensino: null },
+  ];
+
+  it("mostra somente alunos da rede Pública", () => {
+    expect(filtrarAlunosPorRede(alunos, "Pública").map((a) => a.id)).toEqual(["publica"]);
+  });
+
+  it("mostra somente alunos da rede Privada", () => {
+    expect(filtrarAlunosPorRede(alunos, "Privada").map((a) => a.id)).toEqual(["privada"]);
+  });
+
+  it("inclui alunos sem rede informada quando o filtro é Todas", () => {
+    expect(filtrarAlunosPorRede(alunos, "todas").map((a) => a.id)).toEqual(["publica", "privada", "sem-rede"]);
   });
 });

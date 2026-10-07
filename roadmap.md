@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Corrigir a falha de inicialização do app publicado e validar a proteção do runtime; a confirmação no site público depende de republicação.
+
 - [x] Relatórios: reconhecer escolas públicas e privadas como parâmetros nas exportações CSV e PDF; validar.
 
 - [x] Relatórios: mostrar redes de ensino como botões e quantitativo por escola ao selecionar Pública ou Privada; validar.

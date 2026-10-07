@@ -34,7 +34,7 @@ import { linksArquivosFn } from "@/lib/links-arquivos.functions";
 
 import { gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { faixaEtariaECA, turnoDoHorario } from "@/lib/turnos";
-import { agruparAlunosPorEscola, filtrarAlunosPorRede, type FiltroRedeEnsino } from "@/lib/escolas";
+import { agruparAlunosPorEscola, filtrarAlunosPorRede, parametroEscolasDaRede, type FiltroRedeEnsino } from "@/lib/escolas";
 
 
 export const Route = createFileRoute("/relatorios")({
@@ -91,9 +91,8 @@ function RelatoriosPage() {
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [carregando, setCarregando] = useState(true);
   const [parametros, setParametros] = useState<ParametroId[]>(["faixa"]);
-  const parametrosSelecionados: ParametroId[] = redeEnsino === "todas"
-    ? parametros
-    : [...parametros, redeEnsino === "Pública" ? "escolas_publicas" : "escolas_privadas"];
+  const parametroEscolas = parametroEscolasDaRede(redeEnsino);
+  const parametrosSelecionados: ParametroId[] = parametroEscolas ? [...parametros, parametroEscolas] : parametros;
   const [detalhe, setDetalhe] = useState<{ titulo: string; alunos: Aluno[] } | null>(null);
   const { valor: prazo, salvar: salvarPrazo } = usePrazoAvisoAtestado();
   const [prazoEditado, setPrazoEditado] = useState<string>("");

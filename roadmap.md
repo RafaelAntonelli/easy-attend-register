@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Relatórios: mostrar redes de ensino como botões e quantitativo por escola ao selecionar Pública ou Privada; validar.
+- [x] Relatórios: mostrar redes de ensino como botões e quantitativo por escola ao selecionar Pública ou Privada; validar.
 
 - [x] Alunos: exibir botão de conversa no WhatsApp para cada aluno em todas as notificações; validar.
 

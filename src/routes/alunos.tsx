@@ -987,21 +987,24 @@ function AlunosPage() {
             </div>
             {listasNotificacoes["inativos"] ? <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {inativos.map((a) => (
-                <button
-                  key={a.id}
+                <div key={a.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-card px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     void abrirDetalhe(a);
                   }}
-                  className="flex w-full items-center justify-between gap-2 rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                  className="h-auto min-w-0 flex-1 flex-wrap justify-between gap-2 whitespace-normal px-0 py-1 text-left text-sm"
                 >
                   <span>{a.nome}</span>
                   <span className="text-right text-xs text-muted-foreground">
                     {a.motivo_inativacao ?? "Sem turma"}
                     {a.inativado_em ? ` · ${new Date(a.inativado_em).toLocaleDateString("pt-BR")}` : ""}
                   </span>
-                </button>
+                </Button>
+                <ConversarWhatsApp telefone={a.telefone} />
+                </div>
               ))}
             </div> : null}
           </CardContent>
@@ -1026,18 +1029,21 @@ function AlunosPage() {
             </div>
             {listasNotificacoes["sem_atestado"] ? <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {semAtestado.map((a) => (
-                <button
-                  key={a.id}
+                <div key={a.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-card px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     abrirEdicao(a);
                   }}
-                  className="flex w-full items-center justify-between gap-2 rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                  className="h-auto min-w-0 flex-1 flex-wrap justify-between gap-2 whitespace-normal px-0 py-1 text-left text-sm"
                 >
                   <span>{a.nome}</span>
                   <span className="text-xs text-muted-foreground">Atestado não entregue</span>
-                </button>
+                </Button>
+                <ConversarWhatsApp telefone={a.telefone} />
+                </div>
               ))}
             </div> : null}
           </CardContent>
@@ -1063,20 +1069,23 @@ function AlunosPage() {
 
             {listasNotificacoes["atestado_vencido"] ? <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {vencidos.map((a) => (
-                <button
-                  key={a.id}
+                <div key={a.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-card px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     abrirEdicao(a);
                   }}
-                  className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                  className="h-auto min-w-0 flex-1 flex-wrap justify-between gap-2 whitespace-normal px-0 py-1 text-left text-sm"
                 >
                   <span>{a.nome}</span>
                   <span className="text-xs text-muted-foreground">
                     Atestado de {a.atestado_data ? new Date(`${a.atestado_data}T00:00:00`).toLocaleDateString("pt-BR") : "-"}
                   </span>
-                </button>
+                </Button>
+                <ConversarWhatsApp telefone={a.telefone} />
+                </div>
               ))}
             </div> : null}
           </CardContent>
@@ -1101,20 +1110,23 @@ function AlunosPage() {
             </div>
             {listasNotificacoes["atestado_vencer"] ? <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {proximosVencimento.map((a) => (
-                <button
-                  key={a.id}
+                <div key={a.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-card px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     abrirEdicao(a);
                   }}
-                  className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                  className="h-auto min-w-0 flex-1 flex-wrap justify-between gap-2 whitespace-normal px-0 py-1 text-left text-sm"
                 >
                   <span>{a.nome}</span>
                   <span className="text-xs text-muted-foreground">
                     Vence em {diasParaVencer(a.atestado_data)} dia(s)
                   </span>
-                </button>
+                </Button>
+                <ConversarWhatsApp telefone={a.telefone} />
+                </div>
               ))}
             </div> : null}
           </CardContent>
@@ -1139,18 +1151,21 @@ function AlunosPage() {
             </div>
             {listasNotificacoes["excesso_faltas"] ? <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {excessoFaltas.map((a) => (
-                <button
-                  key={a.id}
+                <div key={a.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-card px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     void abrirDetalhe(a);
                   }}
-                  className="flex w-full items-center justify-between rounded-lg bg-card px-3 py-1.5 text-left text-sm hover:bg-secondary"
+                  className="h-auto min-w-0 flex-1 flex-wrap justify-between gap-2 whitespace-normal px-0 py-1 text-left text-sm"
                 >
                   <span>{a.nome}</span>
                   <span className="text-xs text-muted-foreground">{faltasPorAluno[a.id]} faltas</span>
-                </button>
+                </Button>
+                <ConversarWhatsApp telefone={a.telefone} />
+                </div>
               ))}
             </div> : null}
           </CardContent>

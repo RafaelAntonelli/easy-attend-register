@@ -22,6 +22,7 @@ import { linksArquivosFn } from "@/lib/links-arquivos.functions";
 
 import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";
+import { ConversarWhatsApp } from "@/components/ConversarWhatsApp";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1349,6 +1350,7 @@ function AlunosPage() {
                     value={form.telefone}
                     onChange={(e) => setForm({ ...form, telefone: formatarCelular(e.target.value) })}
                   />
+                  <ConversarWhatsApp telefone={form.telefone} />
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { idadePorNascimento, turnoDoHorario } from "@/lib/turnos";
 
 import { Button } from "@/components/ui/button";
+import { ConversarWhatsApp } from "@/components/ConversarWhatsApp";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -246,11 +247,14 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
             </div>
 
             {aluno.observacoes ? (
+              <>
+                <ConversarWhatsApp telefone={aluno.telefone} />
               <div className="rounded-lg border border-border/70 p-3 text-sm">
                 <p className="mb-1 font-medium">Observações</p>
                 <p className="whitespace-pre-wrap text-muted-foreground">{aluno.observacoes}</p>
               </div>
-            ) : null}
+              </>
+            ) : <ConversarWhatsApp telefone={aluno.telefone} />}
 
             <div className="rounded-lg border border-border/70 p-3 text-sm">
               <p className="mb-1 font-medium">Documentos</p>

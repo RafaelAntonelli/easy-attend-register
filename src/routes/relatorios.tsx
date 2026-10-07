@@ -34,6 +34,7 @@ import { linksArquivosFn } from "@/lib/links-arquivos.functions";
 
 import { gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { faixaEtariaECA, turnoDoHorario } from "@/lib/turnos";
+import { filtrarAlunosPorRede, type FiltroRedeEnsino } from "@/lib/escolas";
 
 
 export const Route = createFileRoute("/relatorios")({
@@ -80,6 +81,8 @@ type PontoGrafico = { nome: string; total: number; alunos: Aluno[] };
 
 function RelatoriosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [redeEnsino, setRedeEnsino] = useState<FiltroRedeEnsino>("todas");
+  const alunosFiltrados = useMemo(() => filtrarAlunosPorRede(alunos, redeEnsino), [alunos, redeEnsino]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
   const [fotos, setFotos] = useState<Record<string, string>>({});
@@ -96,10 +99,10 @@ function RelatoriosPage() {
     const controle = new AbortController();
     cancelarRef.current = controle;
     setExportando(true);
-    setProgressoPlanilha({ feitos: 0, total: alunos.length });
+    setProgressoPlanilha({ feitos: 0, total: alunosFiltrados.length });
     try {
       const buffer = await montarPlanilhaAlunos({
-        alunos,
+        alunos: alunosFiltrados,
         turmaDoAluno,
         modalidadeDoAluno,
         sinal: controle.signal,
@@ -179,15 +182,15 @@ function RelatoriosPage() {
   }
 
   const vencidos = useMemo(
-    () => alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data)),
-    [alunos],
+    () => alunosFiltrados.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data)),
+    [alunosFiltrados],
   );
   const vencendo = useMemo(
     () =>
-      alunos
+      alunosFiltrados
         .filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data, prazo))
         .sort((x, y) => diasParaVencer(x.atestado_data) - diasParaVencer(y.atestado_data)),
-    [alunos, prazo],
+    [alunosFiltrados, prazo],
   );
 
   const relatorio = useMemo(
@@ -292,7 +295,7 @@ function RelatoriosPage() {
   const graficos = useMemo(() => {
     const contar = (valorDe: (a: Aluno) => string | string[]) => {
       const mapa = new Map<string, Aluno[]>();
-      for (const a of alunos) {
+      for (const a of alunosFiltrados) {
         const valores = valorDe(a);
         for (const v of Array.isArray(valores) ? valores : [valores]) {
           const chave = v || "Não informado";
@@ -319,7 +322,7 @@ function RelatoriosPage() {
       turno: contar((a) => turnoDoHorario(turmaDoAluno(a.id)?.horario) || ""),
     } as Record<ParametroId, PontoGrafico[]>;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alunos, turmas, matriculas]);
+  }, [alunosFiltrados, turmas, matriculas]);
 
   function baixarArquivo(conteudo: BlobPart, nome: string, tipo: string) {
     const url = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
@@ -401,7 +404,7 @@ function RelatoriosPage() {
       y += 18;
       pdf.setFontSize(10);
       pdf.text(
-        `Gerado em ${new Date().toLocaleString("pt-BR")} · ${alunos.length} aluno(s) · Parâmetros: ${parametros
+        `Gerado em ${new Date().toLocaleString("pt-BR")} · ${alunosFiltrados.length} aluno(s) · Parâmetros: ${parametros
           .map((id) => PARAMETROS.find((p) => p.id === id)?.rotulo ?? id)
           .join(", ")}`,
         margem,
@@ -469,6 +472,28 @@ function RelatoriosPage() {
 
   return (
     <AppShell title="Relatórios" subtitle="Atestados, exportações e backup da Arena Aquática">
+      <div className="mb-6 flex flex-wrap items-end gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="filtro-rede-relatorios">Rede de ensino</Label>
+          <Select value={redeEnsino} onValueChange={(valor) => {
+            if (valor !== "todas" && valor !== "Pública" && valor !== "Privada") return;
+            setRedeEnsino(valor);
+            setDetalhe(null);
+          }}>
+            <SelectTrigger id="filtro-rede-relatorios" aria-label="Rede de ensino" className="w-52">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as redes</SelectItem>
+              <SelectItem value="Pública">Pública</SelectItem>
+              <SelectItem value="Privada">Privada</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <p className="pb-2 text-sm text-muted-foreground" aria-live="polite">
+          {carregando ? "Carregando..." : `${alunosFiltrados.length} aluno(s)`}
+        </p>
+      </div>
       <Card className="mb-6">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">

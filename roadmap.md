@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Corrigir importação da proteção de inicialização: manter o arquivo em src/lib e atualizar configuração e teste.
 - [x] Aplicar a proteção contra a falha de inicialização do app publicado; validar com três testes, código gerado e abertura da prévia.
 - [ ] Confirmar a abertura no site público — depende de republicar a correção com autorização do usuário.
 

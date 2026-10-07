@@ -14,6 +14,7 @@
 - Keep expired and soon-expiring certificate notification eligibility in src/lib/atestado.ts and reuse it for both notification lists and filters, so they cannot diverge.
 - Keep WhatsApp contact URL normalization in src/lib/whatsapp.ts and reuse ConversarWhatsApp across student forms and profiles to avoid divergent contact behavior.
 - Keep school options grouped by education network in src/lib/escolas.ts; the enrollment form consumes these lists and preserves unlisted legacy school values so existing records remain editable.
+- Keep the searchable enrollment school selector in a focused component consuming the shared school lists and text normalization, so searching does not change stored school names or legacy values.
 - Keep report school grouping in src/lib/escolas.ts and reuse its network filter so per-school counts match the selected network total.
 - Derive export parameters from the selected chart parameters plus the selected school network so CSV and PDF include the same per-school counts shown on screen.
 - Keep the build-time runtime guard in `src/lib/worker-runtime.ts`, not the generated-output `build/` directory, so deployment preserves its source; guard the generated server `_runtime.mjs` module URL because dynamic Worker modules may have no `import.meta.url` and crash the generated `createRequire` helper.

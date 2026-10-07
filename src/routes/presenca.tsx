@@ -317,6 +317,35 @@ function PresencaPage() {
   }
 
 
+  async function desfazerRegistro(aluno: Aluno) {
+    if (!estaOnline()) {
+      await enfileirar({ tipo: "presenca_remover", aluno_id: aluno.id, data: hoje });
+      setStatusPorAluno((s) => {
+        const novo = { ...s };
+        delete novo[aluno.id];
+        return novo;
+      });
+      setRegistros((r) => r.filter((x) => x.nome !== aluno.nome));
+      toast.success(`Registro removido: ${aluno.nome} (salvo offline)`);
+      return;
+    }
+    const existente = await supabase
+      .from("presencas")
+      .select("id")
+      .eq("aluno_id", aluno.id)
+      .eq("data", hoje)
+      .maybeSingle();
+    if (existente.data) {
+      const { error } = await supabase.from("presencas").delete().eq("id", existente.data.id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+    }
+    toast.success(`Registro removido: ${aluno.nome}`);
+    void carregarPresencasDoDia();
+  }
+
   function onScan(texto: string) {
     const agora = Date.now();
     
@@ -700,13 +729,29 @@ function PresencaPage() {
                           </div>
                         </div>
                         <div className="flex gap-1">
-                          <Button size="sm" variant={atual === "presente" ? "default" : "outline"} onClick={() => void registrar(a, "manual", "presente")}>
+                          <Button
+                            size="sm"
+                            variant={atual === "presente" ? "default" : "outline"}
+                            onClick={() => void (atual === "presente" ? desfazerRegistro(a) : registrar(a, "manual", "presente"))}
+                          >
                             <Check className="size-4" /> Presença
                           </Button>
-                          <Button size="sm" variant={atual === "falta" ? "destructive" : "outline"} onClick={() => void registrar(a, "manual", "falta")}>
+                          <Button
+                            size="sm"
+                            variant={atual === "falta" ? "destructive" : "outline"}
+                            onClick={() => void (atual === "falta" ? desfazerRegistro(a) : registrar(a, "manual", "falta"))}
+                          >
                             <X className="size-4" /> Falta
                           </Button>
-                          <Button size="sm" variant={atual === "falta_justificada" ? "secondary" : "outline"} onClick={() => void registrar(a, "manual", "falta_justificada")}>
+                          <Button
+                            size="sm"
+                            variant={atual === "falta_justificada" ? "secondary" : "outline"}
+                            onClick={() =>
+                              void (atual === "falta_justificada"
+                                ? desfazerRegistro(a)
+                                : registrar(a, "manual", "falta_justificada"))
+                            }
+                          >
                             <FileCheck className="size-4" /> Justificada
                           </Button>
                         </div>

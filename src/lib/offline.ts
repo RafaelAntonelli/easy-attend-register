@@ -24,7 +24,8 @@ export type OperacaoFila =
       metodo: string;
       observacoes: string | null;
       horario: string;
-    };
+    }
+  | { id: string; criado_em: number; tipo: "presenca_remover"; aluno_id: string; data: string };
 
 function suportado() {
   return typeof indexedDB !== "undefined";
@@ -148,6 +149,11 @@ async function executar(op: OperacaoFila) {
     const { error } = await supabase
       .from("matriculas")
       .upsert({ aluno_id: op.aluno_id, turma_id: op.turma_id, status: "ativa", modalidade: op.modalidade, registrado_por: op.registrado_por ?? null }, { onConflict: "aluno_id,turma_id" });
+    if (error) throw error;
+    return;
+  }
+  if (op.tipo === "presenca_remover") {
+    const { error } = await supabase.from("presencas").delete().eq("aluno_id", op.aluno_id).eq("data", op.data);
     if (error) throw error;
     return;
   }

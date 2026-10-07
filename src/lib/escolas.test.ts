@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agruparAlunosPorEscola, escolasDaRede, filtrarAlunosPorRede } from "./escolas";
+import { agruparAlunosPorEscola, escolasDaRede, filtrarAlunosPorRede, parametroEscolasDaRede } from "./escolas";
 
 describe("escolas por rede de ensino", () => {
   it("oferece as 44 escolas públicas informadas sem escolas privadas", () => {
@@ -42,6 +42,17 @@ describe("filtro de rede nos relatórios", () => {
 });
 
 describe("quantitativo por escola da rede selecionada", () => {
+  it("reconhece a rede Pública como parâmetro exportável de escolas públicas", () => {
+    expect(parametroEscolasDaRede("Pública")).toBe("escolas_publicas");
+  });
+
+  it("reconhece a rede Privada como parâmetro exportável de escolas privadas", () => {
+    expect(parametroEscolasDaRede("Privada")).toBe("escolas_privadas");
+  });
+
+  it("não adiciona um parâmetro de escola sem rede selecionada", () => {
+    expect(parametroEscolasDaRede("todas")).toBeNull();
+  });
   const alunos = [
     { id: "1", rede_ensino: "Pública", escola: "Escola Municipal Vila Praiana" },
     { id: "2", rede_ensino: "Pública", escola: "Escola Municipal Vila Praiana" },

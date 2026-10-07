@@ -99,10 +99,10 @@ function RelatoriosPage() {
     const controle = new AbortController();
     cancelarRef.current = controle;
     setExportando(true);
-    setProgressoPlanilha({ feitos: 0, total: alunosFiltrados.length });
+    setProgressoPlanilha({ feitos: 0, total: alunos.length });
     try {
       const buffer = await montarPlanilhaAlunos({
-        alunos: alunosFiltrados,
+        alunos,
         turmaDoAluno,
         modalidadeDoAluno,
         sinal: controle.signal,
@@ -182,15 +182,15 @@ function RelatoriosPage() {
   }
 
   const vencidos = useMemo(
-    () => alunosFiltrados.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data)),
-    [alunosFiltrados],
+    () => alunos.filter((a) => a.atestado_entregue && atestadoVencido(a.atestado_data)),
+    [alunos],
   );
   const vencendo = useMemo(
     () =>
-      alunosFiltrados
+      alunos
         .filter((a) => a.atestado_entregue && atestadoVencendo(a.atestado_data, prazo))
         .sort((x, y) => diasParaVencer(x.atestado_data) - diasParaVencer(y.atestado_data)),
-    [alunosFiltrados, prazo],
+    [alunos, prazo],
   );
 
   const relatorio = useMemo(
@@ -472,28 +472,6 @@ function RelatoriosPage() {
 
   return (
     <AppShell title="Relatórios" subtitle="Atestados, exportações e backup da Arena Aquática">
-      <div className="mb-6 flex flex-wrap items-end gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="filtro-rede-relatorios">Rede de ensino</Label>
-          <Select value={redeEnsino} onValueChange={(valor) => {
-            if (valor !== "todas" && valor !== "Pública" && valor !== "Privada") return;
-            setRedeEnsino(valor);
-            setDetalhe(null);
-          }}>
-            <SelectTrigger id="filtro-rede-relatorios" aria-label="Rede de ensino" className="w-52">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as redes</SelectItem>
-              <SelectItem value="Pública">Pública</SelectItem>
-              <SelectItem value="Privada">Privada</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <p className="pb-2 text-sm text-muted-foreground" aria-live="polite">
-          {carregando ? "Carregando..." : `${alunosFiltrados.length} aluno(s)`}
-        </p>
-      </div>
       <Card className="mb-6">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">
@@ -569,6 +547,30 @@ function RelatoriosPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="filtro-rede-relatorios">Rede de ensino</Label>
+              <Select value={redeEnsino} onValueChange={(valor) => {
+                if (valor !== "todas" && valor !== "Pública" && valor !== "Privada") return;
+                setRedeEnsino(valor);
+                setDetalhe(null);
+              }}>
+                <SelectTrigger id="filtro-rede-relatorios" aria-label="Rede de ensino" className="w-52">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas as redes</SelectItem>
+                  <SelectItem value="Pública">Pública</SelectItem>
+                  <SelectItem value="Privada">Privada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="pb-2 text-sm font-medium" aria-live="polite">
+              {carregando ? "Carregando..." : redeEnsino === "todas"
+                ? `Todas as redes: ${alunosFiltrados.length} aluno(s)`
+                : `Rede ${redeEnsino}: ${alunosFiltrados.length} aluno(s)`}
+            </p>
+          </div>
           <div className="flex flex-wrap gap-2">
             {PARAMETROS.map((p) => {
               const ativo = parametros.includes(p.id);

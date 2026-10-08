@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Relatórios / Alunos por parâmetro: filtrar Ativos e Inativos em conjunto com os demais filtros, listas e exportações; validar com testes.
+
 - [x] Relatórios: escolher valores dos sete filtros e cruzar em um único gráfico, com listas e CSV/PDF correspondentes; validar.
 
 - [x] Corrigir importação da proteção de inicialização: manter o arquivo em src/lib e atualizar configuração e teste.

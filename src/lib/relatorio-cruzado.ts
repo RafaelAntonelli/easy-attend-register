@@ -9,11 +9,12 @@ export const FILTROS_RELATORIO = [
   { id: "dias", rotulo: "Dias", multiplo: false },
   { id: "turno", rotulo: "Turno", multiplo: false },
   { id: "pcd", rotulo: "Alunos PCD", multiplo: false },
+  { id: "situacao", rotulo: "Ativos e Inativos", multiplo: false },
 ] as const;
 export type FiltroRelatorioId = (typeof FILTROS_RELATORIO)[number]["id"];
 export type FiltrosRelatorio = Record<FiltroRelatorioId, string[]>;
-export const filtrosRelatorioVazios = (): FiltrosRelatorio => ({ faixa: [], sexo: [], modalidade: [], horario: [], dias: [], turno: [], pcd: [] });
-type AlunoBase = { id: string; data_nascimento?: string | null; idade?: string | number | null; faixa_etaria?: string | null; sexo?: string | null; pcd: boolean; rede_ensino?: string | null; escola?: string | null };
+export const filtrosRelatorioVazios = (): FiltrosRelatorio => ({ faixa: [], sexo: [], modalidade: [], horario: [], dias: [], turno: [], pcd: [], situacao: [] });
+type AlunoBase = { id: string; ativo?: boolean | null; data_nascimento?: string | null; idade?: string | number | null; faixa_etaria?: string | null; sexo?: string | null; pcd: boolean; rede_ensino?: string | null; escola?: string | null };
 type TurmaBase = { id: string; horario: string | null; dias_semana: string[]; modalidade: string };
 type MatriculaBase = { aluno_id: string; turma_id: string; modalidade: string; status: string };
 export type RegistroRelatorio<T> = { aluno: T; valores: Record<FiltroRelatorioId, string[]> };
@@ -33,6 +34,7 @@ export function registrosRelatorio<T extends AlunoBase>(alunos: T[], turmas: Tur
       return { aluno, valores: {
         faixa: [informado(faixaEtariaECA(aluno.data_nascimento, aluno.idade) || aluno.faixa_etaria)],
         sexo: [informado(aluno.sexo)], pcd: [aluno.pcd ? "PCD" : "Não PCD"],
+        situacao: [aluno.ativo === false ? "Inativos" : "Ativos"],
         modalidade: [informado(m?.modalidade || turma?.modalidade)],
         horario: [informado(turma?.horario)],
         dias: turma?.dias_semana.length ? turma.dias_semana : ["Não informado"],

@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { cruzarRelatorio, filtrosRelatorioVazios, registrosRelatorio, type FiltroRelatorioId } from "./relatorio-cruzado";
 
 const alunos = [
-  { id: "a", idade: 10, sexo: "Feminino", pcd: true, rede_ensino: "Pública", escola: "Escola A" },
-  { id: "b", idade: 16, sexo: "Masculino", pcd: false, rede_ensino: "Privada", escola: "Escola B" },
-  { id: "c", idade: 65, sexo: "Feminino", pcd: false, rede_ensino: "Pública", escola: "Escola A" },
+  { id: "a", ativo: true, idade: 10, sexo: "Feminino", pcd: true, rede_ensino: "Pública", escola: "Escola A" },
+  { id: "b", ativo: true, idade: 16, sexo: "Masculino", pcd: false, rede_ensino: "Privada", escola: "Escola B" },
+  { id: "c", ativo: false, idade: 65, sexo: "Feminino", pcd: false, rede_ensino: "Pública", escola: "Escola A" },
 ];
 const turmas = [
   { id: "t1", horario: "08:00 às 08:50", dias_semana: ["Ter", "Qui"], modalidade: "Natação" },
@@ -20,6 +20,14 @@ function ids(id: FiltroRelatorioId, valores: string[]) {
   return cruzarRelatorio(registros, { ...filtrosRelatorioVazios(), [id]: valores }, "todas").alunos.map((a) => a.id);
 }
 describe("filtros dos alunos por parâmetro", () => {
+  it("seleciona somente alunos ativos", () => expect(ids("situacao", ["Ativos"])).toEqual(["a", "b"]));
+  it("seleciona somente alunos inativos", () => expect(ids("situacao", ["Inativos"])).toEqual(["c"]));
+  it("inclui ativos e inativos ao limpar a situação", () => expect(ids("situacao", [])).toEqual(["a", "b", "c"]));
+  it("cruza situação com sexo e rede e mantém os totais do gráfico", () => {
+    const resultado = cruzarRelatorio(registros, { ...filtrosRelatorioVazios(), situacao: ["Inativos"], sexo: ["Feminino"] }, "Pública");
+    expect(resultado.alunos.map((a) => a.id)).toEqual(["c"]);
+    expect(resultado.pontos.map((p) => p.total)).toEqual([1]);
+  });
   it("seleciona várias faixas desejadas", () => expect(ids("faixa", ["Criança", "Idoso"])).toEqual(["a", "c"]));
   it("seleciona o sexo desejado", () => expect(ids("sexo", ["Feminino"])).toEqual(["a", "c"]));
   it("seleciona a modalidade desejada", () => expect(ids("modalidade", ["Natação"])).toEqual(["a"]));
@@ -34,7 +42,7 @@ describe("filtros dos alunos por parâmetro", () => {
     expect(ids("pcd", ["Não PCD"])).toEqual(["b", "c"]);
   });
   it("cruza todos os filtros e a rede em um único resultado", () => {
-    const filtros = { faixa: ["Criança", "Idoso"], sexo: ["Feminino"], modalidade: ["Natação"], horario: ["08:00 às 08:50"], dias: ["Ter"], turno: ["Matutino"], pcd: ["PCD"] };
+    const filtros = { ...filtrosRelatorioVazios(), faixa: ["Criança", "Idoso"], sexo: ["Feminino"], modalidade: ["Natação"], horario: ["08:00 às 08:50"], dias: ["Ter"], turno: ["Matutino"], pcd: ["PCD"] };
     const resultado = cruzarRelatorio(registros, filtros, "Pública");
     expect(resultado.alunos.map((a) => a.id)).toEqual(["a"]);
     expect(resultado.pontos.map((p) => p.total)).toEqual([1]);

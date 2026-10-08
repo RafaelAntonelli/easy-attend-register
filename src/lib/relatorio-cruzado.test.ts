@@ -48,7 +48,7 @@ describe("filtros dos alunos por parâmetro", () => {
     expect(resultado.pontos.reduce((total, p) => total + p.total, 0)).toBe(3);
   });
   it("não usa matrículas canceladas para filtrar horários", () => {
-    const registros = registrosRelatorio([alunos[0]], turmas, [{ ...matriculas[0], status: "cancelada" }]);
+    const registros = registrosRelatorio(alunos.slice(0, 1), turmas, [{ aluno_id: "a", turma_id: "t1", modalidade: "Natação", status: "cancelada" }]);
     expect(cruzarRelatorio(registros, { ...filtrosRelatorioVazios(), horario: ["08:00 às 08:50"] }, "todas").alunos).toEqual([]);
   });
 });

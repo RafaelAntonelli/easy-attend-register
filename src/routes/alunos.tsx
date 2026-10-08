@@ -1410,13 +1410,21 @@ function AlunosPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Estuda na rede</Label>
+                  <div className="flex items-center gap-2">
                   <Select value={form.rede_ensino} onValueChange={(v) => setForm({ ...form, rede_ensino: v, escola: v === form.rede_ensino ? form.escola : "" })}>
-                    <SelectTrigger aria-label="Estuda na rede"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectTrigger aria-label="Estuda na rede" className="min-w-0 flex-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Pública">Pública</SelectItem>
                       <SelectItem value="Privada">Privada</SelectItem>
                     </SelectContent>
                   </Select>
+                  {form.rede_ensino && (
+                    <Button type="button" variant="ghost" size="icon" className="shrink-0" aria-label="Desmarcar rede de ensino" title="Desmarcar rede de ensino"
+                      onClick={() => setForm({ ...form, rede_ensino: "", escola: "" })}>
+                      <X />
+                    </Button>
+                  )}
+                  </div>
                 </div>
                 <div className="min-w-0 space-y-2">
                   <Label>Nome da escola</Label>

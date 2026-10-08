@@ -17,5 +17,5 @@
 - Keep the searchable enrollment school selector in a focused component consuming the shared school lists and text normalization, so searching does not change stored school names or legacy values.
 - Persist custom school options as individual network-scoped configuracoes rows through src/lib/escolas-personalizadas.ts; merge them with the shared lists in the selector so new enrollments retain additions without overwriting concurrent additions.
 - Keep report school grouping in src/lib/escolas.ts and reuse its network filter so per-school counts match the selected network total.
-- Derive export parameters from the selected chart parameters plus the selected school network so CSV and PDF include the same per-school counts shown on screen.
+- Keep report intersections and chart grouping in src/lib/relatorio-cruzado.ts; evaluate class filters on the same active enrollment and count students once, reusing its result for the chart, detailed lists, school totals and CSV/PDF.
 - Keep the build-time runtime guard in `src/lib/worker-runtime.ts`, not the generated-output `build/` directory, so deployment preserves its source; guard the generated server `_runtime.mjs` module URL because dynamic Worker modules may have no `import.meta.url` and crash the generated `createRequire` helper.

@@ -33,8 +33,10 @@ import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@
 import { linksArquivosFn } from "@/lib/links-arquivos.functions";
 
 import { gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
-import { faixaEtariaECA, turnoDoHorario } from "@/lib/turnos";
-import { agruparAlunosPorEscola, filtrarAlunosPorRede, parametroEscolasDaRede, type FiltroRedeEnsino } from "@/lib/escolas";
+import { FAIXAS_ETARIAS, TURNOS } from "@/lib/turnos";
+import { FiltroRelatorio } from "@/components/FiltroRelatorio";
+import { FILTROS_RELATORIO, filtrosRelatorioVazios, registrosRelatorio, cruzarRelatorio } from "@/lib/relatorio-cruzado";
+import { agruparAlunosPorEscola, type FiltroRedeEnsino } from "@/lib/escolas";
 
 
 export const Route = createFileRoute("/relatorios")({
@@ -66,33 +68,24 @@ type Matricula = { id: string; aluno_id: string; turma_id: string; modalidade: s
 
 const PRAZOS = [15, 30, 45, 60, 90];
 
-const PARAMETROS = [
-  { id: "pcd", rotulo: "Alunos PCD" },
-  { id: "faixa", rotulo: "Faixa etária" },
-  { id: "sexo", rotulo: "Sexo" },
-  { id: "modalidade", rotulo: "Modalidade" },
-  { id: "horario", rotulo: "Horários" },
-  { id: "dias", rotulo: "Dias" },
-  { id: "turno", rotulo: "Turno" },
-  { id: "escolas_publicas", rotulo: "Escolas públicas" },
-  { id: "escolas_privadas", rotulo: "Escolas privadas" },
-] as const;
-
-type ParametroId = (typeof PARAMETROS)[number]["id"];
 type PontoGrafico = { nome: string; total: number; alunos: Aluno[] };
 
 function RelatoriosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [redeEnsino, setRedeEnsino] = useState<FiltroRedeEnsino>("todas");
-  const alunosFiltrados = useMemo(() => filtrarAlunosPorRede(alunos, redeEnsino), [alunos, redeEnsino]);
-  const escolas = useMemo(() => agruparAlunosPorEscola(alunos, redeEnsino), [alunos, redeEnsino]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [carregando, setCarregando] = useState(true);
-  const [parametros, setParametros] = useState<ParametroId[]>(["faixa"]);
-  const parametroEscolas = parametroEscolasDaRede(redeEnsino);
-  const parametrosSelecionados: ParametroId[] = parametroEscolas ? [...parametros, parametroEscolas] : parametros;
+  const [filtros, setFiltros] = useState(filtrosRelatorioVazios);
+  const registros = useMemo(() => registrosRelatorio(alunos, turmas, matriculas), [alunos, turmas, matriculas]);
+  const resultado = useMemo(() => cruzarRelatorio(registros, filtros, redeEnsino), [registros, filtros, redeEnsino]);
+  const alunosFiltrados = resultado.alunos;
+  const escolas = useMemo(() => agruparAlunosPorEscola(resultado.alunos, redeEnsino), [resultado, redeEnsino]);
+  const opcoesFiltros = useMemo(() => Object.fromEntries(FILTROS_RELATORIO.map(({ id }) => [id,
+    [...new Set([...(id === "faixa" ? FAIXAS_ETARIAS : id === "turno" ? TURNOS : id === "pcd" ? ["PCD", "Não PCD"] : []),
+      ...registros.flatMap((r) => r.valores[id])])].sort((a, b) => a.localeCompare(b, "pt-BR")),
+  ])), [registros]);
   const [detalhe, setDetalhe] = useState<{ titulo: string; alunos: Aluno[] } | null>(null);
   const { valor: prazo, salvar: salvarPrazo } = usePrazoAvisoAtestado();
   const [prazoEditado, setPrazoEditado] = useState<string>("");
@@ -148,6 +141,8 @@ function RelatoriosPage() {
         supabase.from("matriculas").select("*"),
       ]);
       if (a.error) throw a.error;
+      if (t.error) throw t.error;
+      if (m.error) throw m.error;
       setAlunos((a.data ?? []) as Aluno[]);
       setTurmas((t.data ?? []) as Turma[]);
       setMatriculas((m.data ?? []) as Matricula[]);
@@ -297,40 +292,6 @@ function RelatoriosPage() {
     return;
   }
 
-  const graficos = useMemo(() => {
-    const contar = (valorDe: (a: Aluno) => string | string[]) => {
-      const mapa = new Map<string, Aluno[]>();
-      for (const a of alunosFiltrados) {
-        const valores = valorDe(a);
-        for (const v of Array.isArray(valores) ? valores : [valores]) {
-          const chave = v || "Não informado";
-          const atual = mapa.get(chave);
-          if (atual) atual.push(a);
-          else mapa.set(chave, [a]);
-        }
-      }
-      return [...mapa.entries()]
-        .map(([nome, lista]): PontoGrafico => ({ nome, total: lista.length, alunos: lista }))
-        .sort((x, y) => y.total - x.total);
-    };
-
-    return {
-      pcd: contar((a) => (a.pcd ? "PCD" : "Não PCD")),
-      faixa: contar((a) => a.faixa_etaria || faixaEtariaECA(a.data_nascimento, a.idade) || ""),
-      sexo: contar((a) => a.sexo ?? ""),
-      modalidade: contar((a) => modalidadeDoAluno(a.id)),
-      horario: contar((a) => turmaDoAluno(a.id)?.horario ?? ""),
-      dias: contar((a) => {
-        const dias = turmaDoAluno(a.id)?.dias_semana ?? [];
-        return dias.length ? dias.join(" e ") : "";
-      }),
-      turno: contar((a) => turnoDoHorario(turmaDoAluno(a.id)?.horario) || ""),
-      escolas_publicas: agruparAlunosPorEscola(alunos, "Pública"),
-      escolas_privadas: agruparAlunosPorEscola(alunos, "Privada"),
-    } as Record<ParametroId, PontoGrafico[]>;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alunos, alunosFiltrados, turmas, matriculas]);
-
   function baixarArquivo(conteudo: BlobPart, nome: string, tipo: string) {
     const url = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
     const a = document.createElement("a");
@@ -341,15 +302,8 @@ function RelatoriosPage() {
   }
 
   function exportarGraficosCsv() {
-    if (!parametrosSelecionados.length) {
-      toast.error("Selecione ao menos um parâmetro");
-      return;
-    }
-    const linhas = [["Parâmetro", "Categoria", "Alunos"]];
-    for (const id of parametrosSelecionados) {
-      const rotulo = PARAMETROS.find((p) => p.id === id)?.rotulo ?? id;
-      for (const ponto of graficos[id] ?? []) linhas.push([rotulo, ponto.nome, String(ponto.total)]);
-    }
+    const linhas = [["Filtros", resultado.resumo], ["Total de alunos", String(resultado.alunos.length)], ["Categoria cruzada", "Alunos"]];
+    for (const ponto of resultado.pontos) linhas.push([ponto.nome, String(ponto.total)]);
     const csv = linhas.map((l) => l.map((c) => `"${c.replace(/"/g, '""')}"`).join(";")).join("\n");
     baixarArquivo("\uFEFF" + csv, `graficos-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv;charset=utf-8");
     toast.success("CSV dos gráficos exportado");
@@ -394,10 +348,6 @@ function RelatoriosPage() {
   }
 
   async function exportarGraficosPdf() {
-    if (!parametrosSelecionados.length) {
-      toast.error("Selecione ao menos um parâmetro");
-      return;
-    }
     const idToast = toast.loading("Gerando PDF dos gráficos…");
     try {
       const { jsPDF } = await import("jspdf");
@@ -411,18 +361,16 @@ function RelatoriosPage() {
       y += 18;
       pdf.setFontSize(10);
       const resumo = pdf.splitTextToSize(
-        `Gerado em ${new Date().toLocaleString("pt-BR")} · ${alunosFiltrados.length} aluno(s) · Parâmetros: ${parametrosSelecionados
-          .map((id) => PARAMETROS.find((p) => p.id === id)?.rotulo ?? id)
-          .join(", ")}`,
+        `Gerado em ${new Date().toLocaleString("pt-BR")} · ${alunosFiltrados.length} aluno(s) · ${resultado.resumo}`,
         larguraUtil,
       );
       pdf.text(resumo, margem, y);
       y += resumo.length * 12 + 8;
 
-      for (const id of parametrosSelecionados) {
-        const rotulo = PARAMETROS.find((p) => p.id === id)?.rotulo ?? id;
-        const svg = document.querySelector<SVGSVGElement>(`#grafico-${id} svg`);
-        const dados = graficos[id] ?? [];
+      {
+        const rotulo = "Cruzamento dos filtros";
+        const svg = document.querySelector<SVGSVGElement>("#grafico-cruzado svg");
+        const dados = resultado.pontos;
 
         if (y > pdf.internal.pageSize.getHeight() - 160) {
           pdf.addPage();
@@ -434,7 +382,7 @@ function RelatoriosPage() {
 
         if (svg) {
           const img = await svgParaImagem(svg);
-          const altura = (img.altura / img.largura) * larguraUtil;
+          const altura = Math.min(360, (img.altura / img.largura) * larguraUtil);
           if (y + altura > pdf.internal.pageSize.getHeight() - margem) {
             pdf.addPage();
             y = margem;
@@ -580,26 +528,51 @@ function RelatoriosPage() {
                 : `Rede ${redeEnsino}: ${alunosFiltrados.length} aluno(s)`}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {PARAMETROS.filter((p) => p.id !== "escolas_publicas" && p.id !== "escolas_privadas").map((p) => {
-              const ativo = parametros.includes(p.id);
-              return (
-                <Button
-                  key={p.id}
-                  type="button"
-                  size="sm"
-                  variant={ativo ? "default" : "outline"}
-                  onClick={() =>
-                    setParametros((atual) =>
-                      atual.includes(p.id) ? atual.filter((x) => x !== p.id) : [...atual, p.id],
-                    )
-                  }
-                >
-                  {p.rotulo}
-                </Button>
-              );
-            })}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {FILTROS_RELATORIO.map(({ id, rotulo, multiplo }) => (
+              <FiltroRelatorio key={id} rotulo={rotulo} multiplo={multiplo} opcoes={opcoesFiltros[id] ?? []} valores={filtros[id]}
+                onChange={(valores) => { setFiltros((atual) => ({ ...atual, [id]: valores })); setDetalhe(null); }} />
+            ))}
+            <div className="flex items-end"><Button variant="ghost" onClick={() => { setFiltros(filtrosRelatorioVazios()); setRedeEnsino("todas"); setDetalhe(null); }}>Limpar filtros</Button></div>
           </div>
+          <p className="text-sm text-muted-foreground">{resultado.resumo}</p>
+          <section id="grafico-cruzado" aria-label="Gráfico cruzado dos alunos" className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-medium">Cruzamento dos filtros</h3>
+              <Button variant="link" className="h-auto p-0" onClick={() => setDetalhe({ titulo: "Alunos dos filtros selecionados", alunos: resultado.alunos })}>
+                {resultado.alunos.length} aluno(s)
+              </Button>
+            </div>
+            {carregando ? <p className="py-8 text-sm text-muted-foreground">Carregando...</p> : !resultado.pontos.length ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Nenhum aluno corresponde aos filtros selecionados.</p>
+            ) : <>
+              <div className="max-h-[32rem] overflow-auto">
+                <ResponsiveContainer width="100%" height={Math.max(220, resultado.pontos.length * 64 + 40)}>
+                  <BarChart data={resultado.pontos} layout="vertical" margin={{ left: 8, right: 24 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
+                    <XAxis type="number" allowDecimals={false} fontSize={12} />
+                    <YAxis type="category" dataKey="nome" width={160} fontSize={11} tickFormatter={(nome: string) => nome.length > 26 ? `${nome.slice(0, 24)}…` : nome} />
+                    <Tooltip cursor={{ fill: "var(--muted)" }} content={({ active, payload, label }) => active && payload?.length ? (
+                      <div className="max-w-64 whitespace-normal break-words rounded-md border border-border bg-popover p-3 text-xs text-popover-foreground shadow-md">
+                        <p>{label}</p><p className="mt-1 font-medium">{String(payload[0]?.value ?? 0)} aluno(s)</p>
+                      </div>
+                    ) : null} />
+                    <Bar dataKey="total" radius={[0, 6, 6, 0]} fill="var(--chart-1)" cursor="pointer"
+                      onClick={(ponto: unknown) => { const dado = ponto as { payload?: PontoGrafico }; if (dado.payload) setDetalhe({ titulo: dado.payload.nome, alunos: dado.payload.alunos }); }} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="max-h-72 overflow-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-border"><th className="py-2 text-left">Categoria cruzada</th><th className="py-2 text-right">Alunos</th></tr></thead>
+                  <tbody>{resultado.pontos.map((ponto) => <tr key={ponto.nome} className="border-b border-border">
+                    <td className="py-2 pr-3"><Button variant="link" className="h-auto max-w-full justify-start whitespace-normal p-0 text-left" onClick={() => setDetalhe({ titulo: ponto.nome, alunos: ponto.alunos })}>{ponto.nome}</Button></td>
+                    <td className="py-2 text-right tabular-nums">{ponto.total}</td>
+                  </tr>)}</tbody>
+                </table>
+              </div>
+            </>}
+          </section>
 
           {redeEnsino !== "todas" && (
             <section aria-label={`Alunos por escola — Rede ${redeEnsino}`} className="space-y-3">
@@ -639,48 +612,6 @@ function RelatoriosPage() {
             </section>
           )}
 
-          {!parametrosSelecionados.length ? (
-            <p className="text-sm text-muted-foreground">Selecione um ou mais parâmetros para ver os gráficos.</p>
-          ) : (
-            <div className="grid gap-6 lg:grid-cols-2">
-              {parametros.map((id) => {
-                const dados = graficos[id] ?? [];
-                const rotulo = PARAMETROS.find((p) => p.id === id)?.rotulo ?? id;
-                return (
-                  <div key={id} id={`grafico-${id}`} className="rounded-xl border border-border p-3">
-                    <p className="mb-2 text-sm font-medium">{rotulo}</p>
-                    {!dados.length ? (
-                      <p className="py-8 text-center text-sm text-muted-foreground">Sem dados.</p>
-                    ) : (
-                      <>
-                        <ResponsiveContainer width="100%" height={Math.max(200, dados.length * 34 + 40)}>
-                          <BarChart data={dados} layout="vertical" margin={{ left: 8, right: 24 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
-                            <XAxis type="number" allowDecimals={false} fontSize={12} />
-                            <YAxis type="category" dataKey="nome" width={130} fontSize={12} />
-                            <Tooltip formatter={(v: number) => [`${v} aluno(s)`, "Total"]} />
-                            <Bar
-                              dataKey="total"
-                              radius={[0, 6, 6, 0]}
-                              fill="hsl(var(--primary))"
-                              cursor="pointer"
-                              onClick={(ponto: unknown) => {
-                                const dado = ponto as { payload?: PontoGrafico };
-                                if (dado?.payload) setDetalhe({ titulo: `${rotulo}: ${dado.payload.nome}`, alunos: dado.payload.alunos });
-                              }}
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
-                        <p className="mt-1 text-center text-xs text-muted-foreground">
-                          Clique em uma barra para ver os alunos.
-                        </p>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </CardContent>
       </Card>
 

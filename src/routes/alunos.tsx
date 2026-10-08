@@ -1398,13 +1398,21 @@ function AlunosPage() {
               </div>
               <div className="space-y-2">
                 <Label>Sexo</Label>
+                <div className="flex items-center gap-2">
                 <Select value={form.sexo} onValueChange={(v) => setForm({ ...form, sexo: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger aria-label="Sexo" className="min-w-0 flex-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Masculino">Masculino</SelectItem>
                     <SelectItem value="Feminino">Feminino</SelectItem>
                   </SelectContent>
                 </Select>
+                {form.sexo && (
+                  <Button type="button" variant="ghost" size="icon" className="shrink-0" aria-label="Limpar sexo" title="Limpar sexo"
+                    onClick={() => setForm({ ...form, sexo: "" })}>
+                    <X />
+                  </Button>
+                )}
+                </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">

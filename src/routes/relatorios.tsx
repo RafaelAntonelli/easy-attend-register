@@ -83,7 +83,7 @@ function RelatoriosPage() {
   const alunosFiltrados = resultado.alunos;
   const escolas = useMemo(() => agruparAlunosPorEscola(resultado.alunos, redeEnsino), [resultado, redeEnsino]);
   const opcoesFiltros = useMemo(() => Object.fromEntries(FILTROS_RELATORIO.map(({ id }) => [id,
-    [...new Set([...(id === "faixa" ? FAIXAS_ETARIAS : id === "turno" ? TURNOS : id === "pcd" ? ["PCD", "Não PCD"] : []),
+    [...new Set([...(id === "faixa" ? FAIXAS_ETARIAS : id === "turno" ? TURNOS : id === "pcd" ? ["PCD", "Não PCD"] : id === "situacao" ? ["Ativos", "Inativos"] : []),
       ...registros.flatMap((r) => r.valores[id])])].sort((a, b) => a.localeCompare(b, "pt-BR")),
   ])), [registros]);
   const [detalhe, setDetalhe] = useState<{ titulo: string; alunos: Aluno[] } | null>(null);

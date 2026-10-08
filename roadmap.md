@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Relatórios: escolher valores dos sete filtros e cruzar em um único gráfico, com listas e CSV/PDF correspondentes; validar.
+- [x] Relatórios: escolher valores dos sete filtros e cruzar em um único gráfico, com listas e CSV/PDF correspondentes; validar.
 
 - [x] Corrigir importação da proteção de inicialização: manter o arquivo em src/lib e atualizar configuração e teste.
 - [x] Aplicar a proteção contra a falha de inicialização do app publicado; validar com três testes, código gerado e abertura da prévia.

@@ -552,8 +552,12 @@ function RelatoriosPage() {
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
                     <XAxis type="number" allowDecimals={false} fontSize={12} />
                     <YAxis type="category" dataKey="nome" width={160} fontSize={11} tickFormatter={(nome: string) => nome.length > 26 ? `${nome.slice(0, 24)}…` : nome} />
-                    <Tooltip formatter={(v: number) => [`${v} aluno(s)`, "Total"]} />
-                    <Bar dataKey="total" radius={[0, 6, 6, 0]} fill="hsl(var(--primary))" cursor="pointer"
+                    <Tooltip cursor={{ fill: "var(--muted)" }} content={({ active, payload, label }) => active && payload?.length ? (
+                      <div className="max-w-64 whitespace-normal break-words rounded-md border border-border bg-popover p-3 text-xs text-popover-foreground shadow-md">
+                        <p>{label}</p><p className="mt-1 font-medium">{String(payload[0]?.value ?? 0)} aluno(s)</p>
+                      </div>
+                    ) : null} />
+                    <Bar dataKey="total" radius={[0, 6, 6, 0]} fill="var(--chart-1)" cursor="pointer"
                       onClick={(ponto: unknown) => { const dado = ponto as { payload?: PontoGrafico }; if (dado.payload) setDetalhe({ titulo: dado.payload.nome, alunos: dado.payload.alunos }); }} />
                   </BarChart>
                 </ResponsiveContainer>

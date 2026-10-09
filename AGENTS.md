@@ -18,4 +18,5 @@
 - Persist custom school options as individual network-scoped configuracoes rows through src/lib/escolas-personalizadas.ts; merge them with the shared lists in the selector so new enrollments retain additions without overwriting concurrent additions.
 - Keep report school grouping in src/lib/escolas.ts and reuse its network filter so per-school counts match the selected network total.
 - Keep report intersections and chart grouping in src/lib/relatorio-cruzado.ts; evaluate class filters on the same active enrollment and count students once, reusing its result for the chart, detailed lists, school totals and CSV/PDF.
+- Keep report chart presentation in GraficoAlunos, consuming the existing grouped result without refiltering; this preserves consistent totals and the SVG used by PDF export.
 - Keep the build-time runtime guard in `src/lib/worker-runtime.ts`, not the generated-output `build/` directory, so deployment preserves its source; guard the generated server `_runtime.mjs` module URL because dynamic Worker modules may have no `import.meta.url` and crash the generated `createRequire` helper.

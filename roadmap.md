@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Relatórios / Alunos por parâmetro: melhorar a leitura do gráfico e conferir os grupos e totais exibidos.
+
 - [x] Relatórios / Alunos por parâmetro: filtrar Ativos e Inativos em conjunto com os demais filtros, listas e exportações; validar com testes.
 
 - [x] Relatórios: escolher valores dos sete filtros e cruzar em um único gráfico, com listas e CSV/PDF correspondentes; validar.

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, BarChart3, Download, FileSpreadsheet, FileText, IdCard, Settings2 } from "lucide-react";
 import { toast } from "sonner";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { GraficoAlunos } from "@/components/GraficoAlunos";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -67,8 +67,6 @@ type Turma = { id: string; nome: string; horario: string | null; dias_semana: st
 type Matricula = { id: string; aluno_id: string; turma_id: string; modalidade: string; status: string };
 
 const PRAZOS = [15, 30, 45, 60, 90];
-
-type PontoGrafico = { nome: string; total: number; alunos: Aluno[] };
 
 function RelatoriosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
@@ -535,42 +533,27 @@ function RelatoriosPage() {
             ))}
             <div className="flex items-end"><Button variant="ghost" onClick={() => { setFiltros(filtrosRelatorioVazios()); setRedeEnsino("todas"); setDetalhe(null); }}>Limpar filtros</Button></div>
           </div>
-          <p className="text-sm text-muted-foreground">{resultado.resumo}</p>
-          <section id="grafico-cruzado" aria-label="Gráfico cruzado dos alunos" className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-medium">Cruzamento dos filtros</h3>
-              <Button variant="link" className="h-auto p-0" onClick={() => setDetalhe({ titulo: "Alunos dos filtros selecionados", alunos: resultado.alunos })}>
-                {resultado.alunos.length} aluno(s)
-              </Button>
+          <div className="flex flex-wrap gap-2" aria-label="Filtros aplicados">
+            {FILTROS_RELATORIO.filter(({ id }) => filtros[id].length).map(({ id, rotulo }) => <Badge key={id} variant="secondary" className="max-w-full whitespace-normal break-words font-normal">{rotulo}: {filtros[id].join(", ")}</Badge>)}
+            <Badge variant="outline" className="font-normal">Rede: {redeEnsino === "todas" ? "Todas" : redeEnsino}</Badge>
+          </div>
+          <section id="grafico-cruzado" aria-label="Gráfico cruzado dos alunos" className="space-y-4 border-t border-border pt-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold">{FILTROS_RELATORIO.some(({ id }) => filtros[id].length) ? "Alunos por combinação de filtros" : redeEnsino === "todas" ? "Alunos por faixa etária" : `Alunos por escola — Rede ${redeEnsino}`}</h3>
+                <p className="text-xs text-muted-foreground">{resultado.pontos.length} {resultado.pontos.length === 1 ? "grupo" : "grupos"} · {redeEnsino === "todas" ? "Todas as redes de ensino" : `Rede ${redeEnsino}`}</p>
+              </div>
+              <div className="text-right">
+                <Button variant="link" className="h-auto p-0 text-3xl font-semibold tabular-nums" onClick={() => setDetalhe({ titulo: "Alunos dos filtros selecionados", alunos: resultado.alunos })}>
+                  {carregando ? "—" : resultado.alunos.length}
+                </Button>
+                <p className="text-xs text-muted-foreground">alunos no total filtrado</p>
+              </div>
             </div>
             {carregando ? <p className="py-8 text-sm text-muted-foreground">Carregando...</p> : !resultado.pontos.length ? (
               <p className="py-8 text-center text-sm text-muted-foreground">Nenhum aluno corresponde aos filtros selecionados.</p>
             ) : <>
-              <div className="max-h-[32rem] overflow-auto">
-                <ResponsiveContainer width="100%" height={Math.max(220, resultado.pontos.length * 64 + 40)}>
-                  <BarChart data={resultado.pontos} layout="vertical" margin={{ left: 8, right: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
-                    <XAxis type="number" allowDecimals={false} fontSize={12} />
-                    <YAxis type="category" dataKey="nome" width={160} fontSize={11} tickFormatter={(nome: string) => nome.length > 26 ? `${nome.slice(0, 24)}…` : nome} />
-                    <Tooltip cursor={{ fill: "var(--muted)" }} content={({ active, payload, label }) => active && payload?.length ? (
-                      <div className="max-w-64 whitespace-normal break-words rounded-md border border-border bg-popover p-3 text-xs text-popover-foreground shadow-md">
-                        <p>{label}</p><p className="mt-1 font-medium">{String(payload[0]?.value ?? 0)} aluno(s)</p>
-                      </div>
-                    ) : null} />
-                    <Bar dataKey="total" radius={[0, 6, 6, 0]} fill="var(--chart-1)" cursor="pointer"
-                      onClick={(ponto: unknown) => { const dado = ponto as { payload?: PontoGrafico }; if (dado.payload) setDetalhe({ titulo: dado.payload.nome, alunos: dado.payload.alunos }); }} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="max-h-72 overflow-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b border-border"><th className="py-2 text-left">Categoria cruzada</th><th className="py-2 text-right">Alunos</th></tr></thead>
-                  <tbody>{resultado.pontos.map((ponto) => <tr key={ponto.nome} className="border-b border-border">
-                    <td className="py-2 pr-3"><Button variant="link" className="h-auto max-w-full justify-start whitespace-normal p-0 text-left" onClick={() => setDetalhe({ titulo: ponto.nome, alunos: ponto.alunos })}>{ponto.nome}</Button></td>
-                    <td className="py-2 text-right tabular-nums">{ponto.total}</td>
-                  </tr>)}</tbody>
-                </table>
-              </div>
+              <GraficoAlunos pontos={resultado.pontos} total={resultado.alunos.length} onSelecionar={(ponto) => setDetalhe({ titulo: ponto.nome, alunos: ponto.alunos })} />
             </>}
           </section>
 

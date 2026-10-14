@@ -31,6 +31,7 @@ export type DadosCracha = {
 // (coordenadas em px da arte 1920x1209, medidas sobre o modelo)
 const CAMPOS = {
   nome: { x: 526, y: 312, w: 920, pt: 12 },
+  matriculaRotulo: { x: 1150, y: 446, w: 676, pt: 8.5 },
   matricula: { x: 1150, y: 498, w: 676, pt: 10 },
   pcd: { x: 1474, y: 312, w: 350, pt: 12 },
   documento: { x: 526, y: 498, w: 600, pt: 10 },
@@ -140,7 +141,8 @@ async function desenharCracha(doc: jsPDF, dados: DadosCracha, modelo: string, ox
   };
 
   put(CAMPOS.nome, dados.nome ?? "");
-  put(CAMPOS.matricula, dados.codigo ? `Matrícula: ${dados.codigo}` : "");
+  put(CAMPOS.matriculaRotulo, "Matrícula:");
+  put(CAMPOS.matricula, dados.codigo ?? "");
   put(CAMPOS.pcd, dados.pcd ? "Sim" : "Não");
   put(CAMPOS.documento, documentoFormatado(dados));
   put(CAMPOS.responsavel, dados.responsavel ?? "");
@@ -362,7 +364,8 @@ export async function renderizarCrachaCanvas(
   };
 
   put(CAMPOS.nome, dados.nome ?? "");
-  put(CAMPOS.matricula, dados.codigo ? `Matrícula: ${dados.codigo}` : "");
+  put(CAMPOS.matriculaRotulo, "Matrícula:");
+  put(CAMPOS.matricula, dados.codigo ?? "");
   put(CAMPOS.pcd, dados.pcd ? "Sim" : "Não");
   put(CAMPOS.documento, documentoFormatado(dados));
   put(CAMPOS.responsavel, dados.responsavel ?? "");

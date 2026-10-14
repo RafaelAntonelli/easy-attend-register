@@ -16,6 +16,7 @@ import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/li
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { atestadoVencido, diasParaVencer, notificarAtestadoVencido, notificarAtestadoVencendo } from "@/lib/atestado";
 import { AvisoLicencas } from "@/components/AvisoLicencas";
+import { PerfilAluno } from "@/components/PerfilAluno";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { useAuth } from "@/lib/auth";
 import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
@@ -217,6 +218,7 @@ function AlunosPage() {
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [detalhe, setDetalhe] = useState<Aluno | null>(null);
+  const [perfilLicencaId, setPerfilLicencaId] = useState<string | null>(null);
   const [docsUrls, setDocsUrls] = useState<Record<string, string>>({});
 
   const [historico, setHistorico] = useState<Presenca[] | null>(null);
@@ -972,7 +974,8 @@ function AlunosPage() {
 
   return (
     <AppShell title="Alunos" subtitle="Cadastro e matrículas da Arena Aquática">
-      <AvisoLicencas />
+      <AvisoLicencas onAbrirPerfil={setPerfilLicencaId} />
+      <PerfilAluno alunoId={perfilLicencaId} onFechar={() => setPerfilLicencaId(null)} />
       {inativos.length ? (
         <Card
           className={cn(
@@ -1929,6 +1932,21 @@ function AlunosPage() {
               </Button>
 
               <ConversarWhatsApp telefone={detalhe.telefone} />
+
+              <div className="space-y-2 rounded-lg border border-border/70 p-3 text-sm">
+                <p className="font-medium">Licença médica</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const id = detalhe.id;
+                    setDetalhe(null);
+                    setPerfilLicencaId(id);
+                  }}
+                >
+                  Registrar Licença Médica
+                </Button>
+              </div>
 
               {detalhe.observacoes ? (
                 <div className="rounded-lg border border-border/70 p-3 text-sm">

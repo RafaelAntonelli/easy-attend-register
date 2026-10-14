@@ -40,3 +40,4 @@
 - [x] Validar as alterações no preview.
 - [x] Alunos: remover alunos inativados das notificações e do filtro de atestados vencidos; validar com teste.
 - [x] Presença/Lista manual: segundo clique no mesmo botão desmarca e apaga o registro (online e offline).
+- [x] Licença médica: vaga preservada, faltas justificadas, aviso na presença e lembrete de retorno.

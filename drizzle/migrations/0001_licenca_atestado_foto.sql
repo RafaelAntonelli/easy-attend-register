@@ -1,0 +1,1 @@
+ALTER TABLE public.licencas_medicas ADD COLUMN atestado_path text;

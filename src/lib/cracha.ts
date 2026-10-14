@@ -31,8 +31,8 @@ export type DadosCracha = {
 // (coordenadas em px da arte 1920x1209, medidas sobre o modelo)
 const CAMPOS = {
   nome: { x: 526, y: 312, w: 920, pt: 12 },
-  matriculaRotulo: { x: 1150, y: 446, w: 676, pt: 8.5 },
-  matricula: { x: 1150, y: 498, w: 676, pt: 10 },
+  matriculaRotulo: { x: 1300, y: 430, w: 520, pt: 9 },
+  matricula: { x: 1300, y: 500, w: 520, pt: 8.5 },
   pcd: { x: 1474, y: 312, w: 350, pt: 12 },
   documento: { x: 526, y: 498, w: 600, pt: 10 },
   responsavel: { x: 526, y: 650, w: 1300, pt: 10 },

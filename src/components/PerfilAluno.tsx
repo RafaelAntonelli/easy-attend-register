@@ -8,6 +8,9 @@ import { idadePorNascimento, turnoDoHorario } from "@/lib/turnos";
 import { Button } from "@/components/ui/button";
 import { ConversarWhatsApp } from "@/components/ConversarWhatsApp";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { dataBR, hojeISO, type Licenca } from "@/lib/licenca";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Anotacao = {
@@ -85,6 +88,10 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
   const [novaAnotacao, setNovaAnotacao] = useState("");
   const [salvandoAnotacao, setSalvandoAnotacao] = useState(false);
   const { user } = useAuth();
+  const [licencaAberta, setLicencaAberta] = useState<Licenca | null>(null);
+  const [licInicio, setLicInicio] = useState("");
+  const [licRetorno, setLicRetorno] = useState("");
+  const [licMotivo, setLicMotivo] = useState("");
 
   async function carregarAnotacoes(id: string) {
     const { data } = await supabase
@@ -124,6 +131,61 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
     return;
   }
 
+  async function carregarLicenca(id: string) {
+    const { data } = await supabase
+      .from("licencas_medicas")
+      .select("id,aluno_id,data_inicio,data_retorno,motivo,encerrada_em")
+      .eq("aluno_id", id)
+      .is("encerrada_em", null)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const l = ((data ?? [])[0] as Licenca | undefined) ?? null;
+    setLicencaAberta(l);
+    setLicInicio(hojeISO());
+    setLicRetorno(l?.data_retorno ?? "");
+    setLicMotivo("");
+  }
+
+  async function registrarLicenca() {
+    if (!aluno) return;
+    if (licRetorno <= licInicio) return toast.error("O retorno deve ser depois do início.");
+    const nome = (user?.user_metadata as { nome?: string } | undefined)?.nome || user?.email || null;
+    const { error } = await supabase.from("licencas_medicas").insert({
+      aluno_id: aluno.id,
+      data_inicio: licInicio,
+      data_retorno: licRetorno,
+      motivo: licMotivo.trim() || null,
+      registrado_por: user?.id ?? null,
+      registrado_por_nome: nome,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Licença médica registrada.");
+    await carregarLicenca(aluno.id);
+    return;
+  }
+
+  async function prorrogarLicenca() {
+    if (!aluno || !licencaAberta) return;
+    if (licRetorno <= licencaAberta.data_inicio) return toast.error("Data de retorno inválida.");
+    const { error } = await supabase.from("licencas_medicas").update({ data_retorno: licRetorno }).eq("id", licencaAberta.id);
+    if (error) return toast.error(error.message);
+    toast.success("Licença prorrogada.");
+    await carregarLicenca(aluno.id);
+    return;
+  }
+
+  async function encerrarLicenca() {
+    if (!aluno || !licencaAberta) return;
+    const { error } = await supabase
+      .from("licencas_medicas")
+      .update({ encerrada_em: new Date().toISOString() })
+      .eq("id", licencaAberta.id);
+    if (error) return toast.error(error.message);
+    toast.success("Retorno confirmado.");
+    await carregarLicenca(aluno.id);
+    return;
+  }
+
   useEffect(() => {
     if (!alunoId) return;
     const idSelecionado = alunoId;
@@ -148,6 +210,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
       const perfil = a as AlunoPerfil;
       setAluno(perfil);
       void carregarAnotacoes(perfil.id);
+      void carregarLicenca(perfil.id);
 
       const [{ data: ms }, { data: ts }, { data: ps }] = await Promise.all([
         supabase.from("matriculas").select("id,turma_id,status,modalidade,data_inicio,created_at,registrado_por").eq("aluno_id", perfil.id),
@@ -247,6 +310,49 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
             </div>
 
             <ConversarWhatsApp telefone={aluno.telefone} />
+
+            <div className="space-y-2 rounded-lg border border-border/70 p-3 text-sm">
+              <p className="font-medium">Licença médica</p>
+              {licencaAberta ? (
+                <>
+                  <p className="text-muted-foreground">
+                    Afastado de {dataBR(licencaAberta.data_inicio)} até {dataBR(licencaAberta.data_retorno)}
+                    {licencaAberta.motivo ? ` · ${licencaAberta.motivo}` : ""}. A vaga na turma está preservada e as faltas são
+                    justificadas automaticamente.
+                  </p>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Prorrogar até</Label>
+                      <Input type="date" value={licRetorno} onChange={(e) => setLicRetorno(e.target.value)} className="h-8 w-40" />
+                    </div>
+                    <Button size="sm" variant="outline" disabled={!licRetorno} onClick={() => void prorrogarLicenca()}>
+                      Prorrogar
+                    </Button>
+                    <Button size="sm" onClick={() => void encerrarLicenca()}>
+                      Confirmar retorno
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-muted-foreground">Mantém a vaga e justifica as faltas durante o afastamento.</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Início</Label>
+                      <Input type="date" value={licInicio} onChange={(e) => setLicInicio(e.target.value)} className="h-8" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Retorno previsto</Label>
+                      <Input type="date" value={licRetorno} onChange={(e) => setLicRetorno(e.target.value)} className="h-8" />
+                    </div>
+                  </div>
+                  <Input placeholder="Motivo (ex.: cirurgia, fratura)" value={licMotivo} onChange={(e) => setLicMotivo(e.target.value)} className="h-8" />
+                  <Button size="sm" disabled={!licInicio || !licRetorno} onClick={() => void registrarLicenca()}>
+                    Registrar licença médica
+                  </Button>
+                </>
+              )}
+            </div>
 
             {aluno.observacoes ? (
               <div className="rounded-lg border border-border/70 p-3 text-sm">

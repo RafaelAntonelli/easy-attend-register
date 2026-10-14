@@ -18,9 +18,15 @@ type AlunoBase = { id: string; ativo?: boolean | null; data_nascimento?: string 
 type TurmaBase = { id: string; horario: string | null; dias_semana: string[]; modalidade: string };
 type MatriculaBase = { aluno_id: string; turma_id: string; modalidade: string; status: string };
 export type RegistroRelatorio<T> = { aluno: T; valores: Record<FiltroRelatorioId, string[]> };
+/** Same rule as the Alunos day filter: a class belongs to a group when it has every day of that group. */
+function diasDaTurma(dias: string[], grupos: { label: string; dias: string[] }[]) {
+  if (!grupos.length) return dias.length ? dias : ["Não informado"];
+  const nomes = grupos.filter((g) => g.dias.length && g.dias.every((d) => dias.includes(d))).map((g) => g.label);
+  return nomes.length ? nomes : ["Outros dias"];
+}
 const informado = (valor?: string | null) => valor || "Não informado";
 
-export function registrosRelatorio<T extends AlunoBase>(alunos: T[], turmas: TurmaBase[], matriculas: MatriculaBase[]): RegistroRelatorio<T>[] {
+export function registrosRelatorio<T extends AlunoBase>(alunos: T[], turmas: TurmaBase[], matriculas: MatriculaBase[], gruposDias: { label: string; dias: string[] }[] = []): RegistroRelatorio<T>[] {
   const mapaTurmas = new Map(turmas.map((t) => [t.id, t]));
   const porAluno = new Map<string, MatriculaBase[]>();
   for (const m of matriculas) {
@@ -37,7 +43,7 @@ export function registrosRelatorio<T extends AlunoBase>(alunos: T[], turmas: Tur
         situacao: [aluno.ativo === false ? "Inativos" : "Ativos"],
         modalidade: [informado(m?.modalidade || turma?.modalidade)],
         horario: [informado(turma?.horario)],
-        dias: turma?.dias_semana.length ? turma.dias_semana : ["Não informado"],
+        dias: diasDaTurma(turma?.dias_semana ?? [], gruposDias),
         turno: [informado(turnoDoHorario(turma?.horario))],
       } };
     });

@@ -36,6 +36,10 @@ describe("filtros dos alunos por parâmetro", () => {
     expect(ids("horario", ["08:00 às 08:50", "18:00 às 18:50"])).toEqual(["a", "b", "c"]);
   });
   it("seleciona um dia mesmo em turmas com múltiplos dias", () => expect(ids("dias", ["Qui"])).toEqual(["a"]));
+  it("filtra dias pelos grupos Terça e Quinta / Quarta e Sexta", () => {
+    const g = registrosRelatorio(alunos, turmas, matriculas, [{ label: "Terça e Quinta", dias: ["Ter", "Qui"] }, { label: "Quarta e Sexta", dias: ["Qua", "Sex"] }]);
+    expect(cruzarRelatorio(g, { ...filtrosRelatorioVazios(), dias: ["Quarta e Sexta"] }, "todas").alunos.map((a) => a.id)).toEqual(["b", "c"]);
+  });
   it("seleciona o turno desejado", () => expect(ids("turno", ["Noturno"])).toEqual(["b", "c"]));
   it("seleciona PCD ou não PCD", () => {
     expect(ids("pcd", ["PCD"])).toEqual(["a"]);

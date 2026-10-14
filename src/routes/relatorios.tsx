@@ -34,6 +34,7 @@ import { linksArquivosFn } from "@/lib/links-arquivos.functions";
 
 import { gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { FAIXAS_ETARIAS, TURNOS } from "@/lib/turnos";
+import { useGruposDias } from "@/lib/dias";
 import { FiltroRelatorio } from "@/components/FiltroRelatorio";
 import { FILTROS_RELATORIO, filtrosRelatorioVazios, registrosRelatorio, cruzarRelatorio } from "@/lib/relatorio-cruzado";
 import { agruparAlunosPorEscola, type FiltroRedeEnsino } from "@/lib/escolas";
@@ -76,7 +77,8 @@ function RelatoriosPage() {
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [carregando, setCarregando] = useState(true);
   const [filtros, setFiltros] = useState(filtrosRelatorioVazios);
-  const registros = useMemo(() => registrosRelatorio(alunos, turmas, matriculas), [alunos, turmas, matriculas]);
+  const { lista: gruposDias } = useGruposDias();
+  const registros = useMemo(() => registrosRelatorio(alunos, turmas, matriculas, gruposDias), [alunos, turmas, matriculas, gruposDias]);
   const resultado = useMemo(() => cruzarRelatorio(registros, filtros, redeEnsino), [registros, filtros, redeEnsino]);
   const alunosFiltrados = resultado.alunos;
   const escolas = useMemo(() => agruparAlunosPorEscola(resultado.alunos, redeEnsino), [resultado, redeEnsino]);

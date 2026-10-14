@@ -30,7 +30,8 @@ export type DadosCracha = {
 // Valores desenhados na faixa cinza ABAIXO de cada rótulo, alinhados à esquerda do rótulo
 // (coordenadas em px da arte 1920x1209, medidas sobre o modelo)
 const CAMPOS = {
-  nome: { x: 526, y: 312, w: 890, pt: 12 },
+  nome: { x: 526, y: 312, w: 640, pt: 12 },
+  matricula: { x: 1186, y: 312, w: 250, pt: 9 },
   pcd: { x: 1474, y: 312, w: 350, pt: 12 },
   documento: { x: 526, y: 498, w: 1300, pt: 10 },
   responsavel: { x: 526, y: 650, w: 1300, pt: 10 },
@@ -139,6 +140,7 @@ async function desenharCracha(doc: jsPDF, dados: DadosCracha, modelo: string, ox
   };
 
   put(CAMPOS.nome, dados.nome ?? "");
+  put(CAMPOS.matricula, dados.codigo ? `Mat. ${dados.codigo}` : "");
   put(CAMPOS.pcd, dados.pcd ? "Sim" : "Não");
   put(CAMPOS.documento, documentoFormatado(dados));
   put(CAMPOS.responsavel, dados.responsavel ?? "");
@@ -360,6 +362,7 @@ export async function renderizarCrachaCanvas(
   };
 
   put(CAMPOS.nome, dados.nome ?? "");
+  put(CAMPOS.matricula, dados.codigo ? `Mat. ${dados.codigo}` : "");
   put(CAMPOS.pcd, dados.pcd ? "Sim" : "Não");
   put(CAMPOS.documento, documentoFormatado(dados));
   put(CAMPOS.responsavel, dados.responsavel ?? "");

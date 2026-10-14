@@ -32,6 +32,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { FotoAmpliavel } from "@/components/FotoAmpliavel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -1848,7 +1849,7 @@ function AlunosPage() {
                   aria-label={`Selecionar ${aluno.nome}`}
                 />
                 {fotos[aluno.id] ? (
-                  <img src={fotos[aluno.id]} alt={`Foto de ${aluno.nome}`} className="size-11 shrink-0 rounded-full object-cover" />
+                  <FotoAmpliavel src={fotos[aluno.id]!} nome={aluno.nome} className="size-11 rounded-full object-cover" />
                 ) : (
                   <div className="grid size-11 shrink-0 place-items-center rounded-full bg-pool font-display text-sm font-semibold text-primary-foreground">
                     {aluno.nome.slice(0, 2).toUpperCase()}
@@ -1895,7 +1896,7 @@ function AlunosPage() {
             <div className="space-y-5">
               <div className="flex items-center gap-4">
                 {fotos[detalhe.id] ? (
-                  <img src={fotos[detalhe.id]} alt={`Foto de ${detalhe.nome}`} className="size-16 rounded-full object-cover" />
+                  <FotoAmpliavel src={fotos[detalhe.id]!} nome={detalhe.nome} className="size-16 rounded-full object-cover" />
                 ) : (
                   <div className="grid size-16 place-items-center rounded-full bg-pool font-display text-primary-foreground">
                     {detalhe.nome.slice(0, 2).toUpperCase()}

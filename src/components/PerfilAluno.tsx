@@ -10,6 +10,7 @@ import { ConversarWhatsApp } from "@/components/ConversarWhatsApp";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { dataBR, hojeISO, type Licenca } from "@/lib/licenca";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -94,6 +95,9 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
   const [licFoto, setLicFoto] = useState<File | null>(null);
   const [licFotoUrl, setLicFotoUrl] = useState<string | null>(null);
   const [licMotivo, setLicMotivo] = useState("");
+  const [licFormAberto, setLicFormAberto] = useState(false);
+  const [licPorDias, setLicPorDias] = useState(false);
+  const [licDias, setLicDias] = useState("");
 
   async function carregarAnotacoes(id: string) {
     const { data } = await supabase
@@ -399,28 +403,62 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                     </Button>
                   </div>
                 </>
+              ) : !licFormAberto ? (
+                <Button size="sm" variant="outline" onClick={() => { setLicInicio(licInicio || hojeISO()); setLicFormAberto(true); }}>
+                  Registrar Licença Médica
+                </Button>
               ) : (
-                <>
-                  <p className="text-xs text-muted-foreground">Mantém a vaga e justifica as faltas durante o afastamento.</p>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Início</Label>
-                      <Input type="date" value={licInicio} onChange={(e) => setLicInicio(e.target.value)} className="h-8" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Retorno previsto</Label>
-                      <Input type="date" value={licRetorno} onChange={(e) => setLicRetorno(e.target.value)} className="h-8" />
-                    </div>
-                  </div>
-                  <Input placeholder="Motivo (ex.: cirurgia, fratura)" value={licMotivo} onChange={(e) => setLicMotivo(e.target.value)} className="h-8" />
+                <div className="space-y-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Foto do atestado (opcional)</Label>
+                    <Label className="text-xs">Data de início</Label>
+                    <Input type="date" value={licInicio} onChange={(e) => setLicInicio(e.target.value)} className="h-9" />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch checked={licPorDias} onCheckedChange={setLicPorDias} /> Informar período em dias
+                  </label>
+                  {licPorDias ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Período (dias)</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={licDias}
+                        onChange={(e) => {
+                          setLicDias(e.target.value);
+                          const n = Number(e.target.value);
+                          if (licInicio && n > 0) {
+                            const d = new Date(`${licInicio}T00:00:00`);
+                            d.setDate(d.getDate() + n);
+                            setLicRetorno(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+                          } else setLicRetorno("");
+                        }}
+                        className="h-9"
+                      />
+                      {licRetorno ? <p className="text-xs text-muted-foreground">Retorno previsto: {dataBR(licRetorno)}</p> : null}
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Data prevista de retorno</Label>
+                      <Input type="date" value={licRetorno} onChange={(e) => setLicRetorno(e.target.value)} className="h-9" />
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Motivo / Diagnóstico resumido</Label>
+                    <Input placeholder="Ex.: cirurgia no ombro, fratura..." value={licMotivo} onChange={(e) => setLicMotivo(e.target.value)} className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Anexo do atestado / laudo médico</Label>
                     <Input type="file" accept="image/*,application/pdf" className="h-9" onChange={(e) => setLicFoto(e.target.files?.[0] ?? null)} />
                   </div>
-                  <Button size="sm" disabled={!licInicio || !licRetorno} onClick={() => void registrarLicenca()}>
-                    Registrar licença médica
-                  </Button>
-                </>
+                  <div className="flex gap-2">
+                    <Button size="sm" disabled={!licInicio || !licRetorno} onClick={() => void registrarLicenca().then(() => setLicFormAberto(false))}>
+                      Confirmar
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setLicFormAberto(false); setLicFoto(null); }}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
               )}
             </div>
 

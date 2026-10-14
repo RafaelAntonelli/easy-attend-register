@@ -522,14 +522,25 @@ export async function enviarLoteBackup(
           falhas.push(arquivo.nome);
           continue;
         }
-        await enviarParaDrive({
-          nome: arquivo.nome,
-          pasta: arquivo.pasta,
-          conteudo,
-          tipo: tipoPorExtensao(arquivo.caminho),
-          marcador: arquivo.marcador,
-          existentes: indices[arquivo.pasta],
-        });
+        // Erros temporários do Drive (502/503/429) são tentados de novo até 3 vezes.
+        for (let tentativa = 1; ; tentativa++) {
+          try {
+            await enviarParaDrive({
+              nome: arquivo.nome,
+              pasta: arquivo.pasta,
+              conteudo,
+              tipo: tipoPorExtensao(arquivo.caminho),
+              marcador: arquivo.marcador,
+              existentes: indices[arquivo.pasta],
+            });
+            break;
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            const temporario = /respondeu (429|500|502|503|504)/.test(msg);
+            if (!temporario || tentativa >= 3) throw err;
+            await new Promise((r) => setTimeout(r, 1500 * tentativa));
+          }
+        }
         enviados++;
       } catch (err) {
         console.error("[backup] falha ao enviar arquivo", arquivo.nome, err);

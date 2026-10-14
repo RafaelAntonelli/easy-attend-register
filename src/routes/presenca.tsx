@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { PerfilAluno } from "@/components/PerfilAluno";
+import { dataBR, licencaEmVigor, type Licenca } from "@/lib/licenca";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -255,8 +256,23 @@ function PresencaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hoje]);
 
+  const [licencas, setLicencas] = useState<Licenca[]>([]);
+  useEffect(() => {
+    void supabase
+      .from("licencas_medicas")
+      .select("id,aluno_id,data_inicio,data_retorno,motivo,encerrada_em")
+      .is("encerrada_em", null)
+      .then(({ data }) => setLicencas((data ?? []) as Licenca[]));
+  }, []);
+
   async function registrar(aluno: Aluno, metodo: "qrcode" | "manual", status: StatusPresenca = "presente") {
-    const obs = observacao.trim() ? observacao.trim() : null;
+    const licenca = licencas.find((l) => l.aluno_id === aluno.id && licencaEmVigor(l, hoje));
+    if (licenca && status === "falta") status = "falta_justificada";
+    const obs = observacao.trim()
+      ? observacao.trim()
+      : licenca && status === "falta_justificada"
+        ? `Licença médica até ${dataBR(licenca.data_retorno)}`
+        : null;
     const agoraIso = new Date().toISOString();
     const turmasSelecionadasOrdenadas = turmasVisiveis.filter((turma) => turmaIdsValidos.includes(turma.id));
     const turmaIdRegistro = turmasSelecionadasOrdenadas.find((turma) =>
@@ -723,6 +739,12 @@ function PresencaPage() {
                             >
                               <span className="truncate">{a.nome}</span>
                             </Button>
+                            {(() => {
+                              const lic = licencas.find((l) => l.aluno_id === a.id && licencaEmVigor(l, hoje));
+                              return lic ? (
+                                <p className="text-xs font-medium text-primary">Licença médica até {dataBR(lic.data_retorno)}</p>
+                              ) : null;
+                            })()}
                             {atual ? <p className="text-xs text-muted-foreground">{rotuloStatus[atual]}</p> : null}
                           </div>
                         </div>

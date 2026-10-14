@@ -6,6 +6,7 @@ export type Licenca = {
   data_inicio: string;
   data_retorno: string;
   motivo: string | null;
+  atestado_path?: string | null;
   encerrada_em: string | null;
 };
 

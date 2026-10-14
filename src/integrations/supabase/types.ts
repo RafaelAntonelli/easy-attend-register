@@ -310,6 +310,7 @@ export type Database = {
       licencas_medicas: {
         Row: {
           aluno_id: string
+          atestado_path: string | null
           created_at: string
           data_inicio: string
           data_retorno: string
@@ -321,6 +322,7 @@ export type Database = {
         }
         Insert: {
           aluno_id: string
+          atestado_path?: string | null
           created_at?: string
           data_inicio?: string
           data_retorno: string
@@ -332,6 +334,7 @@ export type Database = {
         }
         Update: {
           aluno_id?: string
+          atestado_path?: string | null
           created_at?: string
           data_inicio?: string
           data_retorno?: string

@@ -91,6 +91,8 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
   const [licencaAberta, setLicencaAberta] = useState<Licenca | null>(null);
   const [licInicio, setLicInicio] = useState("");
   const [licRetorno, setLicRetorno] = useState("");
+  const [licFoto, setLicFoto] = useState<File | null>(null);
+  const [licFotoUrl, setLicFotoUrl] = useState<string | null>(null);
   const [licMotivo, setLicMotivo] = useState("");
 
   async function carregarAnotacoes(id: string) {
@@ -131,10 +133,31 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
     return;
   }
 
+  async function enviarFotoLicenca(alunoIdFoto: string, arquivo: File) {
+    const ext = arquivo.name.split(".").pop() ?? "jpg";
+    const caminho = `${alunoIdFoto}/licenca-atestado-${Date.now()}.${ext}`;
+    const up = await supabase.storage.from("fotos-alunos").upload(caminho, arquivo, { upsert: true });
+    if (up.error) throw up.error;
+    return caminho;
+  }
+
+  async function anexarAtestadoLicenca(arquivo: File) {
+    if (!aluno || !licencaAberta) return;
+    try {
+      const caminho = await enviarFotoLicenca(aluno.id, arquivo);
+      const { error } = await supabase.from("licencas_medicas").update({ atestado_path: caminho }).eq("id", licencaAberta.id);
+      if (error) throw error;
+      toast.success("Foto do atestado salva.");
+      await carregarLicenca(aluno.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar a foto");
+    }
+  }
+
   async function carregarLicenca(id: string) {
     const { data } = await supabase
       .from("licencas_medicas")
-      .select("id,aluno_id,data_inicio,data_retorno,motivo,encerrada_em")
+      .select("id,aluno_id,data_inicio,data_retorno,motivo,encerrada_em,atestado_path")
       .eq("aluno_id", id)
       .is("encerrada_em", null)
       .order("created_at", { ascending: false })
@@ -144,12 +167,26 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
     setLicInicio(hojeISO());
     setLicRetorno(l?.data_retorno ?? "");
     setLicMotivo("");
+    setLicFoto(null);
+    setLicFotoUrl(null);
+    if (l?.atestado_path) {
+      const { data: s } = await supabase.storage.from("fotos-alunos").createSignedUrl(l.atestado_path, 3600);
+      setLicFotoUrl(s?.signedUrl ?? null);
+    }
   }
 
   async function registrarLicenca() {
     if (!aluno) return;
     if (licRetorno <= licInicio) return toast.error("O retorno deve ser depois do início.");
     const nome = (user?.user_metadata as { nome?: string } | undefined)?.nome || user?.email || null;
+    let atestado_path: string | null = null;
+    if (licFoto) {
+      try {
+        atestado_path = await enviarFotoLicenca(aluno.id, licFoto);
+      } catch (e) {
+        return toast.error(e instanceof Error ? e.message : "Falha ao enviar a foto");
+      }
+    }
     const { error } = await supabase.from("licencas_medicas").insert({
       aluno_id: aluno.id,
       data_inicio: licInicio,
@@ -157,6 +194,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
       motivo: licMotivo.trim() || null,
       registrado_por: user?.id ?? null,
       registrado_por_nome: nome,
+      atestado_path,
     });
     if (error) return toast.error(error.message);
     toast.success("Licença médica registrada.");
@@ -320,6 +358,34 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                     {licencaAberta.motivo ? ` · ${licencaAberta.motivo}` : ""}. A vaga na turma está preservada e as faltas são
                     justificadas automaticamente.
                   </p>
+                  <div className="flex items-center gap-3 rounded-lg bg-secondary/50 p-2">
+                    {licFotoUrl ? (
+                      <a href={licFotoUrl} target="_blank" rel="noreferrer">
+                        <img src={licFotoUrl} alt="Atestado da licença" className="size-12 rounded object-cover" />
+                      </a>
+                    ) : (
+                      <div className="grid size-12 place-items-center rounded bg-muted text-xs text-muted-foreground">—</div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm">Foto do atestado</p>
+                      <p className="text-xs text-muted-foreground">{licencaAberta.atestado_path ? "Enviada" : "Não enviada"}</p>
+                    </div>
+                    <Button size="sm" variant="outline" asChild>
+                      <label className="cursor-pointer">
+                        {licencaAberta.atestado_path ? "Trocar" : "Anexar"}
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) void anexarAtestadoLicenca(f);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    </Button>
+                  </div>
                   <div className="flex flex-wrap items-end gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Prorrogar até</Label>
@@ -347,6 +413,10 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                     </div>
                   </div>
                   <Input placeholder="Motivo (ex.: cirurgia, fratura)" value={licMotivo} onChange={(e) => setLicMotivo(e.target.value)} className="h-8" />
+                  <div className="space-y-1">
+                    <Label className="text-xs">Foto do atestado (opcional)</Label>
+                    <Input type="file" accept="image/*,application/pdf" className="h-9" onChange={(e) => setLicFoto(e.target.files?.[0] ?? null)} />
+                  </div>
                   <Button size="sm" disabled={!licInicio || !licRetorno} onClick={() => void registrarLicenca()}>
                     Registrar licença médica
                   </Button>

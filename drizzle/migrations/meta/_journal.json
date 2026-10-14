@@ -8,6 +8,13 @@
       "when": 1792012926528,
       "tag": "0000_licencas_medicas",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792013204017,
+      "tag": "0001_licenca_atestado_foto",
+      "breakpoints": true
     }
   ]
 }

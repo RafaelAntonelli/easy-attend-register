@@ -1,3 +1,4 @@
+import { FotoAmpliavel } from "@/components/FotoAmpliavel";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, Check, Search, X, FileCheck, CalendarIcon, ChevronDown } from "lucide-react";
@@ -706,12 +707,7 @@ function PresencaPage() {
                       <div key={a.id} className="flex min-h-20 flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 px-4 py-3">
                         <div className="flex min-w-40 flex-1 items-center gap-3">
                           {fotos[a.id] ? (
-                            <img
-                              src={fotos[a.id]}
-                              alt={`Foto de ${a.nome}`}
-                              loading="lazy"
-                              className="size-16 shrink-0 rounded-full border border-border object-cover"
-                            />
+                            <FotoAmpliavel src={fotos[a.id]!} nome={a.nome} className="size-16 rounded-full border border-border object-cover" />
                           ) : (
                             <span className="flex size-16 shrink-0 items-center justify-center rounded-full border border-border bg-secondary text-sm font-semibold text-muted-foreground">
                               {iniciais(a.nome)}

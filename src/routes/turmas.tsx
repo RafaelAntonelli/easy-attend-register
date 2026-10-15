@@ -104,6 +104,8 @@ function TurmasPage() {
 
   const [novoHorario, setNovoHorario] = useState("");
   const [turmas, setTurmas] = useState<Turma[]>([]);
+  const { user: usuarioAtual } = useAuth();
+  const minhasTurmas = useMinhasTurmas(usuarioAtual?.id);
   const [contagem, setContagem] = useState<Record<string, number>>({});
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Turma | null>(null);
@@ -362,6 +364,9 @@ function TurmasPage() {
         (filtroDias === "todos" || grupoDosDias(t.dias_semana) === filtroDias),
     )
     .sort((a, b) => {
+      const ma = minhasTurmas.has(a.id) ? 0 : 1;
+      const mb = minhasTurmas.has(b.id) ? 0 : 1;
+      if (ma !== mb) return ma - mb;
       const ha = aulaHoje(a) ? 0 : 1;
       const hb = aulaHoje(b) ? 0 : 1;
       if (ha !== hb) return ha - hb;

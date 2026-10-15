@@ -1,0 +1,4 @@
+ALTER TABLE public.matriculas DROP CONSTRAINT matriculas_registrado_por_fkey, ADD CONSTRAINT matriculas_registrado_por_fkey FOREIGN KEY (registrado_por) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.presencas DROP CONSTRAINT presencas_registrado_por_fkey, ADD CONSTRAINT presencas_registrado_por_fkey FOREIGN KEY (registrado_por) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.alunos DROP CONSTRAINT alunos_inativado_por_fkey, ADD CONSTRAINT alunos_inativado_por_fkey FOREIGN KEY (inativado_por) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.anotacoes_alunos DROP CONSTRAINT anotacoes_alunos_autor_id_fkey, ADD CONSTRAINT anotacoes_alunos_autor_id_fkey FOREIGN KEY (autor_id) REFERENCES auth.users(id) ON DELETE SET NULL;

@@ -522,7 +522,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                   <p className="text-xs text-muted-foreground">
                     Inativado em {new Date(aluno.inativado_em).toLocaleDateString("pt-BR")} às{" "}
                     {new Date(aluno.inativado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                    {aluno.inativado_por || aluno.inativado_por_nome ? ` por ${aluno.inativado_por_nome ?? nomesUsuarios[aluno.inativado_por] ?? "usuário"}` : ""}
+                    {aluno.inativado_por || aluno.inativado_por_nome ? ` por ${aluno.inativado_por_nome ?? nomesUsuarios[aluno.inativado_por ?? ""] ?? "usuário"}` : ""}
                   </p>
                 ) : null}
               </div>
@@ -542,7 +542,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                       <p className="text-xs text-muted-foreground">
                         Matriculado em {new Date(m.created_at).toLocaleDateString("pt-BR")} às{" "}
                         {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                        {m.registrado_por || m.registrado_por_nome ? ` por ${m.registrado_por_nome ?? nomesUsuarios[m.registrado_por] ?? "usuário"}` : ""}
+                        {m.registrado_por || m.registrado_por_nome ? ` por ${m.registrado_por_nome ?? nomesUsuarios[m.registrado_por ?? ""] ?? "usuário"}` : ""}
                       </p>
                     ) : null}
                   </div>

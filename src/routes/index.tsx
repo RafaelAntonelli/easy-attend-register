@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Users, CalendarDays, QrCode, TrendingUp, Plus, Trash2 } from "lucide-react";
+import { Users, CalendarDays, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CONDICOES_PCD } from "@/lib/pcd";
@@ -55,8 +55,7 @@ export const Route = createFileRoute("/")({
 
 function Painel() {
   const { lista: listaHorarios } = useHorarios();
-  const [stats, setStats] = useState({ alunos: 0, turmas: 0, hoje: 0, mes: 0 });
-  const [ultimas, setUltimas] = useState<{ nome: string; hora: string }[]>([]);
+  const [stats, setStats] = useState({ alunos: 0, turmas: 0 });
   const [fila, setFila] = useState<Fila[]>([]);
   const [perfilId, setPerfilId] = useState<string | null>(null);
   const filaVazia = {
@@ -120,47 +119,23 @@ function Painel() {
 
   useEffect(() => {
     void (async () => {
-      const hoje = new Date().toISOString().slice(0, 10);
-      const inicioMes = new Date();
-      inicioMes.setDate(1);
-      const [alunos, turmas, presHoje, presMes, recentes] = await Promise.all([
+      const [alunos, turmas] = await Promise.all([
         supabase.from("alunos").select("id", { count: "exact", head: true }).eq("ativo", true),
         supabase.from("turmas").select("id", { count: "exact", head: true }).eq("ativa", true),
-        supabase.from("presencas").select("id", { count: "exact", head: true }).eq("data", hoje),
-        supabase.from("presencas").select("id", { count: "exact", head: true }).gte("data", inicioMes.toISOString().slice(0, 10)),
-        supabase.from("presencas").select("horario,alunos(nome)").order("horario", { ascending: false }).limit(6),
       ]);
-      setStats({
-        alunos: alunos.count ?? 0,
-        turmas: turmas.count ?? 0,
-        hoje: presHoje.count ?? 0,
-        mes: presMes.count ?? 0,
-      });
-      setUltimas(
-        (recentes.data ?? []).map((r) => ({
-          nome: (r.alunos as { nome: string } | null)?.nome ?? "Aluno",
-          hora: new Date(r.horario as string).toLocaleString("pt-BR", {
-            day: "2-digit",
-            month: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        })),
-      );
+      setStats({ alunos: alunos.count ?? 0, turmas: turmas.count ?? 0 });
     })();
   }, []);
 
   const cards = [
     { label: "Alunos ativos", value: stats.alunos, icon: Users },
     { label: "Turmas abertas", value: stats.turmas, icon: CalendarDays },
-    { label: "Presenças hoje", value: stats.hoje, icon: QrCode },
-    { label: "Presenças no mês", value: stats.mes, icon: TrendingUp },
   ];
 
   return (
     <AppShell title="Painel" subtitle="Visão geral da Arena Aquática">
       <BuscaRapida onAbrirPerfil={setPerfilId} />
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
         {cards.map((c) => (
           <Card key={c.label} className="border-border/70">
             <CardContent className="flex items-center gap-4 py-6">
@@ -176,37 +151,22 @@ function Painel() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
-        <Card className="overflow-hidden border-none bg-pool text-primary-foreground shadow-pool">
-          <CardContent className="space-y-4 py-8">
-            <h2 className="font-display text-2xl font-semibold">Comece a aula</h2>
-            <p className="text-sm text-primary-foreground/80">
-              Abra o leitor de QR Code e registre a entrada dos alunos na borda da piscina, pelo celular ou pelo computador.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Button asChild variant="secondary">
-                <Link to="/presenca">Registrar presença</Link>
-              </Button>
-              <Button asChild variant="outline" className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10">
-                <Link to="/alunos">Nova matrícula</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/70">
-          <CardHeader><CardTitle className="font-display text-lg">Últimas presenças</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            {ultimas.map((u, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg bg-secondary/60 px-3 py-2 text-sm">
-                <span>{u.nome}</span>
-                <span className="text-muted-foreground">{u.hora}</span>
-              </div>
-            ))}
-            {!ultimas.length && <p className="py-8 text-center text-sm text-muted-foreground">Ainda não há registros de presença.</p>}
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="overflow-hidden border-none bg-pool text-primary-foreground shadow-pool">
+        <CardContent className="space-y-4 py-8">
+          <h2 className="font-display text-2xl font-semibold">Comece a aula</h2>
+          <p className="text-sm text-primary-foreground/80">
+            Abra o leitor de QR Code e registre a entrada dos alunos na borda da piscina, pelo celular ou pelo computador.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild variant="secondary">
+              <Link to="/presenca">Registrar presença</Link>
+            </Button>
+            <Button asChild variant="outline" className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10">
+              <Link to="/alunos">Nova matrícula</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <AulasDoDia />

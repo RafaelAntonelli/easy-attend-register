@@ -15,6 +15,13 @@
       "when": 1792013204017,
       "tag": "0001_licenca_atestado_foto",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792081083937,
+      "tag": "0002_permissoes_professores",
+      "breakpoints": true
     }
   ]
 }

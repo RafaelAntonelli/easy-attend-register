@@ -11,6 +11,7 @@ import { PerfilAluno } from "@/components/PerfilAluno";
 import { AulasDoDia } from "@/components/painel/AulasDoDia";
 import { PainelLicencas } from "@/components/painel/PainelLicencas";
 import { BuscaRapida } from "@/components/painel/BuscaRapida";
+import { PainelNotificacoes } from "@/components/painel/PainelNotificacoes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -162,13 +163,14 @@ function Painel() {
               <Link to="/presenca">Registrar presença</Link>
             </Button>
             <Button asChild variant="outline" className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10">
-              <Link to="/alunos">Nova matrícula</Link>
+              <Link to="/alunos" search={{ nova: true }}>Nova matrícula</Link>
             </Button>
           </div>
         </CardContent>
       </Card>
 
       <div className="mt-6 grid gap-6">
+        <PainelNotificacoes onAbrirPerfil={setPerfilId} />
         <AulasDoDia />
         <PainelLicencas onAbrirPerfil={setPerfilId} />
       </div>

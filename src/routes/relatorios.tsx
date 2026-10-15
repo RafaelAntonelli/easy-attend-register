@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, BarChart3, Download, FileSpreadsheet, FileText, IdCard, Settings2 } from "lucide-react";
+import { AlertTriangle, BarChart3, Download, FileSpreadsheet, FileText, IdCard, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { GraficoAlunos } from "@/components/GraficoAlunos";
 
@@ -76,6 +76,7 @@ function RelatoriosPage() {
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [carregando, setCarregando] = useState(true);
+  const [mostrarAtestados, setMostrarAtestados] = useState(false);
   const [filtros, setFiltros] = useState(filtrosRelatorioVazios);
   const { lista: gruposDias } = useGruposDias();
   const registros = useMemo(() => registrosRelatorio(alunos, turmas, matriculas, gruposDias), [alunos, turmas, matriculas, gruposDias]);
@@ -647,8 +648,12 @@ function RelatoriosPage() {
         <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">
             <AlertTriangle className="size-4 text-destructive" /> Atestados vencidos e a vencer
+            <Badge variant="secondary">{relatorio.length}</Badge>
           </CardTitle>
           <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setMostrarAtestados((v) => !v)}>
+              {mostrarAtestados ? <><ChevronUp className="size-4" /> Esconder</> : <><ChevronDown className="size-4" /> Mostrar</>}
+            </Button>
             <Button variant="outline" size="sm" onClick={exportarCsv}>
               <Download className="size-4" /> CSV
             </Button>
@@ -657,7 +662,7 @@ function RelatoriosPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        {mostrarAtestados ? <CardContent>
           {carregando ? (
             <p className="py-6 text-sm text-muted-foreground">Carregando...</p>
           ) : !relatorio.length ? (
@@ -700,7 +705,7 @@ function RelatoriosPage() {
               </table>
             </div>
           )}
-        </CardContent>
+        </CardContent> : null}
       </Card>
     </AppShell>
   );

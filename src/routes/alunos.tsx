@@ -15,7 +15,6 @@ import { encontrarAlunoDuplicado } from "@/lib/duplicidade";
 import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/lib/turnos";
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { atestadoVencido, diasParaVencer, notificarAtestadoVencido, notificarAtestadoVencendo } from "@/lib/atestado";
-import { AvisoLicencas } from "@/components/AvisoLicencas";
 import { PerfilAluno } from "@/components/PerfilAluno";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { useAuth } from "@/lib/auth";
@@ -55,6 +54,10 @@ import {
 
 export const Route = createFileRoute("/alunos")({
   component: AlunosPage,
+  validateSearch: (s: Record<string, unknown>): { nova?: boolean; notificacao?: string } => ({
+    ...(s["nova"] === true || s["nova"] === "true" || s["nova"] === 1 ? { nova: true } : {}),
+    ...(typeof s["notificacao"] === "string" ? { notificacao: s["notificacao"] } : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Alunos e matrículas | Arena Aquática" },
@@ -194,6 +197,8 @@ function AlunosPage() {
     excesso_faltas: false,
   });
   const { valor: prazoAviso } = usePrazoAvisoAtestado();
+  const { nova: abrirNovaParam, notificacao: notificacaoParam } = Route.useSearch();
+  const navigateAlunos = Route.useNavigate();
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
   const [mostrarGuias, setMostrarGuias] = useState(false);
   const { user } = useAuth();
@@ -339,6 +344,15 @@ function AlunosPage() {
     void carregar();
     return;
   }
+
+  useEffect(() => {
+    if (!abrirNovaParam && !notificacaoParam) return;
+    const validos = ["inativos", "sem_atestado", "atestado_vencido", "atestado_vencer", "excesso_faltas"];
+    if (notificacaoParam && validos.includes(notificacaoParam)) setFiltroNotificacao(notificacaoParam as typeof filtroNotificacao);
+    if (abrirNovaParam) abrirNovo();
+    void navigateAlunos({ search: {}, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirNovaParam, notificacaoParam]);
 
   function abrirNovo() {
     setEditando(null);

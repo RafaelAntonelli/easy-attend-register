@@ -7,6 +7,10 @@ import { CONDICOES_PCD } from "@/lib/pcd";
 import { useHorarios } from "@/lib/horarios";
 import { capitalizarNome, formatarCelular } from "@/lib/formatacao";
 import { AppShell } from "@/components/AppShell";
+import { PerfilAluno } from "@/components/PerfilAluno";
+import { AulasDoDia } from "@/components/painel/AulasDoDia";
+import { PainelLicencas } from "@/components/painel/PainelLicencas";
+import { BuscaRapida } from "@/components/painel/BuscaRapida";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,6 +58,7 @@ function Painel() {
   const [stats, setStats] = useState({ alunos: 0, turmas: 0, hoje: 0, mes: 0 });
   const [ultimas, setUltimas] = useState<{ nome: string; hora: string }[]>([]);
   const [fila, setFila] = useState<Fila[]>([]);
+  const [perfilId, setPerfilId] = useState<string | null>(null);
   const filaVazia = {
     nome: "",
     telefone: "",
@@ -154,6 +159,7 @@ function Painel() {
 
   return (
     <AppShell title="Painel" subtitle="Visão geral da Arena Aquática">
+      <BuscaRapida onAbrirPerfil={setPerfilId} />
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((c) => (
           <Card key={c.label} className="border-border/70">
@@ -201,6 +207,12 @@ function Painel() {
           </CardContent>
         </Card>
       </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <AulasDoDia />
+        <PainelLicencas onAbrirPerfil={setPerfilId} />
+      </div>
+      <PerfilAluno alunoId={perfilId} onFechar={() => setPerfilId(null)} />
 
       <Card className="mt-6 border-border/70">
         <CardHeader><CardTitle className="font-display text-lg">Fila de espera</CardTitle></CardHeader>

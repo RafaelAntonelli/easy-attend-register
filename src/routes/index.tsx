@@ -168,7 +168,7 @@ function Painel() {
         </CardContent>
       </Card>
 
-      <div className="mt-6 grid gap-6">
+      <div className="mt-6 grid min-w-0 gap-6 [&>*]:min-w-0">
         <AulasDoDia />
         <PainelLicencas onAbrirPerfil={setPerfilId} />
       </div>

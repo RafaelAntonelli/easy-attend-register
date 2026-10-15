@@ -63,7 +63,7 @@ export function AulasDoDia() {
               const pct = (n / (t.capacidade || 40)) * 100;
               const cor = pct >= 100 ? "[&>div]:bg-destructive" : pct >= 80 ? "[&>div]:bg-warning" : "[&>div]:bg-accent";
               return (
-                <li key={t.id} className="flex items-center gap-3 rounded-xl border border-border/60 bg-card px-3 py-3 text-sm transition-shadow hover:shadow-pool">
+                <li key={t.id} className="flex flex-wrap items-center gap-3 sm:flex-nowrap rounded-xl border border-border/60 bg-card px-3 py-3 text-sm transition-shadow hover:shadow-pool">
                   <span className="grid w-14 shrink-0 place-items-center rounded-lg bg-secondary py-1.5 font-display font-semibold text-secondary-foreground">{t.horario?.slice(0, 5) ?? "--"}</span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{t.nome}</p>
@@ -72,7 +72,7 @@ export function AulasDoDia() {
                       <span className="shrink-0 text-xs text-muted-foreground">{n}/{t.capacidade}</span>
                     </div>
                   </div>
-                  <Button size="sm" className="bg-pool text-primary-foreground hover:opacity-90" onClick={() => abrirChamada(t.id)}>Abrir chamada</Button>
+                  <Button size="sm" className="w-full sm:w-auto bg-pool text-primary-foreground hover:opacity-90" onClick={() => abrirChamada(t.id)}>Abrir chamada</Button>
                 </li>
               );
             })}

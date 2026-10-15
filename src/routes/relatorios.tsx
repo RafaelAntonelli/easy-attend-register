@@ -66,7 +66,7 @@ type Aluno = AlunoPlanilha & {
   cpf: string | null;
   pcd: boolean;
 };
-type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[]; modalidade: string; capacidade: number };
+type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[]; modalidade: string; capacidade: number; ativa?: boolean };
 type Matricula = { id: string; aluno_id: string; turma_id: string; modalidade: string; status: string };
 
 const PRAZOS = [15, 30, 45, 60, 90];
@@ -140,7 +140,7 @@ function RelatoriosPage() {
     try {
       const [a, t, m] = await Promise.all([
         supabase.from("alunos").select("*").order("nome"),
-        supabase.from("turmas").select("id,nome,horario,dias_semana,modalidade,capacidade").order("nome"),
+        supabase.from("turmas").select("id,nome,horario,dias_semana,modalidade,capacidade,ativa").order("nome"),
         supabase.from("matriculas").select("*"),
       ]);
       if (a.error) throw a.error;

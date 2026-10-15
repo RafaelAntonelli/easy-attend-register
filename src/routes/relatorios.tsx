@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, BarChart3, Download, FileSpreadsheet, FileText, IdCard, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { GraficoAlunos } from "@/components/GraficoAlunos";
+import { TabelaCapacidade } from "@/components/TabelaCapacidade";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -489,6 +490,8 @@ function RelatoriosPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      <TabelaCapacidade />
 
       <Card className="mb-6">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 pb-3">

@@ -196,6 +196,15 @@ function RelatoriosPage() {
     [alunos, prazo],
   );
 
+  const kpis = useMemo(() => {
+    const ativosIds = new Set(alunos.filter((a) => a.ativo !== false).map((a) => a.id));
+    const abertas = turmas.filter((t) => t.ativa !== false);
+    const idsAbertas = new Set(abertas.map((t) => t.id));
+    const capacidade = abertas.reduce((s, t) => s + (t.capacidade ?? 40), 0);
+    const ocupadas = matriculas.filter((m) => m.status === "ativa" && idsAbertas.has(m.turma_id) && ativosIds.has(m.aluno_id)).length;
+    return { ativos: ativosIds.size, capacidade, ocupadas, ocupacao: capacidade ? Math.round((ocupadas / capacidade) * 1000) / 10 : 0 };
+  }, [alunos, turmas, matriculas]);
+
   const relatorio = useMemo(
     () =>
       [...vencidos.map((a) => ({ aluno: a, situacao: "Vencido" as const })), ...vencendo.map((a) => ({ aluno: a, situacao: "A vencer" as const }))],

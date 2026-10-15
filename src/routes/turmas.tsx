@@ -381,7 +381,7 @@ function TurmasPage() {
 
   function aulaHoje(t: Turma) {
     const hoje = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"][new Date().getDay()];
-    return (t.dias_semana ?? []).some((d) => normalizar(d).slice(0, 3) === hoje);
+    return (t.dias_semana ?? []).some((d) => d.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().slice(0, 3) === hoje);
   }
 
   async function imprimirLista(turmaAberta: Turma) {

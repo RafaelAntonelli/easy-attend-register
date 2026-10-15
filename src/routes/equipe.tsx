@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import type { AppRole } from "@/lib/auth";
 import { PERMISSOES_PROFESSOR, permissaoAtiva, usePermissoesProfessor } from "@/lib/permissoes";
 import { normalizarTexto } from "@/lib/formatacao";
+import { removerContaPendente } from "@/lib/equipe.functions";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +51,7 @@ type Membro = {
   ultimoAcesso: string | null;
 };
 type TurmaResumo = { id: string; nome: string };
-type Acao = { membro: Membro; role: AppRole | null };
+type Acao = { membro: Membro; role: AppRole | null; apagar?: boolean };
 
 function dataHora(v: string | null) {
   return v ? new Date(v).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
@@ -111,6 +112,16 @@ function EquipePage() {
     }
     toast.success("Acesso atualizado");
     void carregar();
+  }
+
+  async function apagarConta(userId: string) {
+    try {
+      await removerContaPendente({ data: { userId } });
+      toast.success("Conta removida");
+      void carregar();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível remover");
+    }
   }
 
   async function alternarPermissao(chave: string, ativo: boolean) {
@@ -176,6 +187,11 @@ function EquipePage() {
             {pendente ? (
               <Button size="sm" onClick={() => definirPapel(m.id, "professor")}>
                 <UserCheck className="mr-1 size-4" /> Liberar acesso
+              </Button>
+            ) : null}
+            {pendente ? (
+              <Button size="sm" variant="ghost" disabled={m.id === user?.id} onClick={() => setAcao({ membro: m, role: null, apagar: true })}>
+                <UserX className="mr-1 size-4" /> Remover
               </Button>
             ) : null}
             {m.roles.includes("professor") ? (
@@ -282,9 +298,11 @@ function EquipePage() {
       <AlertDialog open={!!acao} onOpenChange={(o) => !o && setAcao(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{acao?.role === "admin" ? "Tornar administrador?" : "Remover acesso?"}</AlertDialogTitle>
+            <AlertDialogTitle>{acao?.apagar ? "Remover conta?" : acao?.role === "admin" ? "Tornar administrador?" : "Remover acesso?"}</AlertDialogTitle>
             <AlertDialogDescription>
-              {acao?.role === "admin"
+              {acao?.apagar
+                ? `A conta de ${acao.membro.nome || acao.membro.email} será apagada. A pessoa precisará criar uma nova conta para pedir acesso de novo.`
+                : acao?.role === "admin"
                 ? `${acao?.membro.nome || acao?.membro.email} poderá gerenciar a equipe, o backup e excluir dados.`
                 : `${acao?.membro.nome || acao?.membro.email} não conseguirá mais acessar os dados do sistema.`}
             </AlertDialogDescription>
@@ -293,7 +311,8 @@ function EquipePage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (acao) void definirPapel(acao.membro.id, acao.role);
+                if (acao?.apagar) void apagarConta(acao.membro.id);
+                else if (acao) void definirPapel(acao.membro.id, acao.role);
                 setAcao(null);
               }}
             >

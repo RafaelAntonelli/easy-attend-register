@@ -30,6 +30,8 @@ import {
 
 export const Route = createFileRoute("/turmas")({
   component: TurmasPage,
+  validateSearch: (s: Record<string, unknown>): { turma?: string } =>
+    typeof s["turma"] === "string" ? { turma: s["turma"] } : {},
   head: () => ({
     meta: [
       { title: "Turmas | Arena Aquática" },

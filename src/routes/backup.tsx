@@ -180,8 +180,6 @@ function SenhaAdmin({ email, onLiberar }: { email: string; onLiberar: () => void
           </Button>
         </CardContent>
       </Card>
-        </TabsContent>
-      </Tabs>
     </AppShell>
   );
 }

@@ -30,6 +30,8 @@ import {
 } from "@/lib/backup.functions";
 
 import { assinarBackup, estadoBackupAtual, executarBackupGlobal, notificar, type EstadoBackup } from "@/lib/backup-execucao";
+import { HistoricoBackup } from "@/components/HistoricoBackup";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -390,6 +392,13 @@ function BackupPage() {
 
   return (
     <AppShell title="Backup" subtitle="Envio da planilha e dos documentos para o Google Drive">
+      <Tabs defaultValue="backup">
+        <TabsList className="mb-4 flex-wrap">
+          <TabsTrigger value="backup">Backup e histórico</TabsTrigger>
+          <TabsTrigger value="agendamento">Agendamento</TabsTrigger>
+          <TabsTrigger value="destino">Destino no Drive</TabsTrigger>
+        </TabsList>
+        <TabsContent value="backup">
       <Card className="max-w-2xl">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">
@@ -470,7 +479,10 @@ function BackupPage() {
         </CardContent>
       </Card>
 
-      <Card className="mt-4 max-w-2xl">
+      <HistoricoBackup atualizarEm={ultimo?.ultimo_backup ?? null} />
+        </TabsContent>
+        <TabsContent value="agendamento">
+      <Card className="max-w-2xl">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">
             <CalendarClock className="size-4" /> Backup automático
@@ -528,7 +540,9 @@ function BackupPage() {
       </Card>
 
 
-      <Card className="mt-4 max-w-2xl">
+        </TabsContent>
+        <TabsContent value="destino">
+      <Card className="max-w-2xl">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">
             <FolderCog className="size-4" /> Pastas de destino no Drive
@@ -618,6 +632,8 @@ function BackupPage() {
           ))}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </AppShell>
   );
 }

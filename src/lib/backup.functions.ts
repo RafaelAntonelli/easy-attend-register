@@ -41,8 +41,9 @@ export const gerarPlanilhaBackupFn = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await garantirAdmin(context);
     try {
-      const { gerarPlanilhaBackup } = await import("@/lib/backup.server");
-      return { planilha: await gerarPlanilhaBackup() };
+      const { gerarPlanilhaBackupDetalhe } = await import("@/lib/backup.server");
+      const d = await gerarPlanilhaBackupDetalhe();
+      return { planilha: d.nome, id: d.id, pasta: d.pasta };
     } catch (err) {
       const erro = err instanceof Error ? err.message : "Falha ao gerar a planilha do backup.";
       console.error("[backup] gerarPlanilhaBackup falhou:", erro);
@@ -63,6 +64,14 @@ export const linksArquivosDriveFn = createServerFn({ method: "POST" })
     }
   });
 
+
+const falhaSchema = z.object({
+  caminho: z.string(),
+  nome: z.string(),
+  pasta: z.string(),
+  marcador: z.string(),
+  motivo: z.string(),
+});
 
 const loteSchema = z.object({
   arquivos: z.array(
@@ -109,7 +118,19 @@ export const validarPastasDriveFn = createServerFn({ method: "POST" })
 export const registrarBackupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({ resumo: z.string(), status: z.enum(["sucesso", "falha"]).optional() }).parse(data),
+    z
+      .object({
+        resumo: z.string(),
+        status: z.enum(["sucesso", "falha"]).optional(),
+        iniciado_em: z.string().optional(),
+        planilha_nome: z.string().nullable().optional(),
+        planilha_id: z.string().nullable().optional(),
+        pasta_planilhas: z.string().nullable().optional(),
+        enviados: z.number().int().optional(),
+        total: z.number().int().optional(),
+        falhas: z.array(falhaSchema).optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ context, data }) => {
     await garantirAdmin(context);
@@ -119,6 +140,20 @@ export const registrarBackupFn = createServerFn({ method: "POST" })
       .from("backup_cron")
       .update({ ultimo_backup: quando, ultimo_resultado: data.resumo, ultimo_status: data.status ?? "sucesso" })
       .eq("id", true);
+    const { registrarHistoricoBackup } = await import("@/lib/backup.server");
+    await registrarHistoricoBackup({
+      iniciado_em: data.iniciado_em ?? quando,
+      origem: "manual",
+      status: data.status ?? "sucesso",
+      resumo: data.resumo,
+      planilha_nome: data.planilha_nome ?? null,
+      planilha_id: data.planilha_id ?? null,
+      pasta_planilhas: data.pasta_planilhas ?? null,
+      enviados: data.enviados ?? 0,
+      total: data.total ?? 0,
+      falhas: data.falhas ?? [],
+      executado_por: context.userId,
+    }).catch((e) => console.error("[backup] histórico", e));
     return { ultimo_backup: quando };
   });
 
@@ -167,3 +202,41 @@ export const salvarAgendamentoFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+
+/** Últimas execuções do backup (manual e automático). Somente administradores. */
+export const historicoBackupFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await garantirAdmin(context);
+    const { data, error } = await context.supabase
+      .from("backup_historico")
+      .select("*")
+      .order("iniciado_em", { ascending: false })
+      .limit(30);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as unknown as Array<{
+      id: string;
+      iniciado_em: string;
+      concluido_em: string | null;
+      origem: string;
+      status: string;
+      resumo: string | null;
+      planilha_nome: string | null;
+      planilha_id: string | null;
+      pasta_planilhas: string | null;
+      enviados: number;
+      total: number;
+      falhas: Array<{ nome: string; motivo: string }>;
+      executado_por_nome: string | null;
+    }>;
+  });
+
+/** Reenvia somente os arquivos que falharam numa execução. Somente administradores. */
+export const reenviarFalhasBackupFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ context, data }) => {
+    await garantirAdmin(context);
+    const { reenviarFalhasBackup } = await import("@/lib/backup.server");
+    return await reenviarFalhasBackup(data.id);
+  });

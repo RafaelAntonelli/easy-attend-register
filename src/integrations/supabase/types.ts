@@ -199,6 +199,60 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_historico: {
+        Row: {
+          concluido_em: string | null
+          created_at: string
+          enviados: number
+          executado_por: string | null
+          executado_por_nome: string | null
+          falhas: Json
+          id: string
+          iniciado_em: string
+          origem: string
+          pasta_planilhas: string | null
+          planilha_id: string | null
+          planilha_nome: string | null
+          resumo: string | null
+          status: string
+          total: number
+        }
+        Insert: {
+          concluido_em?: string | null
+          created_at?: string
+          enviados?: number
+          executado_por?: string | null
+          executado_por_nome?: string | null
+          falhas?: Json
+          id?: string
+          iniciado_em?: string
+          origem?: string
+          pasta_planilhas?: string | null
+          planilha_id?: string | null
+          planilha_nome?: string | null
+          resumo?: string | null
+          status?: string
+          total?: number
+        }
+        Update: {
+          concluido_em?: string | null
+          created_at?: string
+          enviados?: number
+          executado_por?: string | null
+          executado_por_nome?: string | null
+          falhas?: Json
+          id?: string
+          iniciado_em?: string
+          origem?: string
+          pasta_planilhas?: string | null
+          planilha_id?: string | null
+          planilha_nome?: string | null
+          resumo?: string | null
+          status?: string
+          total?: number
+        }
+        Relationships: []
+      }
       configuracoes: {
         Row: {
           chave: string

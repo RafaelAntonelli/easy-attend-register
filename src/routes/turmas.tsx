@@ -9,6 +9,7 @@ import { TURNOS, turnoDoHorario } from "@/lib/turnos";
 import { useGruposDias, diasDoLabel } from "@/lib/dias";
 import { AppShell } from "@/components/AppShell";
 import { PerfilAluno } from "@/components/PerfilAluno";
+import { FotoAmpliavel } from "@/components/FotoAmpliavel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -652,7 +653,7 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                       {fotos[a.id] ? (
-                        <img src={fotos[a.id]} alt={`Foto de ${a.nome}`} className="size-10 shrink-0 rounded-full object-cover" />
+                        <FotoAmpliavel src={fotos[a.id] as string} nome={a.nome} className="size-10 shrink-0 rounded-full object-cover" />
                       ) : (
                         <div className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold">
                           {a.nome.slice(0, 2).toUpperCase()}

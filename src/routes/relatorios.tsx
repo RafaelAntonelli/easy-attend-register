@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, BarChart3, Download, FileSpreadsheet, FileText, IdCard, Settings2 } from "lucide-react";
+import { AlertTriangle, BarChart3, Download, FileSpreadsheet, FileText, IdCard, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { GraficoAlunos } from "@/components/GraficoAlunos";
 
@@ -76,6 +76,7 @@ function RelatoriosPage() {
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [carregando, setCarregando] = useState(true);
+  const [mostrarAtestados, setMostrarAtestados] = useState(false);
   const [filtros, setFiltros] = useState(filtrosRelatorioVazios);
   const { lista: gruposDias } = useGruposDias();
   const registros = useMemo(() => registrosRelatorio(alunos, turmas, matriculas, gruposDias), [alunos, turmas, matriculas, gruposDias]);
@@ -704,7 +705,7 @@ function RelatoriosPage() {
               </table>
             </div>
           )}
-        </CardContent>
+        </CardContent> : null}
       </Card>
     </AppShell>
   );

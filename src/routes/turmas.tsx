@@ -348,13 +348,29 @@ function TurmasPage() {
     return;
   }
 
-  const visiveis = turmas.filter(
-    (t) =>
-      (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
-      (filtroHorario === "todos" || t.horario === filtroHorario) &&
-      (filtroTurno === "todos" || turnoDoHorario(t.horario) === filtroTurno) &&
-      (filtroDias === "todos" || grupoDosDias(t.dias_semana) === filtroDias),
-  );
+  const ordemHorario = (h: string | null) => {
+    const i = h ? listaHorarios.indexOf(h) : -1;
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  const visiveis = turmas
+    .filter(
+      (t) =>
+        (filtroModalidade === "todas" || t.modalidade === filtroModalidade) &&
+        (filtroHorario === "todos" || t.horario === filtroHorario) &&
+        (filtroTurno === "todos" || turnoDoHorario(t.horario) === filtroTurno) &&
+        (filtroDias === "todos" || grupoDosDias(t.dias_semana) === filtroDias),
+    )
+    .sort((a, b) => {
+      const ha = aulaHoje(a) ? 0 : 1;
+      const hb = aulaHoje(b) ? 0 : 1;
+      if (ha !== hb) return ha - hb;
+      if (ha === 0) {
+        const d = ordemHorario(a.horario) - ordemHorario(b.horario);
+        if (d) return d;
+        return (a.horario ?? "").localeCompare(b.horario ?? "");
+      }
+      return 0;
+    });
   const nomeAutomatico = [modalidade, grupo, horario].filter(Boolean).join(" · ");
 
   const normalizar = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -365,17 +381,25 @@ function TurmasPage() {
 
   function aulaHoje(t: Turma) {
     const hoje = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"][new Date().getDay()];
-    return (t.dias_semana ?? []).some((d) => normalizar(d).slice(0, 3) === hoje);
+    return (t.dias_semana ?? []).some((d) => d.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().slice(0, 3) === hoje);
   }
 
-  function imprimirLista() {
-    if (!turmaAberta || !alunosTurma) return;
+  async function imprimirLista(turmaAberta: Turma) {
+    const w = window.open("", "_blank");
+    if (!w) return void toast.error("Permita pop-ups para imprimir a lista");
+    w.document.write("<p style='font-family:Arial'>Carregando lista...</p>");
+    const { data, error } = await supabase
+      .from("matriculas")
+      .select("alunos(nome,pcd,codigo)")
+      .eq("turma_id", turmaAberta.id);
+    if (error) { w.close(); return void toast.error(error.message); }
+    const alunosTurma = ((data ?? []).map((m) => m.alunos).filter(Boolean) as { nome: string; pcd: boolean; codigo: string | null }[])
+      .sort((x, y) => x.nome.localeCompare(y.nome));
     const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
     const linhas = alunosTurma
       .map((a, i) => `<tr><td>${i + 1}</td><td>${esc(a.codigo ?? "")}</td><td>${esc(a.nome)}${a.pcd ? " (PCD)" : ""}</td><td></td><td></td><td></td><td></td></tr>`)
       .join("");
-    const w = window.open("", "_blank");
-    if (!w) return void toast.error("Permita pop-ups para imprimir a lista");
+    w.document.open();
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(turmaAberta.nome)}</title>
 <style>body{font-family:Arial,sans-serif;margin:24px;color:#111}h1{font-size:18px;margin:0 0 4px}p{margin:2px 0;font-size:12px}
 table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12px}th,td{border:1px solid #444;padding:6px}th{background:#eee;text-align:left}
@@ -557,6 +581,15 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
                   <Button
                     variant="ghost"
                     size="icon"
+                    title="Imprimir / PDF da lista"
+                    aria-label="Imprimir lista da turma"
+                    onClick={(e) => { e.stopPropagation(); void imprimirLista(t); }}
+                  >
+                    <Printer className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     title="Editar turma"
                     onClick={(e) => { e.stopPropagation(); abrirEdicao(t); }}
                   >
@@ -590,14 +623,9 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
           <DialogHeader>
             <DialogTitle className="font-display">{turmaAberta?.nome}</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm text-muted-foreground">
-              {turmaAberta?.horario ?? "Sem horário"} · {alunosTurma?.length ?? 0} de {turmaAberta?.capacidade ?? 40} vagas
-            </p>
-            <Button size="sm" variant="outline" disabled={!alunosTurma?.length} onClick={imprimirLista}>
-              <Printer className="size-4" /> Imprimir / PDF
-            </Button>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            {turmaAberta?.horario ?? "Sem horário"} · {alunosTurma?.length ?? 0} de {turmaAberta?.capacidade ?? 40} vagas
+          </p>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input

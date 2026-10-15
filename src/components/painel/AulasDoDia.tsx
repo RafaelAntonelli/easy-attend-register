@@ -26,7 +26,7 @@ export function AulasDoDia() {
 
   useEffect(() => {
     void (async () => {
-      const sigla = siglaNormal(SIGLAS[dia]);
+      const sigla = siglaNormal(SIGLAS[dia] ?? "");
       const [t, m] = await Promise.all([
         supabase.from("turmas").select("id,nome,modalidade,horario,capacidade,dias_semana").eq("ativa", true),
         supabase.from("matriculas").select("turma_id").eq("status", "ativa"),

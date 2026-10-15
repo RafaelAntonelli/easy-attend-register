@@ -35,6 +35,7 @@ export type Database = {
           idade: number | null
           inativado_em: string | null
           inativado_por: string | null
+          inativado_por_nome: string | null
           motivo_inativacao: string | null
           nome: string
           observacoes: string | null
@@ -68,6 +69,7 @@ export type Database = {
           idade?: number | null
           inativado_em?: string | null
           inativado_por?: string | null
+          inativado_por_nome?: string | null
           motivo_inativacao?: string | null
           nome: string
           observacoes?: string | null
@@ -101,6 +103,7 @@ export type Database = {
           idade?: number | null
           inativado_em?: string | null
           inativado_por?: string | null
+          inativado_por_nome?: string | null
           motivo_inativacao?: string | null
           nome?: string
           observacoes?: string | null
@@ -363,6 +366,7 @@ export type Database = {
           modalidade: string
           plano: string
           registrado_por: string | null
+          registrado_por_nome: string | null
           status: string
           turma_id: string
           valor_mensal: number
@@ -375,6 +379,7 @@ export type Database = {
           modalidade?: string
           plano?: string
           registrado_por?: string | null
+          registrado_por_nome?: string | null
           status?: string
           turma_id: string
           valor_mensal?: number
@@ -387,6 +392,7 @@ export type Database = {
           modalidade?: string
           plano?: string
           registrado_por?: string | null
+          registrado_por_nome?: string | null
           status?: string
           turma_id?: string
           valor_mensal?: number
@@ -436,6 +442,7 @@ export type Database = {
           metodo: string
           observacoes: string | null
           registrado_por: string | null
+          registrado_por_nome: string | null
           status: string
           turma_id: string | null
         }
@@ -448,6 +455,7 @@ export type Database = {
           metodo?: string
           observacoes?: string | null
           registrado_por?: string | null
+          registrado_por_nome?: string | null
           status?: string
           turma_id?: string | null
         }
@@ -460,6 +468,7 @@ export type Database = {
           metodo?: string
           observacoes?: string | null
           registrado_por?: string | null
+          registrado_por_nome?: string | null
           status?: string
           turma_id?: string | null
         }

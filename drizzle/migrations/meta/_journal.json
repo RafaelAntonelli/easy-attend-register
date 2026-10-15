@@ -29,6 +29,13 @@
       "when": 1792081547560,
       "tag": "0003_fk_usuarios_set_null",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792081737757,
+      "tag": "0004_nome_quem_registrou",
+      "breakpoints": true
     }
   ]
 }

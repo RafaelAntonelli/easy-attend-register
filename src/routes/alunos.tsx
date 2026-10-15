@@ -16,6 +16,8 @@ import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/li
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { atestadoVencido, diasParaVencer, notificarAtestadoVencido, notificarAtestadoVencendo } from "@/lib/atestado";
 import { PerfilAluno } from "@/components/PerfilAluno";
+import { AvisoLicencas } from "@/components/AvisoLicencas";
+import { PainelNotificacoes } from "@/components/painel/PainelNotificacoes";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { useAuth } from "@/lib/auth";
 import { montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
@@ -227,6 +229,7 @@ function AlunosPage() {
   const [docsUrls, setDocsUrls] = useState<Record<string, string>>({});
 
   const [historico, setHistorico] = useState<Presenca[] | null>(null);
+  const [mostrarNotificacoes, setMostrarNotificacoes] = useState(false);
   const [faltasPorAluno, setFaltasPorAluno] = useState<Record<string, number>>({});
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [confirmarExclusao, setConfirmarExclusao] = useState<Aluno[] | null>(null);
@@ -988,6 +991,18 @@ function AlunosPage() {
 
   return (
     <AppShell title="Alunos" subtitle="Cadastro e matrículas da Arena Aquática">
+      <div className="mb-4 flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => setMostrarNotificacoes((v) => !v)}>
+          <Bell className="size-4" /> {mostrarNotificacoes ? "Esconder notificações" : "Mostrar notificações"}
+          {mostrarNotificacoes ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+        </Button>
+      </div>
+      {mostrarNotificacoes ? (
+        <>
+          <AvisoLicencas onAbrirPerfil={setPerfilLicencaId} />
+          <PainelNotificacoes onAbrirPerfil={setPerfilLicencaId} />
+        </>
+      ) : null}
       <PerfilAluno alunoId={perfilLicencaId} onFechar={() => setPerfilLicencaId(null)} />
       {filtroNotificacao !== "todos" && (
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-border/70 bg-card px-3 py-2 text-sm">

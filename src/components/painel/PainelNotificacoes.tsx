@@ -1,5 +1,4 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { AlertTriangle, Bell, ChevronDown, ChevronUp, UserX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { diasParaVencer, notificarAtestadoVencendo, notificarAtestadoVencido } from "@/lib/atestado";
@@ -24,7 +23,6 @@ export type TipoNotificacao = "inativos" | "sem_atestado" | "atestado_vencido" |
 
 /** Notificações de alunos exibidas no Painel; clicar no quadro abre Alunos já filtrado. */
 export function PainelNotificacoes({ onAbrirPerfil }: { onAbrirPerfil: (id: string) => void }) {
-  const navigate = useNavigate();
   const { valor: prazoAviso } = usePrazoAvisoAtestado();
   const [alunos, setAlunos] = useState<AlunoNotif[]>([]);
   const [faltas, setFaltas] = useState<Record<string, number>>({});
@@ -63,9 +61,7 @@ export function PainelNotificacoes({ onAbrirPerfil }: { onAbrirPerfil: (id: stri
     const aberta = !!abertas[tipo];
     return (
       <Card
-        className={cn("cursor-pointer transition-shadow hover:opacity-90", classe)}
-        onClick={() => void navigate({ to: "/alunos", search: { notificacao: tipo } })}
-        title="Ver em Alunos"
+        className={cn("mb-6", classe)}
       >
         <CardContent className="space-y-2 py-4">
           <div className="flex items-center justify-between gap-2">
@@ -105,18 +101,18 @@ export function PainelNotificacoes({ onAbrirPerfil }: { onAbrirPerfil: (id: stri
   const dataBR = (d: string | null) => (d ? new Date(d.length <= 10 ? `${d}T00:00:00` : d).toLocaleDateString("pt-BR") : "-");
 
   return (
-    <div className="grid gap-4">
+    <div>
+      <Quadro tipo="inativos" titulo={`${inativos.length} aluno(s) inativo(s)`} icone={<UserX className="size-4" />} lista={inativos}
+        detalhe={(a) => `${a.motivo_inativacao ?? "Sem turma"}${a.inativado_em ? ` · ${dataBR(a.inativado_em)}` : ""}`}
+        classe="border-muted-foreground/30 bg-muted/40" cor="text-muted-foreground" />
+      <Quadro tipo="sem_atestado" titulo={`${semAtestado.length} aluno(s) sem atestado médico`} icone={<Bell className="size-4" />} lista={semAtestado}
+        detalhe={() => "Atestado não entregue"} classe="border-primary/40 bg-primary/5" cor="text-primary" />
       <Quadro tipo="atestado_vencido" titulo={`${vencidos.length} atestado(s) vencido(s)`} icone={<Bell className="size-4" />} lista={vencidos}
         detalhe={(a) => `Atestado de ${dataBR(a.atestado_data)}`} classe="border-destructive/40 bg-destructive/5" cor="text-destructive" />
       <Quadro tipo="atestado_vencer" titulo={`${vencendo.length} atestado(s) vencendo em até ${prazoAviso} dias`} icone={<Bell className="size-4" />} lista={vencendo}
         detalhe={(a) => `Vence em ${diasParaVencer(a.atestado_data)} dia(s)`} classe="border-accent/60 bg-accent/10" cor="text-foreground" />
       <Quadro tipo="excesso_faltas" titulo={`${excesso.length} aluno(s) com 5 faltas ou mais`} icone={<AlertTriangle className="size-4" />} lista={excesso}
         detalhe={(a) => `${faltas[a.id]} faltas`} classe="border-accent/60 bg-accent/10" cor="text-foreground" />
-      <Quadro tipo="sem_atestado" titulo={`${semAtestado.length} aluno(s) sem atestado médico`} icone={<Bell className="size-4" />} lista={semAtestado}
-        detalhe={() => "Atestado não entregue"} classe="border-primary/40 bg-primary/5" cor="text-primary" />
-      <Quadro tipo="inativos" titulo={`${inativos.length} aluno(s) inativo(s)`} icone={<UserX className="size-4" />} lista={inativos}
-        detalhe={(a) => `${a.motivo_inativacao ?? "Sem turma"}${a.inativado_em ? ` · ${dataBR(a.inativado_em)}` : ""}`}
-        classe="border-muted-foreground/30 bg-muted/40" cor="text-muted-foreground" />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays } from "lucide-react";
+import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays, Search, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useHorarios } from "@/lib/horarios";
@@ -55,7 +55,7 @@ type Turma = {
   ativa: boolean;
 };
 
-type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean; foto_path: string | null };
+type AlunoTurma = { id: string; nome: string; modalidade: string; status: string; pcd: boolean; foto_path: string | null; codigo: string | null };
 type StatusPresenca = "presente" | "falta" | "falta_justificada";
 
 const ROTULO_PRESENCA: Record<StatusPresenca, string> = {
@@ -121,6 +121,7 @@ function TurmasPage() {
   const [turmaAberta, setTurmaAberta] = useState<Turma | null>(null);
   const [alunosTurma, setAlunosTurma] = useState<AlunoTurma[] | null>(null);
   const [confirmarExclusao, setConfirmarExclusao] = useState<Turma | null>(null);
+  const [buscaAluno, setBuscaAluno] = useState("");
 
   async function carregar() {
     const [t, m] = await Promise.all([
@@ -233,7 +234,7 @@ function TurmasPage() {
     setStatusPresenca({});
     const { data, error } = await supabase
       .from("matriculas")
-      .select("id,status,modalidade,alunos(id,nome,pcd,foto_path)")
+      .select("id,status,modalidade,alunos(id,nome,pcd,foto_path,codigo)")
       .eq("turma_id", t.id);
     if (error) {
       toast.error(error.message);
@@ -242,13 +243,14 @@ function TurmasPage() {
     }
     const lista = (data ?? [])
       .map((m) => {
-        const a = m.alunos as { id: string; nome: string; pcd: boolean; foto_path: string | null } | null;
+        const a = m.alunos as { id: string; nome: string; pcd: boolean; foto_path: string | null; codigo: string | null } | null;
         return a
           ? {
               id: a.id,
               nome: a.nome,
               pcd: a.pcd,
               foto_path: a.foto_path,
+              codigo: a.codigo,
               modalidade: m.modalidade as string,
               status: m.status as string,
             }
@@ -354,6 +356,38 @@ function TurmasPage() {
       (filtroDias === "todos" || grupoDosDias(t.dias_semana) === filtroDias),
   );
   const nomeAutomatico = [modalidade, grupo, horario].filter(Boolean).join(" · ");
+
+  const normalizar = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const termo = normalizar(buscaAluno);
+  const alunosFiltrados = (alunosTurma ?? []).filter(
+    (a) => !termo || normalizar(a.nome).includes(termo) || normalizar(a.codigo ?? "").includes(termo),
+  );
+
+  function aulaHoje(t: Turma) {
+    const hoje = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"][new Date().getDay()];
+    return (t.dias_semana ?? []).some((d) => normalizar(d).slice(0, 3) === hoje);
+  }
+
+  function imprimirLista() {
+    if (!turmaAberta || !alunosTurma) return;
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
+    const linhas = alunosTurma
+      .map((a, i) => `<tr><td>${i + 1}</td><td>${esc(a.codigo ?? "")}</td><td>${esc(a.nome)}${a.pcd ? " (PCD)" : ""}</td><td></td><td></td><td></td><td></td></tr>`)
+      .join("");
+    const w = window.open("", "_blank");
+    if (!w) return void toast.error("Permita pop-ups para imprimir a lista");
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(turmaAberta.nome)}</title>
+<style>body{font-family:Arial,sans-serif;margin:24px;color:#111}h1{font-size:18px;margin:0 0 4px}p{margin:2px 0;font-size:12px}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12px}th,td{border:1px solid #444;padding:6px}th{background:#eee;text-align:left}
+td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><body>
+<h1>Lista de chamada — ${esc(turmaAberta.nome)}</h1>
+<p>Modalidade: ${esc(turmaAberta.modalidade)} · Dias: ${esc((turmaAberta.dias_semana ?? []).join(", "))} · Horário: ${esc(turmaAberta.horario ?? "-")}</p>
+<p>Professor(a): ${esc(turmaAberta.professor ?? "-")} · Alunos: ${alunosTurma.length} de ${turmaAberta.capacidade}</p>
+<p>Data(s): ____/____ &nbsp; ____/____ &nbsp; ____/____ &nbsp; ____/____</p>
+<table><thead><tr><th>#</th><th>Código</th><th>Nome</th><th>1</th><th>2</th><th>3</th><th>4</th></tr></thead><tbody>${linhas}</tbody></table>
+<script>window.onload=()=>window.print()</script></body></html>`);
+    w.document.close();
+  }
 
 
   return (
@@ -472,7 +506,7 @@ function TurmasPage() {
             onKeyDown={(e) => { if (e.key === "Enter") void abrirTurma(t); }}
             className="cursor-pointer overflow-hidden border-border/70 transition hover:border-primary/60 hover:shadow-pool"
           >
-            <div className="h-1.5 bg-pool" />
+            <div className={t.modalidade === "Hidroginástica" ? "h-1.5 bg-accent" : "h-1.5 bg-primary"} />
             <CardContent className="space-y-3 pt-5">
               <div className="flex items-start justify-between gap-2">
                 <div>
@@ -486,10 +520,35 @@ function TurmasPage() {
 
               </div>
               <div className="flex flex-wrap gap-1.5">
+                {aulaHoje(t) ? <Badge className="bg-primary text-primary-foreground">Aula hoje</Badge> : null}
                 {t.dias_semana.map((d) => (
                   <span key={d} className="rounded-md bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{d}</span>
                 ))}
               </div>
+              {(() => {
+                const ocup = contagem[t.id] ?? 0;
+                const cap = t.capacidade || 40;
+                const pct = Math.min(100, Math.round((ocup / cap) * 100));
+                const restantes = Math.max(0, cap - ocup);
+                const cor = pct >= 100 ? "bg-destructive" : pct >= 80 ? "bg-accent" : "bg-primary";
+                return (
+                  <div className="space-y-1.5">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-secondary" title={`${pct}% ocupada`}>
+                      <div className={`h-full ${cor} transition-all`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">{pct}% ocupada</span>
+                      {ocup === 0 ? (
+                        <Badge variant="outline">Sem alunos</Badge>
+                      ) : restantes === 0 ? (
+                        <Badge variant="destructive">Lotada</Badge>
+                      ) : (
+                        <Badge variant="outline">{restantes} {restantes === 1 ? "vaga restante" : "vagas restantes"}</Badge>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="flex items-center justify-between gap-2">
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Users className="size-4" /> {contagem[t.id] ?? 0} de {t.capacidade} vagas
@@ -526,21 +585,41 @@ function TurmasPage() {
 
       <PerfilAluno alunoId={perfilAlunoId} onFechar={() => setPerfilAlunoId(null)} />
 
-      <Dialog open={!!turmaAberta} onOpenChange={(o) => !o && setTurmaAberta(null)}>
+      <Dialog open={!!turmaAberta} onOpenChange={(o) => { if (!o) { setTurmaAberta(null); setBuscaAluno(""); } }}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display">{turmaAberta?.nome}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            {turmaAberta?.horario ?? "Sem horário"} · {alunosTurma?.length ?? 0} de {turmaAberta?.capacidade ?? 40} vagas
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm text-muted-foreground">
+              {turmaAberta?.horario ?? "Sem horário"} · {alunosTurma?.length ?? 0} de {turmaAberta?.capacidade ?? 40} vagas
+            </p>
+            <Button size="sm" variant="outline" disabled={!alunosTurma?.length} onClick={imprimirLista}>
+              <Printer className="size-4" /> Imprimir / PDF
+            </Button>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={buscaAluno}
+              onChange={(e) => setBuscaAluno(e.target.value)}
+              placeholder="Buscar aluno por nome ou código"
+              className="pl-9"
+              aria-label="Buscar aluno na turma"
+            />
+          </div>
+          {buscaAluno && alunosTurma ? (
+            <p className="text-xs text-muted-foreground">{alunosFiltrados.length} de {alunosTurma.length} alunos</p>
+          ) : null}
           <div className="space-y-2">
             {alunosTurma === null ? (
               <p className="py-6 text-center text-sm text-muted-foreground">Carregando alunos...</p>
             ) : alunosTurma.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">Nenhum aluno matriculado nesta turma.</p>
+            ) : alunosFiltrados.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">Nenhum aluno encontrado.</p>
             ) : (
-              alunosTurma.map((a) => (
+              alunosFiltrados.map((a) => (
                 <div key={a.id} className="space-y-2 rounded-lg border border-border/70 px-3 py-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-3">

@@ -168,7 +168,7 @@ function Painel() {
         </CardContent>
       </Card>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6">
         <AulasDoDia />
         <PainelLicencas onAbrirPerfil={setPerfilId} />
       </div>

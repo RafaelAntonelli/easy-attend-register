@@ -11,7 +11,6 @@ import { PerfilAluno } from "@/components/PerfilAluno";
 import { AulasDoDia } from "@/components/painel/AulasDoDia";
 import { PainelLicencas } from "@/components/painel/PainelLicencas";
 import { BuscaRapida } from "@/components/painel/BuscaRapida";
-import { PainelNotificacoes } from "@/components/painel/PainelNotificacoes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -170,7 +169,6 @@ function Painel() {
       </Card>
 
       <div className="mt-6 grid gap-6">
-        <PainelNotificacoes onAbrirPerfil={setPerfilId} />
         <AulasDoDia />
         <PainelLicencas onAbrirPerfil={setPerfilId} />
       </div>

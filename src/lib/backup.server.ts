@@ -331,6 +331,9 @@ type Resultado = {
   planilha: string;
   imagens: number;
   falhas: string[];
+  falhasArquivos: FalhaBackup[];
+  total: number;
+  detalhe: { nome: string; id: string; pasta: string };
 };
 
 export type ArquivoBackup = {
@@ -397,6 +400,11 @@ export async function linksArquivosDrive(): Promise<Record<string, string>> {
 
 /** Gera a planilha (com os links do Drive) e envia para a pasta de planilhas. */
 export async function gerarPlanilhaBackup(): Promise<string> {
+  return (await gerarPlanilhaBackupDetalhe()).nome;
+}
+
+/** Igual a gerarPlanilhaBackup, devolvendo também o ID do arquivo e da pasta no Drive. */
+export async function gerarPlanilhaBackupDetalhe(): Promise<{ nome: string; id: string; pasta: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const [{ data: alunos, error: erroAlunos }, { data: turmas }, { data: matriculas }] = await Promise.all([
     supabaseAdmin.from("alunos").select("*"),
@@ -430,7 +438,7 @@ export async function gerarPlanilhaBackup(): Promise<string> {
     conteudo: buffer,
     tipo: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
-  return planilha.nome;
+  return { nome: planilha.nome, id: planilha.id, pasta: pastas.planilhas };
 }
 
 /** Prepara a fila de fotos/documentos a enviar para o Drive. */
@@ -504,10 +512,11 @@ export async function prepararBackup(): Promise<{
 export async function enviarLoteBackup(
   arquivos: ArquivoBackup[],
   existentes?: ExistentesBackup,
-): Promise<{ enviados: number; falhas: string[] }> {
+): Promise<{ enviados: number; falhas: string[]; falhasArquivos: FalhaBackup[] }> {
   const indices: ExistentesBackup = {};
   for (const [pasta, itens] of Object.entries(existentes ?? {})) indices[pasta] = [...itens];
   const falhas: string[] = [];
+  const falhasArquivos: FalhaBackup[] = [];
   let enviados = 0;
   const CONCORRENCIA = 8;
   let proximo = 0;
@@ -520,6 +529,7 @@ export async function enviarLoteBackup(
         const conteudo = await baixarArquivoStorage(arquivo.caminho);
         if (!conteudo) {
           falhas.push(arquivo.nome);
+          falhasArquivos.push({ ...arquivo, motivo: "Arquivo não encontrado no sistema" });
           continue;
         }
         // Erros temporários do Drive (502/503/429) são tentados de novo até 3 vezes.
@@ -545,20 +555,90 @@ export async function enviarLoteBackup(
       } catch (err) {
         console.error("[backup] falha ao enviar arquivo", arquivo.nome, err);
         falhas.push(arquivo.nome);
+        falhasArquivos.push({ ...arquivo, motivo: descreverErro(err) });
       }
     }
   }
 
   await Promise.all(Array.from({ length: Math.min(CONCORRENCIA, arquivos.length) }, trabalhador));
-  return { enviados, falhas };
+  return { enviados, falhas, falhasArquivos };
+}
+
+export type FalhaBackup = ArquivoBackup & { motivo: string };
+
+function descreverErro(err: unknown) {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/respondeu (429|500|502|503|504)/.test(msg)) return "Google Drive temporariamente indisponível";
+  if (/respondeu 40[13]/.test(msg)) return "Sem permissão na pasta do Drive";
+  if (/respondeu 404/.test(msg)) return "Pasta do Drive não encontrada";
+  return msg.slice(0, 200);
+}
+
+/** Grava uma execução no histórico de backups. */
+export async function registrarHistoricoBackup(dados: {
+  iniciado_em: string;
+  origem: "manual" | "automatico";
+  status: "sucesso" | "falha";
+  resumo: string;
+  planilha_nome?: string | null;
+  planilha_id?: string | null;
+  pasta_planilhas?: string | null;
+  enviados?: number;
+  total?: number;
+  falhas?: FalhaBackup[];
+  executado_por?: string | null;
+}) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  let nome: string | null = null;
+  if (dados.executado_por) {
+    const { data } = await supabaseAdmin.from("profiles").select("nome,email").eq("id", dados.executado_por).maybeSingle();
+    nome = data?.nome || data?.email || null;
+  }
+  await supabaseAdmin.from("backup_historico").insert({
+    ...dados,
+    falhas: (dados.falhas ?? []) as never,
+    concluido_em: new Date().toISOString(),
+    executado_por_nome: nome ?? (dados.origem === "automatico" ? "Agendamento automático" : null),
+  });
+}
+
+/** Reenvia apenas os arquivos que falharam numa execução do histórico. */
+export async function reenviarFalhasBackup(historicoId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: registro, error } = await supabaseAdmin
+    .from("backup_historico")
+    .select("id,falhas,enviados")
+    .eq("id", historicoId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!registro) throw new Error("Registro de backup não encontrado.");
+  const pendentes = (registro.falhas ?? []) as unknown as FalhaBackup[];
+  if (pendentes.length === 0) return { enviados: 0, restantes: 0 };
+  const arquivos: ArquivoBackup[] = pendentes.map(({ caminho, nome, pasta, marcador }) => ({ caminho, nome, pasta, marcador }));
+  const pastasUsadas = Array.from(new Set(arquivos.map((a) => a.pasta)));
+  const listagens = await Promise.all(pastasUsadas.map((p) => listarPasta(p)));
+  const existentes: ExistentesBackup = {};
+  pastasUsadas.forEach((p, i) => {
+    existentes[p] = listagens[i] ?? [];
+  });
+  const r = await enviarLoteBackup(arquivos, existentes);
+  await supabaseAdmin
+    .from("backup_historico")
+    .update({
+      falhas: r.falhasArquivos as never,
+      enviados: (registro.enviados ?? 0) + r.enviados,
+      status: r.falhasArquivos.length > 0 ? "falha" : "sucesso",
+    })
+    .eq("id", historicoId);
+  return { enviados: r.enviados, restantes: r.falhasArquivos.length };
 }
 
 /** Exporta a planilha do dia e todas as fotos/documentos para as pastas do Google Drive. */
 export async function executarBackupCompleto(): Promise<Resultado> {
   const { arquivos, existentes } = await prepararBackup();
-  const { enviados, falhas } = await enviarLoteBackup(arquivos, existentes);
+  const { enviados, falhas, falhasArquivos } = await enviarLoteBackup(arquivos, existentes);
   // A planilha é gerada depois do envio para que os links apontem para os arquivos já no Drive.
-  const planilha = await gerarPlanilhaBackup();
-  return { planilha, imagens: enviados, falhas };
+  const detalhe = await gerarPlanilhaBackupDetalhe();
+  return { planilha: detalhe.nome, imagens: enviados, falhas, falhasArquivos, total: arquivos.length, detalhe };
 }
 

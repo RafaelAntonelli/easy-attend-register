@@ -84,6 +84,7 @@ export async function executarBackupGlobal(): Promise<void> {
     const inicio = Date.now();
     let enviados = 0;
     const falhas: string[] = [];
+    const falhasArquivos: { caminho: string; nome: string; pasta: string; marcador: string; motivo: string }[] = [];
 
     atualizar({
       progresso: { etapa: "Enviando fotos e documentos…", enviados: 0, total, falhas: 0, restante: null },
@@ -94,6 +95,7 @@ export async function executarBackupGlobal(): Promise<void> {
       const r = await enviarLoteBackupFn({ data: { arquivos: parte, existentes } });
       enviados += r.enviados;
       falhas.push(...r.falhas);
+      falhasArquivos.push(...r.falhasArquivos);
       const processados = Math.min(i + parte.length, total);
       const decorrido = (Date.now() - inicio) / 1000;
       const restante = processados > 0 ? (decorrido / processados) * (total - processados) : null;
@@ -111,12 +113,24 @@ export async function executarBackupGlobal(): Promise<void> {
     atualizar({
       progresso: { etapa: "Gerando a planilha com os links…", enviados: total, total, falhas: falhas.length, restante: null },
     });
-    const { planilha } = await gerarPlanilhaBackupFn({ data: undefined });
+    const { planilha, id: planilhaId, pasta } = await gerarPlanilhaBackupFn({ data: undefined });
 
     const resumo = `${planilha} · ${enviados} arquivo(s)${falhas.length ? ` · ${falhas.length} falha(s)` : ""}`;
 
     const status = falhas.length > 0 ? ("falha" as const) : ("sucesso" as const);
-    await registrarBackupFn({ data: { resumo, status } });
+    await registrarBackupFn({
+      data: {
+        resumo,
+        status,
+        iniciado_em: new Date(inicio).toISOString(),
+        planilha_nome: planilha,
+        planilha_id: planilhaId ?? null,
+        pasta_planilhas: pasta ?? null,
+        enviados,
+        total,
+        falhas: falhasArquivos,
+      },
+    });
     atualizar({
       progresso: { etapa: "Backup concluído", enviados: total, total, falhas: falhas.length, restante: 0 },
     });

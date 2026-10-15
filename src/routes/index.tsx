@@ -133,18 +133,18 @@ function Painel() {
   ];
 
   return (
-    <AppShell title="Painel" subtitle="Visão geral da Arena Aquática">
+    <AppShell title="Painel" subtitle={new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}>
       <BuscaRapida onAbrirPerfil={setPerfilId} />
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         {cards.map((c) => (
-          <Card key={c.label} className="border-border/70">
+          <Card key={c.label} className="overflow-hidden border-none bg-navy text-primary-foreground shadow-pool">
             <CardContent className="flex items-center gap-4 py-6">
-              <span className="grid size-11 place-items-center rounded-xl bg-secondary text-primary">
+              <span className="grid size-12 place-items-center rounded-xl bg-primary-foreground/10 text-accent">
                 <c.icon className="size-5" />
               </span>
               <div>
-                <p className="font-display text-2xl font-semibold">{c.value}</p>
-                <p className="text-sm text-muted-foreground">{c.label}</p>
+                <p className="font-display text-3xl font-semibold">{c.value}</p>
+                <p className="text-sm text-primary-foreground/70">{c.label}</p>
               </div>
             </CardContent>
           </Card>

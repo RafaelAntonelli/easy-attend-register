@@ -75,7 +75,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
           <img src="/icons/icon-192x192.png" alt="Arena Aquática LF" className="size-9 rounded-xl object-cover" />
           <div className="leading-tight">
             <p className="font-display text-base font-semibold text-sidebar-foreground">Arena Aquática LF</p>
-            <p className="text-xs text-muted-foreground">Gestão de alunos</p>
+            <p className="text-xs text-sidebar-foreground/60">Gestão de alunos</p>
           </div>
         </div>
         <nav className="mt-8 flex flex-1 flex-col gap-1">
@@ -85,7 +85,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
               to={item.to}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                pathname === item.to && "bg-sidebar-accent text-sidebar-accent-foreground",
+                pathname === item.to && "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_var(--sidebar-primary)]",
               )}
             >
               <item.icon className="size-4" />
@@ -122,7 +122,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
             to={item.to}
             className={cn(
               "flex flex-1 flex-col items-center gap-1 py-3 text-[11px] font-medium text-sidebar-foreground/60",
-              pathname === item.to && "text-primary",
+              pathname === item.to && "text-sidebar-primary",
             )}
           >
             <item.icon className="size-5" />

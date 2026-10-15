@@ -214,7 +214,7 @@ export const historicoBackupFn = createServerFn({ method: "POST" })
       .order("iniciado_em", { ascending: false })
       .limit(30);
     if (error) throw new Error(error.message);
-    return (data ?? []) as Array<{
+    return (data ?? []) as unknown as Array<{
       id: string;
       iniciado_em: string;
       concluido_em: string | null;

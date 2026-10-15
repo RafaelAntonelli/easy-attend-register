@@ -124,7 +124,7 @@ function AuthPage() {
       redirectTo: `${window.location.origin}/auth`,
     });
     setBusy(false);
-    if (error) return toast.error(traduzirErro(error.message));
+    if (error) { toast.error(traduzirErro(error.message)); return; }
     toast.success("Enviamos um link de recuperação para o seu e-mail.");
     setRecuperando(false);
   }
@@ -134,7 +134,7 @@ function AuthPage() {
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password: novaSenha });
     setBusy(false);
-    if (error) return toast.error(traduzirErro(error.message));
+    if (error) { toast.error(traduzirErro(error.message)); return; }
     toast.success("Senha alterada com sucesso!");
     setRedefinindo(false);
     setNovaSenha("");
@@ -146,7 +146,7 @@ function AuthPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
     setBusy(false);
-    if (error) return toast.error(traduzirErro(error.message));
+    if (error) { toast.error(traduzirErro(error.message)); return; }
     navigate({ to: "/" });
   }
 
@@ -159,7 +159,7 @@ function AuthPage() {
       options: { emailRedirectTo: window.location.origin, data: { nome } },
     });
     setBusy(false);
-    if (error) return toast.error(traduzirErro(error.message));
+    if (error) { toast.error(traduzirErro(error.message)); return; }
     if (!data.session) {
       setContaCriada(true);
       return;

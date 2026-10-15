@@ -102,16 +102,16 @@ export function PainelNotificacoes({ onAbrirPerfil }: { onAbrirPerfil: (id: stri
 
   return (
     <div>
-      <Quadro tipo="inativos" titulo={`${inativos.length} aluno(s) inativo(s)`} icone={<UserX className="size-4" />} lista={inativos}
+      <Quadro tipo="inativos" titulo={`Notificações · ${inativos.length} aluno(s) inativo(s)`} icone={<UserX className="size-4" />} lista={inativos}
         detalhe={(a) => `${a.motivo_inativacao ?? "Sem turma"}${a.inativado_em ? ` · ${dataBR(a.inativado_em)}` : ""}`}
         classe="border-muted-foreground/30 bg-muted/40" cor="text-muted-foreground" />
-      <Quadro tipo="sem_atestado" titulo={`${semAtestado.length} aluno(s) sem atestado médico`} icone={<Bell className="size-4" />} lista={semAtestado}
+      <Quadro tipo="sem_atestado" titulo={`Notificações · ${semAtestado.length} aluno(s) sem atestado médico`} icone={<Bell className="size-4" />} lista={semAtestado}
         detalhe={() => "Atestado não entregue"} classe="border-primary/40 bg-primary/5" cor="text-primary" />
-      <Quadro tipo="atestado_vencido" titulo={`${vencidos.length} atestado(s) vencido(s)`} icone={<Bell className="size-4" />} lista={vencidos}
+      <Quadro tipo="atestado_vencido" titulo={`Notificações · ${vencidos.length} atestado(s) vencido(s)`} icone={<Bell className="size-4" />} lista={vencidos}
         detalhe={(a) => `Atestado de ${dataBR(a.atestado_data)}`} classe="border-destructive/40 bg-destructive/5" cor="text-destructive" />
-      <Quadro tipo="atestado_vencer" titulo={`${vencendo.length} atestado(s) vencendo em até ${prazoAviso} dias`} icone={<Bell className="size-4" />} lista={vencendo}
+      <Quadro tipo="atestado_vencer" titulo={`Notificações · ${vencendo.length} atestado(s) vencendo em até ${prazoAviso} dias`} icone={<Bell className="size-4" />} lista={vencendo}
         detalhe={(a) => `Vence em ${diasParaVencer(a.atestado_data)} dia(s)`} classe="border-accent/60 bg-accent/10" cor="text-foreground" />
-      <Quadro tipo="excesso_faltas" titulo={`${excesso.length} aluno(s) com 5 faltas ou mais`} icone={<AlertTriangle className="size-4" />} lista={excesso}
+      <Quadro tipo="excesso_faltas" titulo={`Notificações · ${excesso.length} aluno(s) com 5 faltas ou mais`} icone={<AlertTriangle className="size-4" />} lista={excesso}
         detalhe={(a) => `${faltas[a.id]} faltas`} classe="border-accent/60 bg-accent/10" cor="text-foreground" />
     </div>
   );

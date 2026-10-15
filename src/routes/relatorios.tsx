@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, BarChart3, Download, FileSpreadsheet, FileText, IdCard, Settings2, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertTriangle, BarChart3, Download, FileSpreadsheet, FileText, Gauge, Settings2, ChevronDown, ChevronUp, Users } from "lucide-react";
 import { toast } from "sonner";
 import { GraficoAlunos } from "@/components/GraficoAlunos";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TabelaCapacidade } from "@/components/TabelaCapacidade";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -65,7 +66,7 @@ type Aluno = AlunoPlanilha & {
   cpf: string | null;
   pcd: boolean;
 };
-type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[]; modalidade: string; capacidade: number };
+type Turma = { id: string; nome: string; horario: string | null; dias_semana: string[]; modalidade: string; capacidade: number; ativa?: boolean };
 type Matricula = { id: string; aluno_id: string; turma_id: string; modalidade: string; status: string };
 
 const PRAZOS = [15, 30, 45, 60, 90];
@@ -139,7 +140,7 @@ function RelatoriosPage() {
     try {
       const [a, t, m] = await Promise.all([
         supabase.from("alunos").select("*").order("nome"),
-        supabase.from("turmas").select("id,nome,horario,dias_semana,modalidade,capacidade").order("nome"),
+        supabase.from("turmas").select("id,nome,horario,dias_semana,modalidade,capacidade,ativa").order("nome"),
         supabase.from("matriculas").select("*"),
       ]);
       if (a.error) throw a.error;
@@ -194,6 +195,15 @@ function RelatoriosPage() {
         .sort((x, y) => diasParaVencer(x.atestado_data) - diasParaVencer(y.atestado_data)),
     [alunos, prazo],
   );
+
+  const kpis = useMemo(() => {
+    const ativosIds = new Set(alunos.filter((a) => a.ativo !== false).map((a) => a.id));
+    const abertas = turmas.filter((t) => t.ativa !== false);
+    const idsAbertas = new Set(abertas.map((t) => t.id));
+    const capacidade = abertas.reduce((s, t) => s + (t.capacidade ?? 40), 0);
+    const ocupadas = matriculas.filter((m) => m.status === "ativa" && idsAbertas.has(m.turma_id) && ativosIds.has(m.aluno_id)).length;
+    return { ativos: ativosIds.size, capacidade, ocupadas, ocupacao: capacidade ? Math.round((ocupadas / capacidade) * 1000) / 10 : 0 };
+  }, [alunos, turmas, matriculas]);
 
   const relatorio = useMemo(
     () =>
@@ -431,6 +441,40 @@ function RelatoriosPage() {
 
   return (
     <AppShell title="Relatórios" subtitle="Atestados, exportações e backup da Arena Aquática">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2">
+        <Card>
+          <CardContent className="flex items-center justify-between gap-3 p-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Total de alunos ativos</p>
+              <p className="text-2xl font-semibold tabular-nums">{carregando ? "—" : kpis.ativos}</p>
+            </div>
+            <Users className="size-6 text-primary" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="space-y-2 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Ocupação geral da Arena</p>
+                <p className="text-2xl font-semibold tabular-nums">{carregando ? "—" : `${kpis.ocupacao}%`}</p>
+              </div>
+              <Gauge className="size-6 text-primary" />
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.min(100, kpis.ocupacao)}%` }} /></div>
+            <p className="text-xs text-muted-foreground">{kpis.ocupadas} de {kpis.capacidade} vagas preenchidas</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="indicadores">
+        <TabsList className="mb-4 h-auto flex-wrap justify-start">
+          <TabsTrigger value="indicadores">Indicadores e gráficos</TabsTrigger>
+          <TabsTrigger value="turmas">Status das turmas</TabsTrigger>
+          <TabsTrigger value="atestados">Atestados médicos</TabsTrigger>
+          <TabsTrigger value="exportacoes">Exportações</TabsTrigger>
+        </TabsList>
+
+      <TabsContent value="atestados">
       <Card className="mb-6">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">
@@ -465,7 +509,9 @@ function RelatoriosPage() {
           <Button onClick={() => void aplicarPrazo(prazoEditado)}>Salvar prazo</Button>
         </CardContent>
       </Card>
+      </TabsContent>
 
+      <TabsContent value="exportacoes">
       <Card className="mb-6">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">
@@ -490,9 +536,13 @@ function RelatoriosPage() {
           ) : null}
         </CardContent>
       </Card>
+      </TabsContent>
 
-      <TabelaCapacidade />
+      <TabsContent value="turmas">
+        <TabelaCapacidade />
+      </TabsContent>
 
+      <TabsContent value="indicadores">
       <Card className="mb-6">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">
@@ -603,6 +653,7 @@ function RelatoriosPage() {
 
         </CardContent>
       </Card>
+      </TabsContent>
 
       <Dialog open={Boolean(detalhe)} onOpenChange={(aberto) => !aberto && setDetalhe(null)}>
         <DialogContent className="max-h-[80vh] max-w-lg overflow-y-auto">
@@ -647,6 +698,7 @@ function RelatoriosPage() {
 
 
 
+      <TabsContent value="atestados">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
           <CardTitle className="flex items-center gap-2 font-display text-base">
@@ -710,6 +762,8 @@ function RelatoriosPage() {
           )}
         </CardContent> : null}
       </Card>
+      </TabsContent>
+      </Tabs>
     </AppShell>
   );
 }

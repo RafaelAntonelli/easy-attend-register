@@ -43,12 +43,7 @@ export function AulasDoDia() {
   }, [dia]);
 
   function abrirChamada(id: string) {
-    const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`;
-    localStorage.setItem(
-      "arena-aquatica:filtros-presenca",
-      JSON.stringify({ data: hoje, turno: "todos", modalidade: "todas", dias: "todos", faixasEtarias: [], turmaIds: [id] }),
-    );
-    void navigate({ to: "/presenca" });
+    void navigate({ to: "/turmas", search: { turma: id } });
   }
 
   return (

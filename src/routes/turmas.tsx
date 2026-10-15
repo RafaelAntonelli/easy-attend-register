@@ -141,6 +141,16 @@ function TurmasPage() {
     void carregar();
   }, []);
 
+  const { turma: turmaParam } = Route.useSearch();
+  const navigateTurmas = Route.useNavigate();
+  useEffect(() => {
+    if (!turmaParam || !turmas.length) return;
+    const alvo = turmas.find((x) => x.id === turmaParam);
+    if (alvo) void abrirTurma(alvo);
+    void navigateTurmas({ search: {}, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turmaParam, turmas]);
+
   function abrirNova() {
     setEditando(null);
     setModalidade("Natação");

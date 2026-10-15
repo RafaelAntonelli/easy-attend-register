@@ -1,3 +1,5 @@
+import { useAuth } from "@/lib/auth";
+import { useMinhasTurmas } from "@/lib/permissoes";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays, Search, Printer } from "lucide-react";

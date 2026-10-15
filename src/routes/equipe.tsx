@@ -104,10 +104,10 @@ function EquipePage() {
 
   async function definirPapel(userId: string, role: AppRole | null) {
     const del = await supabase.from("user_roles").delete().eq("user_id", userId);
-    if (del.error) return toast.error(del.error.message);
+    if (del.error) { toast.error(del.error.message); return; }
     if (role) {
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
-      if (error) return toast.error(error.message);
+      if (error) { toast.error(error.message); return; }
     }
     toast.success("Acesso atualizado");
     void carregar();
@@ -120,7 +120,7 @@ function EquipePage() {
       .from("permissoes_professor")
       .upsert({ chave, ativo, updated_at: new Date().toISOString() }, { onConflict: "chave" });
     if (error) {
-      setMapa((m) => ({ ...m, [chave]: anterior }));
+      setMapa((m) => { const n = { ...m }; if (anterior === undefined) delete n[chave]; else n[chave] = anterior; return n; });
       toast.error(error.message);
     } else toast.success(ativo ? "Permissão liberada" : "Permissão bloqueada");
   }
@@ -129,12 +129,12 @@ function EquipePage() {
     if (!editandoTurmas) return;
     const id = editandoTurmas.id;
     const del = await supabase.from("professor_turmas").delete().eq("user_id", id);
-    if (del.error) return toast.error(del.error.message);
+    if (del.error) { toast.error(del.error.message); return; }
     if (selTurmas.size) {
       const { error } = await supabase
         .from("professor_turmas")
         .insert([...selTurmas].map((turma_id) => ({ user_id: id, turma_id })));
-      if (error) return toast.error(error.message);
+      if (error) { toast.error(error.message); return; }
     }
     toast.success("Turmas atualizadas");
     setEditandoTurmas(null);

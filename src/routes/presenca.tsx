@@ -1,3 +1,5 @@
+import { useAuth } from "@/lib/auth";
+import { useMinhasTurmas } from "@/lib/permissoes";
 import { FotoAmpliavel } from "@/components/FotoAmpliavel";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";

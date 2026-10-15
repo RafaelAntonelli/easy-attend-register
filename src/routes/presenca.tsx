@@ -1,3 +1,5 @@
+import { useAuth } from "@/lib/auth";
+import { useMinhasTurmas } from "@/lib/permissoes";
 import { FotoAmpliavel } from "@/components/FotoAmpliavel";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
@@ -133,6 +135,8 @@ function lerFiltrosPresenca(): Partial<FiltrosPresencaSalvos> | null {
 function PresencaPage() {
   const { lista: listaGrupos } = useGruposDias();
   const [turmas, setTurmas] = useState<Turma[]>([]);
+  const { user: usuarioAtual } = useAuth();
+  const minhasTurmas = useMinhasTurmas(usuarioAtual?.id);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [matriculas, setMatriculas] = useState<{ aluno_id: string; turma_id: string }[]>([]);
@@ -446,7 +450,7 @@ function PresencaPage() {
       }
       return true;
     },
-  );
+  ).sort((a, b) => (minhasTurmas.has(a.id) ? 0 : 1) - (minhasTurmas.has(b.id) ? 0 : 1));
   const turmasVisiveisIds = new Set(turmasVisiveis.map((turma) => turma.id));
   const turmaIdsValidos = turmaIds.filter((id) => turmasVisiveisIds.has(id));
   const rotuloTurmas = turmaIdsValidos.length === 0

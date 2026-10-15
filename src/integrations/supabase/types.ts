@@ -408,6 +408,24 @@ export type Database = {
           },
         ]
       }
+      permissoes_professor: {
+        Row: {
+          ativo: boolean
+          chave: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          chave: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          chave?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       presencas: {
         Row: {
           aluno_id: string
@@ -455,6 +473,35 @@ export type Database = {
           },
           {
             foreignKeyName: "presencas_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professor_turmas: {
+        Row: {
+          created_at: string
+          id: string
+          turma_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          turma_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          turma_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professor_turmas_turma_id_fkey"
             columns: ["turma_id"]
             isOneToOne: false
             referencedRelation: "turmas"
@@ -558,6 +605,14 @@ export type Database = {
       }
       calc_turno: { Args: { _horario: string }; Returns: string }
       disparar_backup_semanal: { Args: never; Returns: undefined }
+      equipe_acessos: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          last_sign_in_at: string
+        }[]
+      }
       gerar_codigo_matricula: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -567,6 +622,7 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      pode: { Args: { _chave: string; _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "professor"

@@ -1,5 +1,5 @@
 import { useAuth } from "@/lib/auth";
-import { useMinhasTurmas } from "@/lib/permissoes";
+import { useMinhasTurmas, usePermissoesProfessor, permissaoAtiva } from "@/lib/permissoes";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays, Search, Printer } from "lucide-react";
@@ -106,7 +106,9 @@ function TurmasPage() {
 
   const [novoHorario, setNovoHorario] = useState("");
   const [turmas, setTurmas] = useState<Turma[]>([]);
-  const { user: usuarioAtual } = useAuth();
+  const { user: usuarioAtual, isAdmin, isStaff, loading: authLoading } = useAuth();
+  const { mapa: permissoes, carregando: permissoesLoading } = usePermissoesProfessor();
+  const permitido = (chave: string) => !authLoading && (isAdmin || (isStaff && !permissoesLoading && permissaoAtiva(permissoes, chave)));
   const minhasTurmas = useMinhasTurmas(usuarioAtual?.id);
   const [contagem, setContagem] = useState<Record<string, number>>({});
   const [aberto, setAberto] = useState(false);
@@ -158,6 +160,7 @@ function TurmasPage() {
   }, [turmaParam, turmas]);
 
   function abrirNova() {
+    if (!permitido("turmas_criar")) return;
     setEditando(null);
     setModalidade("Natação");
     setProfessor("");
@@ -168,6 +171,7 @@ function TurmasPage() {
   }
 
   function abrirEdicao(t: Turma) {
+    if (!permitido("turmas_editar")) return;
     setEditando(t);
     setModalidade(t.modalidade);
     setProfessor(t.professor ?? "");
@@ -179,6 +183,7 @@ function TurmasPage() {
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
+    if (!permitido(editando ? "turmas_editar" : "turmas_criar")) return;
     const dias = listaGrupos.find((g) => g.label === grupo)?.dias ?? [];
     if (!dias.length) return toast.error("Selecione os dias da semana");
     if (!horario) return toast.error("Selecione o horário");
@@ -203,6 +208,7 @@ function TurmasPage() {
 
   async function adicionarHorario(e: React.FormEvent) {
     e.preventDefault();
+    if (!permitido("horarios_editar")) return;
     const valor = novoHorario.trim();
     if (!valor) return;
     const ordem = (horarios.at(-1)?.ordem ?? 0) + 1;
@@ -215,6 +221,7 @@ function TurmasPage() {
   }
 
   async function removerHorario(id: string) {
+    if (!permitido("horarios_editar")) return;
     const { error } = await supabase.from("horarios").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Horário removido");
@@ -223,6 +230,7 @@ function TurmasPage() {
   }
 
   async function excluirTurma(t: Turma) {
+    if (!isAdmin) return;
     const { error: e1 } = await supabase.from("matriculas").delete().eq("turma_id", t.id);
     if (e1) return toast.error(e1.message);
     const { error } = await supabase.from("turmas").delete().eq("id", t.id);
@@ -464,9 +472,9 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
           </Select>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setGerenciarDias(true)}><CalendarDays className="size-4" /> Editar dias</Button>
-          <Button variant="outline" onClick={() => setGerenciarHorarios(true)}><Clock className="size-4" /> Editar horários</Button>
-          <Button onClick={abrirNova}><Plus className="size-4" /> Nova turma</Button>
+          <Button variant="outline" disabled={!permitido("dias_editar")} onClick={() => setGerenciarDias(true)}><CalendarDays className="size-4" /> Editar dias</Button>
+          <Button variant="outline" disabled={!permitido("horarios_editar")} onClick={() => setGerenciarHorarios(true)}><Clock className="size-4" /> Editar horários</Button>
+          <Button disabled={!permitido("turmas_criar")} onClick={abrirNova}><Plus className="size-4" /> Nova turma</Button>
         </div>
       </div>
 
@@ -599,6 +607,8 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
                     variant="ghost"
                     size="icon"
                     title="Editar turma"
+                    aria-label="Editar turma"
+                    disabled={!permitido("turmas_editar")}
                     onClick={(e) => { e.stopPropagation(); abrirEdicao(t); }}
                   >
                     <Pencil className="size-4" />
@@ -608,6 +618,7 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
                     size="icon"
                     className="text-destructive"
                     title="Excluir turma"
+                    disabled={!isAdmin}
                     onClick={(e) => { e.stopPropagation(); setConfirmarExclusao(t); }}
                   >
                     <Trash2 className="size-4" />

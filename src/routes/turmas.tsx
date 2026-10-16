@@ -83,6 +83,7 @@ function TurmasPage() {
 
   async function adicionarGrupo(e: React.FormEvent) {
     e.preventDefault();
+    if (!permitido("dias_editar")) return;
     const label = novoGrupo.trim();
     if (!label) return;
     const ordem = (grupos.at(-1)?.ordem ?? 0) + 1;
@@ -97,6 +98,7 @@ function TurmasPage() {
   }
 
   async function removerGrupo(id: string) {
+    if (!permitido("dias_editar")) return;
     const { error } = await supabase.from("grupos_dias").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Dias removidos");

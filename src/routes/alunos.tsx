@@ -20,6 +20,7 @@ import { AvisoLicencas } from "@/components/AvisoLicencas";
 import { PainelNotificacoes } from "@/components/painel/PainelNotificacoes";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
 import { useAuth } from "@/lib/auth";
+import { usePermissoesProfessor, permissaoAtiva } from "@/lib/permissoes";
 import { DOCUMENTOS_PLANILHA, montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
 import { linksArquivosFn } from "@/lib/links-arquivos.functions";
 
@@ -200,7 +201,9 @@ function AlunosPage() {
   const navigateAlunos = Route.useNavigate();
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
   const [mostrarGuias, setMostrarGuias] = useState(false);
-  const { user } = useAuth();
+  const { user, isAdmin, isStaff, loading: authLoading } = useAuth();
+  const { mapa: permissoes, carregando: permissoesLoading } = usePermissoesProfessor();
+  const permitido = (chave: string) => !authLoading && (isAdmin || (isStaff && !permissoesLoading && permissaoAtiva(permissoes, chave)));
   const [nomesUsuarios, setNomesUsuarios] = useState<Record<string, string>>({});
 
   const [idadeMin, setIdadeMin] = useState("");
@@ -347,15 +350,16 @@ function AlunosPage() {
   }
 
   useEffect(() => {
-    if (!abrirNovaParam && !notificacaoParam) return;
+    if ((!abrirNovaParam && !notificacaoParam) || authLoading || permissoesLoading) return;
     const validos = ["inativos", "sem_atestado", "atestado_vencido", "atestado_vencer", "excesso_faltas"];
     if (notificacaoParam && validos.includes(notificacaoParam)) setFiltroNotificacao(notificacaoParam as typeof filtroNotificacao);
     if (abrirNovaParam) abrirNovo();
     void navigateAlunos({ search: {}, replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [abrirNovaParam, notificacaoParam]);
+  }, [abrirNovaParam, notificacaoParam, authLoading, permissoesLoading]);
 
   function abrirNovo() {
+    if (!permitido("alunos_cadastrar")) return;
     setEditando(null);
     setForm(vazio);
     setTurmaId("");
@@ -368,6 +372,7 @@ function AlunosPage() {
   }
 
   function abrirEdicao(aluno: Aluno) {
+    if (!permitido("alunos_editar")) return;
     setEditando(aluno);
     setForm({
       nome: aluno.nome,
@@ -405,6 +410,7 @@ function AlunosPage() {
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
+    if (!permitido(editando ? "alunos_editar" : "alunos_cadastrar")) return;
     const temAtestadoAnexado = Boolean(docs.doc_atestado_path || editando?.doc_atestado_path);
     if (temAtestadoAnexado && !form.atestado_entregue) {
       toast.error('Marque o campo "Entregou atestado?" para continuar.');
@@ -1137,7 +1143,7 @@ function AlunosPage() {
 
         <Dialog open={aberto} onOpenChange={setAberto}>
           <DialogTrigger asChild>
-            <Button onClick={abrirNovo}>
+            <Button disabled={!permitido("alunos_cadastrar")} onClick={abrirNovo}>
               <Plus className="size-4" /> Nova matrícula
             </Button>
           </DialogTrigger>
@@ -1695,7 +1701,7 @@ function AlunosPage() {
                 </div>
                 {aluno.pcd ? <Badge variant="outline">PCD</Badge> : null}
                 <Badge variant={aluno.ativo ? "default" : "secondary"}>{aluno.ativo ? "Ativo" : "Inativo"}</Badge>
-                <Button variant="ghost" size="icon" onClick={() => abrirEdicao(aluno)}><Pencil className="size-4" /></Button>
+                <Button variant="ghost" size="icon" aria-label="Editar aluno" disabled={!permitido("alunos_editar")} onClick={() => abrirEdicao(aluno)}><Pencil className="size-4" /></Button>
                 <Button variant="outline" size="icon" title="Visualizar crachá" onClick={() => void abrirPreviewCracha(aluno)}><IdCard className="size-4" /></Button>
                 <Button variant="ghost" size="icon" title={aluno.ativo ? "Inativar" : "Reativar"} onClick={() => void alternarAtivo([aluno], !aluno.ativo)}>
                   {aluno.ativo ? <UserX className="size-4" /> : <UserCheck className="size-4" />}

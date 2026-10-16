@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Search, ShieldCheck, UserCheck, UserX } from "lucide-react";
+import { CalendarDays, Search, ShieldCheck, UserCheck, UserX, LockKeyhole, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import type { AppRole } from "@/lib/auth";
 import { PERMISSOES_PROFESSOR, permissaoAtiva, usePermissoesProfessor } from "@/lib/permissoes";
 import { normalizarTexto } from "@/lib/formatacao";
-import { removerContaPendente } from "@/lib/equipe.functions";
+import { removerContaPendente, confirmarSenhaPermissoes, alterarPermissaoProfessor } from "@/lib/equipe.functions";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +68,43 @@ function EquipePage() {
   const [editandoTurmas, setEditandoTurmas] = useState<Membro | null>(null);
   const [selTurmas, setSelTurmas] = useState<Set<string>>(new Set());
   const { mapa, setMapa } = usePermissoesProfessor();
+  const [aba, setAba] = useState("equipe");
+  const [pedirSenha, setPedirSenha] = useState(false);
+  const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [confirmandoSenha, setConfirmandoSenha] = useState(false);
+  const [erroSenha, setErroSenha] = useState("");
+  const [confirmacao, setConfirmacao] = useState<{ token: string; expiresAt: string } | null>(null);
+  const [salvandoPermissao, setSalvandoPermissao] = useState(false);
+
+  useEffect(() => {
+    if (!confirmacao) return;
+    const timer = window.setTimeout(() => { setConfirmacao(null); setAba("equipe"); }, Math.max(0, Date.parse(confirmacao.expiresAt) - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [confirmacao]);
+
+  useEffect(() => { setConfirmacao(null); setAba("equipe"); }, [user?.id]);
+
+  function trocarAba(valor: string) {
+    if (valor === "permissoes" && !confirmacao) {
+      setErroSenha(""); setSenha(""); setMostrarSenha(false); setPedirSenha(true);
+      return;
+    }
+    if (valor === "equipe") setConfirmacao(null);
+    setAba(valor);
+  }
+
+  async function confirmarAdministrador(e: React.FormEvent) {
+    e.preventDefault();
+    setConfirmandoSenha(true); setErroSenha("");
+    try {
+      const resultado = await confirmarSenhaPermissoes({ data: { senha } });
+      setConfirmacao(resultado); setSenha(""); setPedirSenha(false); setAba("permissoes");
+    } catch (e) {
+      setErroSenha(e instanceof Error ? e.message : "Não foi possível confirmar a senha.");
+      setSenha("");
+    } finally { setConfirmandoSenha(false); }
+  }
 
   async function carregar() {
     setCarregando(true);
@@ -125,15 +162,18 @@ function EquipePage() {
   }
 
   async function alternarPermissao(chave: string, ativo: boolean) {
+    if (!confirmacao || salvandoPermissao) return;
     const anterior = mapa[chave];
     setMapa((m) => ({ ...m, [chave]: ativo }));
-    const { error } = await supabase
-      .from("permissoes_professor")
-      .upsert({ chave, ativo, updated_at: new Date().toISOString() }, { onConflict: "chave" });
-    if (error) {
+    setSalvandoPermissao(true);
+    try {
+      await alterarPermissaoProfessor({ data: { token: confirmacao.token, chave, ativo } });
+      toast.success(ativo ? "Permissão liberada" : "Permissão bloqueada");
+    } catch (e) {
       setMapa((m) => { const n = { ...m }; if (anterior === undefined) delete n[chave]; else n[chave] = anterior; return n; });
-      toast.error(error.message);
-    } else toast.success(ativo ? "Permissão liberada" : "Permissão bloqueada");
+      setConfirmacao(null); setAba("equipe");
+      toast.error(e instanceof Error ? e.message : "Não foi possível atualizar a permissão.");
+    } finally { setSalvandoPermissao(false); }
   }
 
   async function salvarTurmas() {
@@ -238,10 +278,10 @@ function EquipePage() {
       ) : carregando ? (
         <p className="text-sm text-muted-foreground">Carregando...</p>
       ) : (
-        <Tabs defaultValue="equipe">
+        <Tabs value={aba} onValueChange={trocarAba}>
           <TabsList>
             <TabsTrigger value="equipe">Equipe</TabsTrigger>
-            <TabsTrigger value="permissoes">Permissões dos professores</TabsTrigger>
+            <TabsTrigger value="permissoes"><LockKeyhole className="mr-1 size-4" />Permissões dos professores</TabsTrigger>
           </TabsList>
 
           <TabsContent value="equipe" className="mt-4 space-y-6">
@@ -263,7 +303,7 @@ function EquipePage() {
             ))}
           </TabsContent>
 
-          <TabsContent value="permissoes" className="mt-4">
+          {confirmacao ? <TabsContent value="permissoes" className="mt-4">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">O que todos os professores podem fazer</CardTitle>
@@ -282,6 +322,8 @@ function EquipePage() {
                           <span className="text-sm text-foreground">{p.rotulo}</span>
                           <Switch
                             checked={permissaoAtiva(mapa, p.chave)}
+                            disabled={salvandoPermissao}
+                            aria-label={p.rotulo}
                             onCheckedChange={(v) => alternarPermissao(p.chave, v)}
                           />
                         </label>
@@ -291,9 +333,27 @@ function EquipePage() {
                 ))}
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent> : null}
         </Tabs>
       )}
+
+      <Dialog open={pedirSenha} onOpenChange={(o) => { if (!confirmandoSenha) { setPedirSenha(o); setSenha(""); setErroSenha(""); } }}>
+        <DialogContent className="sm:max-w-md" aria-describedby="confirmar-admin-descricao">
+          <DialogHeader><DialogTitle>Confirmar senha do administrador</DialogTitle></DialogHeader>
+          <p id="confirmar-admin-descricao" className="text-sm text-muted-foreground">Digite a senha da sua conta de administrador para acessar as permissões dos professores.</p>
+          <form onSubmit={confirmarAdministrador} className="space-y-4">
+            <div className="relative">
+              <Input autoFocus aria-label="Senha do administrador" autoComplete="current-password" type={mostrarSenha ? "text" : "password"} className="pr-12" value={senha} onChange={(e) => setSenha(e.target.value)} required disabled={confirmandoSenha} />
+              <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2" aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"} onClick={() => setMostrarSenha((v) => !v)}>{mostrarSenha ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</Button>
+            </div>
+            {erroSenha ? <p role="alert" className="text-sm text-destructive">{erroSenha}</p> : null}
+            <DialogFooter>
+              <Button type="button" variant="outline" disabled={confirmandoSenha} onClick={() => { setPedirSenha(false); setSenha(""); }}>Cancelar</Button>
+              <Button type="submit" disabled={confirmandoSenha || !senha}>{confirmandoSenha ? "Confirmando…" : "Confirmar"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!acao} onOpenChange={(o) => !o && setAcao(null)}>
         <AlertDialogContent>

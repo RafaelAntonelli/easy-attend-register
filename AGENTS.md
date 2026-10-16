@@ -20,4 +20,6 @@
 - Keep report intersections and chart grouping in src/lib/relatorio-cruzado.ts; evaluate class filters on the same active enrollment and count students once, reusing its result for the chart, detailed lists, school totals and CSV/PDF.
 - Keep report chart presentation in GraficoAlunos, consuming the existing grouped result without refiltering; this preserves consistent totals and the SVG used by PDF export.
 - Reuse DOCUMENTOS_PLANILHA for enrollment and profile document lists so uploads, previews and spreadsheet links support the same document fields.
+- Keep professor action keys and defaults in src/lib/permissoes.ts aligned with public.pode and table policies; guard each button and mutation so the UI matches enforced access.
+- Change professor permissions only through an authenticated admin server function after password confirmation; persist only a hashed, expiring confirmation bound to the admin, and revoke direct authenticated writes so the password gate cannot be bypassed.
 - Keep the build-time runtime guard in `src/lib/worker-runtime.ts`, not the generated-output `build/` directory, so deployment preserves its source; guard the generated server `_runtime.mjs` module URL because dynamic Worker modules may have no `import.meta.url` and crash the generated `createRequire` helper.

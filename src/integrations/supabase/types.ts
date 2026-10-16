@@ -277,6 +277,24 @@ export type Database = {
         }
         Relationships: []
       }
+      confirmacoes_permissoes_admin: {
+        Row: {
+          expires_at: string
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          expires_at: string
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          expires_at?: string
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       fila_espera: {
         Row: {
           created_at: string

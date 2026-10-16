@@ -57,6 +57,13 @@
       "when": 1792193677806,
       "tag": "0007_permissoes_turmas_e_confirmacao_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792194335954,
+      "tag": "0008_acoes_alunos_permissoes_separadas",
+      "breakpoints": true
     }
   ]
 }

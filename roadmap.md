@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Bloquear ações de Alunos e Nova matrícula no Painel para professores por padrão; adicionar permissões separadas, alinhar proteção de dados e validar.
+- [x] Bloquear ações de Alunos e Nova matrícula no Painel para professores por padrão; oito permissões separadas adicionadas, proteção alinhada, 14 testes e fluxo com professor/administrador validados; liberação individual persistida e restaurada.
 
 - [x] Ajustar permissões de professores para alunos e quatro ações de turmas; proteger configuração com senha de administrador; 8 testes e fluxo com contas temporárias validados, incluindo alterações persistidas e bloqueios no servidor.
 

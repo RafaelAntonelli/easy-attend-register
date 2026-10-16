@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-/** Permissões configuráveis para todos os professores. Ausente no banco = ligada. */
+/** Permissões configuráveis para todos os professores, com ações restritas por padrão. */
 export const PERMISSOES_PROFESSOR = [
-  { area: "Alunos", chave: "alunos_cadastrar", rotulo: "Cadastrar alunos e fazer matrículas" },
-  { area: "Alunos", chave: "alunos_editar", rotulo: "Editar e inativar alunos e matrículas" },
+  { area: "Alunos", chave: "alunos_cadastrar", rotulo: "Nova matrícula (Alunos e Painel)" },
+  { area: "Alunos", chave: "alunos_editar", rotulo: "Editar alunos e matrículas" },
+  { area: "Alunos", chave: "alunos_reativar", rotulo: "Reativar alunos" },
+  { area: "Alunos", chave: "alunos_inativar", rotulo: "Inativar alunos" },
+  { area: "Alunos", chave: "alunos_excluir", rotulo: "Excluir alunos" },
+  { area: "Alunos", chave: "alunos_exportar_lista", rotulo: "Exportar lista (CSV e PDF)" },
+  { area: "Alunos", chave: "alunos_exportar_planilha", rotulo: "Exportar planilha" },
+  { area: "Alunos", chave: "alunos_notificacoes", rotulo: "Mostrar notificações" },
   { area: "Turmas", chave: "turmas_criar", rotulo: "Nova turma" },
   { area: "Turmas", chave: "horarios_editar", rotulo: "Editar horários" },
   { area: "Turmas", chave: "dias_editar", rotulo: "Editar dias" },
@@ -19,7 +25,7 @@ export const PERMISSOES_PROFESSOR = [
 export type ChavePermissao = (typeof PERMISSOES_PROFESSOR)[number]["chave"];
 
 export function permissaoAtiva(mapa: Record<string, boolean>, chave: string) {
-  return mapa[chave] ?? !["turmas_criar", "turmas_editar", "horarios_editar", "dias_editar"].includes(chave);
+  return mapa[chave] ?? !["alunos_cadastrar", "alunos_editar", "alunos_reativar", "alunos_inativar", "alunos_excluir", "alunos_exportar_lista", "alunos_exportar_planilha", "alunos_notificacoes", "turmas_criar", "turmas_editar", "horarios_editar", "dias_editar"].includes(chave);
 }
 
 export function usePermissoesProfessor() {

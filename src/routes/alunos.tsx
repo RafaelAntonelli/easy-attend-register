@@ -314,6 +314,7 @@ function AlunosPage() {
   }
 
   async function excluirDocumento(campo: CampoDoc, rotulo: string) {
+    if (!permitido(editando ? "alunos_editar" : "alunos_cadastrar")) return;
     const enviado = editando?.[campo] ?? null;
     if (!confirm(`Excluir ${rotulo.toLowerCase()}?`)) return;
     setDocs((s) => ({ ...s, [campo]: null }));
@@ -331,6 +332,7 @@ function AlunosPage() {
   }
 
   async function excluirFoto() {
+    if (!permitido(editando ? "alunos_editar" : "alunos_cadastrar")) return;
     const enviada = editando?.foto_path ?? null;
     if (!foto && !enviada) return;
     if (!confirm("Excluir a foto do aluno?")) return;
@@ -646,6 +648,7 @@ function AlunosPage() {
 
 
   async function excluirAlunos(lista: Aluno[]) {
+    if (!permitido("alunos_excluir")) return;
     const ids = lista.map((a) => a.id);
     if (!ids.length) return;
     const caminhos = lista.map((a) => a.foto_path).filter(Boolean) as string[];
@@ -653,10 +656,7 @@ function AlunosPage() {
     try {
       for (let i = 0; i < ids.length; i += 40) {
         const lote = ids.slice(i, i + 40);
-        const p = await supabase.from("presencas").delete().in("aluno_id", lote);
-        if (p.error) throw p.error;
-        const m = await supabase.from("matriculas").delete().in("aluno_id", lote);
-        if (m.error) throw m.error;
+        // As relações são removidas em cascata, sob a permissão de excluir o aluno.
         const a = await supabase.from("alunos").delete().in("id", lote);
         if (a.error) throw a.error;
       }
@@ -677,6 +677,7 @@ function AlunosPage() {
 
 
   async function alternarAtivo(lista: Aluno[], ativo: boolean) {
+    if (!permitido(ativo ? "alunos_reativar" : "alunos_inativar")) return;
     if (!ativo) {
       setMotivoInativacao("");
       setInativando(lista);
@@ -695,6 +696,7 @@ function AlunosPage() {
   }
 
   async function confirmarInativacao() {
+    if (!permitido("alunos_inativar")) return;
     if (!inativando?.length) return;
     if (!motivoInativacao.trim()) return toast.error("Informe o motivo da inativação.");
     const ids = inativando.map((a) => a.id);
@@ -815,6 +817,7 @@ function AlunosPage() {
   }
 
   function exportarListaCsv() {
+    if (!permitido("alunos_exportar_lista")) return;
     if (!filtrados.length) return toast.error("Nenhum aluno na lista filtrada");
     const escapar = (v: string) => `"${v.replace(/"/g, '""')}"`;
     const csv = [CABECALHO_LISTA, ...linhasLista(filtrados)].map((l) => l.map(escapar).join(";")).join("\n");
@@ -829,6 +832,7 @@ function AlunosPage() {
   }
 
   async function exportarListaPdf() {
+    if (!permitido("alunos_exportar_lista")) return;
     if (!filtrados.length) return toast.error("Nenhum aluno na lista filtrada");
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
@@ -885,6 +889,7 @@ function AlunosPage() {
   }
 
   async function exportarPlanilha(): Promise<void> {
+    if (!permitido("alunos_exportar_planilha")) return;
     if (!alunos.length) {
       toast.error("Nenhum aluno para exportar");
       return;
@@ -996,12 +1001,12 @@ function AlunosPage() {
   return (
     <AppShell title="Alunos" subtitle="Cadastro e matrículas da Arena Aquática">
       <div className="mb-4 flex justify-end">
-        <Button variant="outline" size="sm" onClick={() => setMostrarNotificacoes((v) => !v)}>
+        <Button variant="outline" size="sm" disabled={!permitido("alunos_notificacoes")} onClick={() => { if (permitido("alunos_notificacoes")) setMostrarNotificacoes((v) => !v); }}>
           <Bell className="size-4" /> {mostrarNotificacoes ? "Esconder notificações" : "Mostrar notificações"}
           {mostrarNotificacoes ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
         </Button>
       </div>
-      {mostrarNotificacoes ? (
+      {mostrarNotificacoes && permitido("alunos_notificacoes") ? (
         <>
           <AvisoLicencas onAbrirPerfil={setPerfilLicencaId} />
           <PainelNotificacoes onAbrirPerfil={setPerfilLicencaId} />
@@ -1575,13 +1580,13 @@ function AlunosPage() {
           </label>
           <span className="text-sm text-muted-foreground">{selecionados.length} selecionado(s)</span>
           <div className="ml-auto flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" disabled={!selecionados.length} onClick={() => void alternarAtivo(selecionadosAlunos, false)}>
+            <Button variant="outline" size="sm" disabled={!selecionados.length || !permitido("alunos_inativar")} onClick={() => void alternarAtivo(selecionadosAlunos, false)}>
               <UserX className="size-4" /> Inativar
             </Button>
-            <Button variant="outline" size="sm" disabled={!selecionados.length} onClick={() => void alternarAtivo(selecionadosAlunos, true)}>
+            <Button variant="outline" size="sm" disabled={!selecionados.length || !permitido("alunos_reativar")} onClick={() => void alternarAtivo(selecionadosAlunos, true)}>
               <UserCheck className="size-4" /> Reativar
             </Button>
-            <Button variant="destructive" size="sm" disabled={!selecionados.length} onClick={() => setConfirmarExclusao(selecionadosAlunos)}>
+            <Button variant="destructive" size="sm" disabled={!selecionados.length || !permitido("alunos_excluir")} onClick={() => { if (permitido("alunos_excluir")) setConfirmarExclusao(selecionadosAlunos); }}>
               <Trash2 className="size-4" /> Excluir
             </Button>
             <DropdownMenu>
@@ -1615,7 +1620,7 @@ function AlunosPage() {
             </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={!filtrados.length}>
+                <Button variant="outline" size="sm" disabled={!filtrados.length || !permitido("alunos_exportar_lista")}>
                   <FileDown className="size-4" /> Exportar lista
                 </Button>
               </DropdownMenuTrigger>
@@ -1632,7 +1637,7 @@ function AlunosPage() {
             <Button
               variant="outline"
               size="sm"
-              disabled={exportandoPlanilha || !alunos.length}
+              disabled={exportandoPlanilha || !alunos.length || !permitido("alunos_exportar_planilha")}
               onClick={() => void exportarPlanilha()}
             >
               <FileSpreadsheet className="size-4" /> {exportandoPlanilha ? "Exportando..." : "Exportar planilha"}
@@ -1703,10 +1708,10 @@ function AlunosPage() {
                 <Badge variant={aluno.ativo ? "default" : "secondary"}>{aluno.ativo ? "Ativo" : "Inativo"}</Badge>
                 <Button variant="ghost" size="icon" aria-label="Editar aluno" disabled={!permitido("alunos_editar")} onClick={() => abrirEdicao(aluno)}><Pencil className="size-4" /></Button>
                 <Button variant="outline" size="icon" title="Visualizar crachá" onClick={() => void abrirPreviewCracha(aluno)}><IdCard className="size-4" /></Button>
-                <Button variant="ghost" size="icon" title={aluno.ativo ? "Inativar" : "Reativar"} onClick={() => void alternarAtivo([aluno], !aluno.ativo)}>
+                <Button variant="ghost" size="icon" title={aluno.ativo ? "Inativar" : "Reativar"} disabled={!permitido(aluno.ativo ? "alunos_inativar" : "alunos_reativar")} onClick={() => void alternarAtivo([aluno], !aluno.ativo)}>
                   {aluno.ativo ? <UserX className="size-4" /> : <UserCheck className="size-4" />}
                 </Button>
-                <Button variant="ghost" size="icon" className="text-destructive" title="Excluir" onClick={() => setConfirmarExclusao([aluno])}>
+                <Button variant="ghost" size="icon" className="text-destructive" title="Excluir" disabled={!permitido("alunos_excluir")} onClick={() => { if (permitido("alunos_excluir")) setConfirmarExclusao([aluno]); }}>
                   <Trash2 className="size-4" />
                 </Button>
 
@@ -1957,7 +1962,7 @@ function AlunosPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void excluirAlunos(confirmarExclusao ?? [])}>Excluir</AlertDialogAction>
+            <AlertDialogAction disabled={!permitido("alunos_excluir")} onClick={() => void excluirAlunos(confirmarExclusao ?? [])}>Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1985,7 +1990,7 @@ function AlunosPage() {
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setInativando(null)}>Cancelar</Button>
-              <Button variant="destructive" disabled={!motivoInativacao.trim()} onClick={() => void confirmarInativacao()}>
+              <Button variant="destructive" disabled={!motivoInativacao.trim() || !permitido("alunos_inativar")} onClick={() => void confirmarInativacao()}>
                 <UserX className="size-4" /> Inativar
               </Button>
             </div>

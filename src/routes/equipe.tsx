@@ -308,7 +308,7 @@ function EquipePage() {
               <CardHeader>
                 <CardTitle className="text-base">O que todos os professores podem fazer</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  O bloqueio vale no próprio sistema. Excluir alunos, Backup e Equipe são sempre só de administradores.
+                  Backup e Equipe são sempre só de administradores.
                   Ver alunos, turmas e presenças continua liberado.
                 </p>
               </CardHeader>

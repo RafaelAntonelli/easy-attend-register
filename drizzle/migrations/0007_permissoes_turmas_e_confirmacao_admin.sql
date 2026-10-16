@@ -1,0 +1,12 @@
+CREATE TABLE public.confirmacoes_permissoes_admin (user_id uuid PRIMARY KEY, token_hash text NOT NULL, expires_at timestamptz NOT NULL);
+GRANT ALL ON public.confirmacoes_permissoes_admin TO service_role;
+ALTER TABLE public.confirmacoes_permissoes_admin ENABLE ROW LEVEL SECURITY;
+REVOKE INSERT, UPDATE, DELETE ON public.permissoes_professor FROM authenticated;
+CREATE OR REPLACE FUNCTION public.pode(_user_id uuid, _chave text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$ SELECT public.has_role(_user_id,'admin') OR (public.has_role(_user_id,'professor') AND COALESCE((SELECT ativo FROM public.permissoes_professor WHERE chave = _chave), _chave NOT IN ('turmas_criar','turmas_editar','horarios_editar','dias_editar'))); $$;
+ALTER POLICY turmas_staff_write ON public.turmas WITH CHECK (public.pode(auth.uid(),'turmas_criar'));
+ALTER POLICY horarios_staff_insert ON public.horarios WITH CHECK (public.pode(auth.uid(),'horarios_editar'));
+ALTER POLICY horarios_staff_update ON public.horarios USING (public.pode(auth.uid(),'horarios_editar')) WITH CHECK (public.pode(auth.uid(),'horarios_editar'));
+ALTER POLICY grupos_dias_staff_insert ON public.grupos_dias WITH CHECK (public.pode(auth.uid(),'dias_editar'));
+ALTER POLICY grupos_dias_staff_update ON public.grupos_dias USING (public.pode(auth.uid(),'dias_editar')) WITH CHECK (public.pode(auth.uid(),'dias_editar'));
+ALTER POLICY horarios_admin_delete ON public.horarios USING (public.pode(auth.uid(),'horarios_editar'));
+ALTER POLICY grupos_dias_admin_delete ON public.grupos_dias USING (public.pode(auth.uid(),'dias_editar'));

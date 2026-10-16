@@ -1,0 +1,13 @@
+CREATE OR REPLACE FUNCTION public.pode(_user_id uuid, _chave text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT public.has_role(_user_id,'admin') OR (public.has_role(_user_id,'professor') AND COALESCE((SELECT ativo FROM public.permissoes_professor WHERE chave=_chave), _chave NOT IN ('alunos_cadastrar','alunos_editar','alunos_reativar','alunos_inativar','alunos_excluir','alunos_exportar_lista','alunos_exportar_planilha','alunos_notificacoes','turmas_criar','turmas_editar','horarios_editar','dias_editar'))); $$;
+CREATE OR REPLACE FUNCTION public.validar_alteracao_aluno_permissoes() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ BEGIN
+IF public.has_role(auth.uid(),'admin') OR auth.role()='service_role' THEN RETURN NEW; END IF;
+IF NEW.ativo IS DISTINCT FROM OLD.ativo THEN
+ IF NOT public.pode(auth.uid(),CASE WHEN NEW.ativo THEN 'alunos_reativar' ELSE 'alunos_inativar' END) THEN RAISE EXCEPTION 'Sem permissão para alterar a situação do aluno' USING ERRCODE='42501'; END IF;
+END IF;
+IF (to_jsonb(NEW) - ARRAY['ativo','motivo_inativacao','inativado_em','inativado_por','inativado_por_nome']) IS DISTINCT FROM (to_jsonb(OLD) - ARRAY['ativo','motivo_inativacao','inativado_em','inativado_por','inativado_por_nome']) AND NOT public.pode(auth.uid(),'alunos_editar') THEN RAISE EXCEPTION 'Sem permissão para editar alunos' USING ERRCODE='42501'; END IF;
+IF NEW.ativo IS NOT DISTINCT FROM OLD.ativo AND NOT public.pode(auth.uid(),'alunos_editar') THEN RAISE EXCEPTION 'Sem permissão para editar alunos' USING ERRCODE='42501'; END IF;
+RETURN NEW; END; $$;
+CREATE TRIGGER validar_alteracao_aluno_permissoes BEFORE UPDATE ON public.alunos FOR EACH ROW EXECUTE FUNCTION public.validar_alteracao_aluno_permissoes();
+ALTER POLICY alunos_staff_update ON public.alunos USING (public.pode(auth.uid(),'alunos_editar') OR public.pode(auth.uid(),'alunos_inativar') OR public.pode(auth.uid(),'alunos_reativar')) WITH CHECK (public.pode(auth.uid(),'alunos_editar') OR public.pode(auth.uid(),'alunos_inativar') OR public.pode(auth.uid(),'alunos_reativar'));
+ALTER POLICY alunos_admin_delete ON public.alunos USING (public.pode(auth.uid(),'alunos_excluir'));
+ALTER POLICY matriculas_staff_delete ON public.matriculas USING (public.pode(auth.uid(),'alunos_editar') OR (public.pode(auth.uid(),'alunos_inativar') AND EXISTS (SELECT 1 FROM public.alunos a WHERE a.id=aluno_id AND NOT a.ativo)));

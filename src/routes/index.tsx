@@ -7,6 +7,8 @@ import { CONDICOES_PCD } from "@/lib/pcd";
 import { useHorarios } from "@/lib/horarios";
 import { capitalizarNome, formatarCelular } from "@/lib/formatacao";
 import { AppShell } from "@/components/AppShell";
+import { useAuth } from "@/lib/auth";
+import { permissaoAtiva, usePermissoesProfessor } from "@/lib/permissoes";
 import { PerfilAluno } from "@/components/PerfilAluno";
 import { AulasDoDia } from "@/components/painel/AulasDoDia";
 import { PainelLicencas } from "@/components/painel/PainelLicencas";
@@ -54,6 +56,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Painel() {
+  const { isAdmin, isStaff, loading: authLoading } = useAuth();
+  const { mapa, carregando: permissoesLoading } = usePermissoesProfessor();
+  const podeMatricular = !authLoading && (isAdmin || (isStaff && !permissoesLoading && permissaoAtiva(mapa, "alunos_cadastrar")));
   const { lista: listaHorarios } = useHorarios();
   const [stats, setStats] = useState({ alunos: 0, turmas: 0 });
   const [fila, setFila] = useState<Fila[]>([]);
@@ -161,9 +166,13 @@ function Painel() {
             <Button asChild variant="secondary">
               <Link to="/presenca">Registrar presença</Link>
             </Button>
-            <Button asChild variant="outline" className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10">
-              <Link to="/alunos" search={{ nova: true }}>Nova matrícula</Link>
-            </Button>
+            {podeMatricular ? (
+              <Button asChild variant="outline" className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10">
+                <Link to="/alunos" search={{ nova: true }}>Nova matrícula</Link>
+              </Button>
+            ) : (
+              <Button disabled variant="outline" className="border-primary-foreground/40 bg-transparent text-primary-foreground">Nova matrícula</Button>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -43,6 +43,13 @@
       "when": 1792082357231,
       "tag": "0005_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792192496593,
+      "tag": "0006_adicionar_ficha_aluno",
+      "breakpoints": true
     }
   ]
 }

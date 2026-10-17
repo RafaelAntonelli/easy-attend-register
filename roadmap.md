@@ -1,5 +1,11 @@
 # Roadmap
 
+- [ ] IA: ler foto da Ficha com revisão antes de preencher matrícula.
+- [ ] IA: assistente de relatórios com dados agregados e permissões existentes.
+- [ ] IA: preparar mensagens de WhatsApp revisáveis, sem diagnóstico e sem envio automático.
+- [ ] IA: sugerir mapeamento de colunas de planilhas com revisão e validações existentes.
+- [ ] Validar os quatro fluxos e as permissões da IA.
+
 - [x] Bloquear ações de Alunos e Nova matrícula no Painel para professores por padrão; oito permissões separadas adicionadas, proteção alinhada, 14 testes e fluxo com professor/administrador validados; liberação individual persistida e restaurada.
 
 - [x] Ajustar permissões de professores para alunos e quatro ações de turmas; proteger configuração com senha de administrador; 8 testes e fluxo com contas temporárias validados, incluindo alterações persistidas e bloqueios no servidor.

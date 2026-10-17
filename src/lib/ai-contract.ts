@@ -18,6 +18,12 @@ export const colunasSchema = z.object({
 }).strict();
 export const textoSchema = z.object({ texto: z.string() }).strict();
 
+export function permissoesAssistenciaIA(data: { acao: "ficha"; editando: boolean } | { acao: "colunas"; modo: "criar" | "atualizar" } | { acao: "relatorio" | "mensagem" }) {
+  if (data.acao === "ficha") return [data.editando ? "alunos_editar" : "alunos_cadastrar"];
+  if (data.acao === "colunas") return ["alunos_cadastrar", ...(data.modo === "atualizar" ? ["alunos_editar"] : [])];
+  return data.acao === "relatorio" ? ["relatorios_ver"] : [];
+}
+
 /** Reject invented headers and reuse of one source for multiple destinations. */
 export function validarMapaIA(pares: { destino: string; origem: string | null }[], origens: readonly string[], destinos: readonly string[]) {
   const mapa: Record<string, string> = {};

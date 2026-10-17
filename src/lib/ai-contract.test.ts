@@ -1,8 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { camposFichaRevisados, capacidadeAgregada, validarMapaIA } from "./ai-contract";
+import { camposFichaRevisados, capacidadeAgregada, validarMapaIA, permissoesAssistenciaIA } from "./ai-contract";
 import { linkConversaWhatsApp } from "./whatsapp";
 
 describe("propostas de IA", () => {
+  it("a leitura de nova ficha exige permissão de nova matrícula", () => {
+    expect(permissoesAssistenciaIA({ acao: "ficha", editando: false })).toEqual(["alunos_cadastrar"]);
+  });
+  it("a leitura de ficha na edição exige permissão de editar", () => {
+    expect(permissoesAssistenciaIA({ acao: "ficha", editando: true })).toEqual(["alunos_editar"]);
+  });
+  it("importação que atualiza existentes exige cadastrar e editar", () => {
+    expect(permissoesAssistenciaIA({ acao: "colunas", modo: "atualizar" })).toEqual(["alunos_cadastrar", "alunos_editar"]);
+  });
+  it("consultas de relatórios exigem permissão de ver relatórios", () => {
+    expect(permissoesAssistenciaIA({ acao: "relatorio" })).toEqual(["relatorios_ver"]);
+  });
   it("não preenche campos ausentes ou incertos da ficha", () => {
     expect(camposFichaRevisados([{ campo: "nome", valor: " Ana " }, { campo: "cpf", valor: null }])).toEqual({ nome: "Ana" });
   });

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, Loader2 } from "lucide-react";
 import { assistenciaIA } from "@/lib/ai.functions";
+import { validarMapaIA } from "@/lib/ai-contract";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,6 +21,10 @@ export function MapearColunasIA({ origens, destinos, modo, permitido, onAplicar 
     {erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}
     {mapa && <><h3 className="text-sm font-semibold">Revisar correspondências</h3>{avisos.map((a, i) => <p key={i} className="text-sm text-muted-foreground">{a}</p>)}
       <div className="grid gap-3 sm:grid-cols-2">{destinos.map((d) => <div key={d} className="min-w-0 space-y-1"><Label>{d}</Label><Select value={mapa[d] || "__ignorar"} onValueChange={(v) => setMapa({ ...mapa, [d]: v === "__ignorar" ? "" : v })}><SelectTrigger aria-label={`Coluna para ${d}`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__ignorar">Não importar</SelectItem>{origens.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select></div>)}</div>
-      <Button type="button" disabled={!permitido} onClick={() => { onAplicar(mapa); setMapa(null); }}>Aplicar correspondências revisadas</Button></>}
+      <Button type="button" disabled={!permitido} onClick={() => {
+        const valores = Object.values(mapa).filter(Boolean);
+        if (new Set(valores).size !== valores.length) { setErro("Cada coluna da planilha pode ser usada em apenas um campo."); return; }
+        onAplicar(validarMapaIA(Object.entries(mapa).map(([destino, origem]) => ({ destino, origem })), origens, destinos)); setMapa(null); setErro("");
+      }}>Aplicar correspondências revisadas</Button></>}
   </section>;
 }

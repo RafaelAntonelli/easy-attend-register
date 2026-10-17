@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { CAMPOS_FICHA, capacidadeAgregada, colunasSchema, fichaSchema, textoSchema, validarMapaIA, permissoesAssistenciaIA } from "./ai-contract";
 import { turnoDoHorario } from "./turnos";
+import { calcularRelatorioIA, planoRelatorioSchema, estatisticasIdadeIA, type AlunoRelatorioIA } from "./relatorio-ia";
+import { registrosRelatorio, FILTROS_RELATORIO } from "./relatorio-cruzado";
 
 const input = z.discriminatedUnion("acao", [
   z.object({ acao: z.literal("ficha"), imagem: z.string().max(8_000_000).regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/), editando: z.boolean() }),
@@ -41,15 +43,39 @@ export const assistenciaIA = createServerFn({ method: "POST" })
         const texto = await gerarObjetoIA(textoSchema, `${safety} Prepare uma mensagem curta, cordial, de até 500 caracteres da equipe Arena Aquática. Não invente que existe vaga confirmada ou autorização médica. Documentos: solicitar conferência dos documentos pendentes sem listar quais. Vaga: perguntar interesse e disponibilidade para possível vaga, sem prometer reserva. Retorno: perguntar sobre retorno previsto, sem citar doença, diagnóstico ou alta; informar que a equipe precisa confirmar o retorno. Não use nomes ou números.`, [{ role: "user", content: JSON.stringify({ assunto: data.assunto, data_prevista: data.data || null }) }]);
         return { ok: true as const, texto: texto.texto };
       }
-      const [t, m, a] = await Promise.all([
+      async function carregarAlunos() {
+        const alunos: AlunoRelatorioIA[] = [];
+        for (let inicio = 0; ; inicio += 500) {
+          const pagina = await supabase.from("alunos").select("id,ativo,idade,data_nascimento,sexo,pcd,rede_ensino,escola").order("id").range(inicio, inicio + 499);
+          if (pagina.error) throw new Error("Falha ao consultar alunos");
+          alunos.push(...(pagina.data ?? []));
+          if ((pagina.data?.length ?? 0) < 500) return alunos;
+        }
+      }
+      async function carregarMatriculas() {
+        const matriculas: { aluno_id: string; turma_id: string; modalidade: string; status: string }[] = [];
+        for (let inicio = 0; ; inicio += 500) {
+          const pagina = await supabase.from("matriculas").select("aluno_id,turma_id,modalidade,status").eq("status", "ativa").order("id").range(inicio, inicio + 499);
+          if (pagina.error) throw new Error("Falha ao consultar matrículas");
+          matriculas.push(...(pagina.data ?? []));
+          if ((pagina.data?.length ?? 0) < 500) return matriculas;
+        }
+      }
+      const [t, m, alunos, dias] = await Promise.all([
         supabase.from("turmas").select("id,nome,modalidade,horario,dias_semana,capacidade").eq("ativa", true),
-        supabase.from("matriculas").select("aluno_id,turma_id,alunos!inner(ativo)").eq("status", "ativa").eq("alunos.ativo", true),
-        supabase.from("alunos").select("id", { count: "exact", head: true }).eq("ativo", true),
+        carregarMatriculas(), carregarAlunos(),
+        supabase.from("grupos_dias").select("label,dias").order("ordem"),
       ]);
-      if (t.error || m.error || a.error) return { ok: false as const, erro: "Não foi possível consultar os dados do relatório.", status: 500 };
-      const turmas = capacidadeAgregada(t.data ?? [], m.data ?? []).map((linha) => ({ ...linha, turno: turnoDoHorario(linha.horario) }));
+      if (t.error || dias.error) return { ok: false as const, erro: "Não foi possível consultar os dados do relatório.", status: 500 };
+      const ativos = alunos.filter((a) => a.ativo);
+      const idsAtivos = new Set(ativos.map((a) => a.id));
+      const turmas = capacidadeAgregada(t.data ?? [], m.filter((v) => idsAtivos.has(v.aluno_id))).map((linha) => ({ ...linha, turno: turnoDoHorario(linha.horario) }));
+      const registros = registrosRelatorio(alunos, t.data ?? [], m, dias.data ?? []);
+      const opcoes = Object.fromEntries(FILTROS_RELATORIO.map(({ id }) => [id, [...new Set(registros.flatMap((r) => r.valores[id]))]]));
+      const plano = await gerarObjetoIA(planoRelatorioSchema, `${safety} Traduza a pergunta em até seis grupos de filtros para cálculos, não responda com números. Cada filtro é uma lista dos valores EXATOS disponíveis; lista vazia significa todos. Por padrão situacao=["Ativos"], salvo pedido explícito de inativos ou todos. Rede Pública/Privada ou null; escola nome exato ou null; limites de idade inclusivos ou null. Para comparações crie um grupo para cada população pedida. agrupar_por é uma dimensão disponível ou null. Não use identificadores ou consultas SQL. Para perguntas só de vagas mantenha um grupo geral.`, [{ role: "user", content: JSON.stringify({ pergunta: data.pergunta, opcoes, redes: ["Pública", "Privada"], escolas: [...new Set(alunos.map((a) => a.escola).filter(Boolean))] }) }]);
+      const resultados = calcularRelatorioIA(plano, alunos, t.data ?? [], m, dias.data ?? []);
       const atualizado = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-      const texto = await gerarObjetoIA(textoSchema, `${safety} Responda de forma objetiva, usando APENAS o retrato agregado fornecido. Os números já foram calculados pelo sistema; não altere capacidade ou contagens. Alunos em licença continuam matriculados e ocupam vaga. Pode comparar turmas por vagas, modalidade, dias, horário e turno. Para frequência, documentos, dados pessoais, diagnósticos ou métricas não fornecidas, informe que não estão disponíveis. Este retrato abrange todas as turmas ativas, não os filtros do gráfico da página.`, [{ role: "user", content: JSON.stringify({ pergunta: data.pergunta, atualizado, alunos_ativos: a.count, turmas }) }]);
+      const texto = await gerarObjetoIA(textoSchema, `${safety} Responda perguntas complexas usando APENAS os resultados calculados e o retrato fornecido. Não invente nem recalcule médias, medianas, contagens ou vagas. Explique população, filtros, exclusões de idades ausentes e data. Mostre comparações em listas ou tabelas Markdown, sempre com uma quebra de linha entre cada linha da tabela e uma linha vazia antes e depois. Cada aluno conta uma vez dentro do grupo; grupos podem se sobrepor, não some grupos como total único. Médias usam só idades válidas, nascimento tem prioridade. Sugestões operacionais não alteram dados. Alunos em licença continuam ocupando vaga. Frequência, históricos, documentos e diagnósticos não foram fornecidos: informe a limitação. As perguntas têm filtros próprios, não usam filtros visuais do gráfico.`, [{ role: "user", content: JSON.stringify({ pergunta: data.pergunta, atualizado, alunos_ativos: estatisticasIdadeIA(ativos), alunos_inativos: estatisticasIdadeIA(alunos.filter((a) => !a.ativo)), resultados, turmas }) }]);
       return { ok: true as const, texto: texto.texto, atualizado };
     } catch (e) {
       if (e instanceof ErroIA) {

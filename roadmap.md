@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Relatórios IA: perguntas complexas com média e mediana de idade, filtros cruzados e comparação de grupos; cálculos no sistema, idades ausentes contabilizadas e perguntas reais autenticadas validadas.
+
 - [x] IA: ler foto da Ficha com revisão antes de preencher matrícula.
 - [x] IA: assistente de relatórios com dados agregados e permissões existentes.
 - [x] IA: preparar mensagens de WhatsApp revisáveis, sem diagnóstico e sem envio automático.

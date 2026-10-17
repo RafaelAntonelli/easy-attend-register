@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { baixarImagem } from "@/lib/fotos.functions";
+import { MapearColunasIA } from "@/components/MapearColunasIA";
 import { extrairImagensPlanilha } from "@/lib/planilha-imagens";
 import { capitalizarNome, formatarCelular, formatarCPF, apenasDigitos, cpfValido } from "@/lib/formatacao";
 import { Button } from "@/components/ui/button";
@@ -177,16 +178,22 @@ export function ImportarAlunos({
   matriculas,
   alunos = [],
   onImportado,
+  podeCriar,
+  podeEditar,
 }: {
   turmas: Turma[];
   matriculas: Matricula[];
   alunos?: AlunoExistente[];
   onImportado: () => void;
+  podeCriar: boolean;
+  podeEditar: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
   const [analises, setAnalises] = useState<Analise[]>([]);
   const [arquivo, setArquivo] = useState<string>("");
-  const [modo, setModo] = useState<"criar" | "atualizar">("atualizar");
+  const [modo, setModo] = useState<"criar" | "atualizar">(podeEditar ? "atualizar" : "criar");
+  const [mapaConfirmado, setMapaConfirmado] = useState<Record<string, string> | null>(null);
+  const [versaoArquivo, setVersaoArquivo] = useState(0);
   const [importando, setImportando] = useState(false);
   const imagensRef = useRef<Map<number, Blob>>(new Map());
   const baixar = useServerFn(baixarImagem);
@@ -217,9 +224,9 @@ export function ImportarAlunos({
     return mapa;
   }
 
-  function analisar(linhas: Linha[], modoAtual: "criar" | "atualizar"): Analise[] {
+  function analisar(linhas: Linha[], modoAtual: "criar" | "atualizar", mapaManual: Record<string, string> | null = mapaConfirmado): Analise[] {
     const primeira = linhas[0];
-    const mapa = primeira ? mapearColunas(primeira) : {};
+    const mapa = mapaManual ?? (primeira ? mapearColunas(primeira) : {});
     const ocupacao = new Map<string, number>();
     for (const m of matriculas) {
       if (m.status === "ativa") ocupacao.set(m.turma_id, (ocupacao.get(m.turma_id) ?? 0) + 1);
@@ -396,6 +403,8 @@ export function ImportarAlunos({
 
   async function selecionar(file: File | null) {
     if (!file) return;
+    setMapaConfirmado(null);
+    setVersaoArquivo((v) => v + 1);
     setArquivo(file.name);
     const buf = await file.arrayBuffer();
     imagensRef.current = /\.xlsx$/i.test(file.name) ? extrairImagensPlanilha(buf) : new Map();
@@ -407,7 +416,7 @@ export function ImportarAlunos({
     const dados = XLSX.utils.sheet_to_json<Linha>(ws, { defval: "" });
     if (!dados.length) return toast.error("Nenhuma linha encontrada na planilha.");
     aplicarLinks(ws, dados);
-    const resultado = analisar(dados, modo);
+    const resultado = analisar(dados, modo, null);
     setAnalises(resultado);
     const invalidas = resultado.filter((a) => a.erros.length).length;
     if (invalidas) toast.warning(`${invalidas} linha(s) com problema. Revise antes de confirmar.`);
@@ -439,6 +448,7 @@ export function ImportarAlunos({
   }
 
   function trocarModo(novo: "criar" | "atualizar") {
+    if (novo === "atualizar" && !podeEditar) return;
     setModo(novo);
     if (analises.length) setAnalises(analisar(analises.map((a) => a.original), novo));
   }
@@ -467,6 +477,7 @@ export function ImportarAlunos({
   }
 
   async function importar() {
+    if (!podeCriar || (modo === "atualizar" && !podeEditar)) return toast.error("Seu acesso não permite esta importação.");
     const validas = analises.filter((a) => !a.erros.length);
     if (!validas.length) {
       toast.error("Nenhuma linha válida para importar.");
@@ -591,7 +602,7 @@ export function ImportarAlunos({
   return (
     <Dialog open={aberto} onOpenChange={setAberto}>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" disabled={!podeCriar}>
           <FileSpreadsheet className="size-4" /> Importar planilha
         </Button>
       </DialogTrigger>
@@ -612,7 +623,7 @@ export function ImportarAlunos({
             <Select value={modo} onValueChange={(v) => trocarModo(v as "criar" | "atualizar")}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="atualizar">Atualizar existentes (não duplica)</SelectItem>
+                <SelectItem value="atualizar" disabled={!podeEditar}>Atualizar existentes (não duplica)</SelectItem>
                 <SelectItem value="criar">Somente novos (marca duplicados como erro)</SelectItem>
               </SelectContent>
             </Select>
@@ -634,6 +645,10 @@ export function ImportarAlunos({
 
           {analises.length ? (
             <div className="space-y-3">
+              <MapearColunasIA key={`${versaoArquivo}-${modo}`} origens={Object.keys(analises[0]?.original ?? {})} destinos={COLUNAS} modo={modo} permitido={podeCriar && (modo !== "atualizar" || podeEditar) && !importando} onAplicar={(mapa) => {
+                setMapaConfirmado(mapa);
+                setAnalises(analisar(analises.map((a) => a.original), modo, mapa));
+              }} />
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <Badge variant="secondary">{validas.length} válida(s)</Badge>
                 {paraAtualizar ? <Badge variant="outline">{paraAtualizar} atualização(ões)</Badge> : null}
@@ -691,7 +706,7 @@ export function ImportarAlunos({
                 </table>
               </div>
 
-              <Button disabled={importando || !validas.length} onClick={() => void importar()}>
+              <Button disabled={importando || !validas.length || !podeCriar || (modo === "atualizar" && !podeEditar)} onClick={() => void importar()}>
                 <Upload className="size-4" /> {importando ? "Importando..." : `Importar ${validas.length} linha(s) válida(s)`}
               </Button>
             </div>

@@ -467,6 +467,7 @@ function RelatoriosPage() {
         </Card>
       </div>
 
+      <AssistenteRelatorio />
       <Tabs defaultValue="indicadores">
         <TabsList className="mb-4 h-auto flex-wrap justify-start">
           <TabsTrigger value="indicadores">Indicadores e gráficos</TabsTrigger>

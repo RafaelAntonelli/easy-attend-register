@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { cruzarRelatorio, filtrosRelatorioVazios, registrosRelatorio, FILTROS_RELATORIO, type FiltroRelatorioId } from "./relatorio-cruzado";
+import { cruzarRelatorio, filtrosRelatorioVazios, registrosRelatorio, FILTROS_RELATORIO } from "./relatorio-cruzado";
 import { idadePorNascimento } from "./turnos";
 
 const grupoSchema = z.object({

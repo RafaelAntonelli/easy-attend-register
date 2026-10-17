@@ -8,6 +8,7 @@ import { DOCUMENTOS_PLANILHA } from "@/lib/planilha-alunos";
 
 import { Button } from "@/components/ui/button";
 import { ConversarWhatsApp } from "@/components/ConversarWhatsApp";
+import { MensagemWhatsAppIA } from "@/components/MensagemWhatsAppIA";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -351,6 +352,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
             </div>
 
             <ConversarWhatsApp telefone={aluno.telefone} />
+            <MensagemWhatsAppIA telefone={aluno.telefone} />
 
             <div className="space-y-2 rounded-lg border border-border/70 p-3 text-sm">
               <p className="font-medium">Licença médica</p>

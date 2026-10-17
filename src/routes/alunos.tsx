@@ -29,6 +29,8 @@ import { AppShell } from "@/components/AppShell";
 import { ImportarAlunos } from "@/components/ImportarAlunos";
 import { ConversarWhatsApp } from "@/components/ConversarWhatsApp";
 import { SelecionarEscola } from "@/components/SelecionarEscola";
+import { LeitorFicha } from "@/components/LeitorFicha";
+import { MensagemWhatsAppIA } from "@/components/MensagemWhatsAppIA";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1140,6 +1142,8 @@ function AlunosPage() {
 
 
         <ImportarAlunos
+          podeCriar={permitido("alunos_cadastrar")}
+          podeEditar={permitido("alunos_editar")}
           turmas={turmas}
           matriculas={matriculas}
           alunos={alunos as unknown as { id: string; nome: string; cpf: string | null; telefone: string | null }[]}
@@ -1157,6 +1161,16 @@ function AlunosPage() {
               <DialogTitle className="font-display">{editando ? "Editar aluno" : "Nova matrícula"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={salvar} className="space-y-4">
+              <LeitorFicha key={editando?.id ?? "nova"} editando={Boolean(editando)} permitido={permitido(editando ? "alunos_editar" : "alunos_cadastrar")} onAplicar={(dados, arquivo) => {
+                if (!permitido(editando ? "alunos_editar" : "alunos_cadastrar")) return;
+                setForm((atual) => ({ ...atual, ...Object.fromEntries(Object.entries(dados).filter(([, v]) => v?.trim())),
+                  ...(dados.nome ? { nome: capitalizarNome(dados.nome) } : {}),
+                  ...(dados.telefone ? { telefone: formatarCelular(dados.telefone) } : {}),
+                  ...(dados.telefone2 ? { telefone2: formatarCelular(dados.telefone2) } : {}),
+                  ...(dados.cpf ? { cpf: formatarCPF(dados.cpf) } : {}),
+                }));
+                setDocs((atual) => ({ ...atual, doc_ficha_path: arquivo }));
+              }} />
               <div className="space-y-2">
                 <Label>Nome completo</Label>
                 <Input
@@ -1766,6 +1780,7 @@ function AlunosPage() {
               </Button>
 
               <ConversarWhatsApp telefone={detalhe.telefone} />
+              <MensagemWhatsAppIA telefone={detalhe.telefone} />
 
               <div className="space-y-2 rounded-lg border border-border/70 p-3 text-sm">
                 <p className="font-medium">Licença médica</p>

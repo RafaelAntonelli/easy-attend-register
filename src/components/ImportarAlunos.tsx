@@ -477,7 +477,7 @@ export function ImportarAlunos({
   }
 
   async function importar() {
-    if (!podeCriar || (modo === "atualizar" && !podeEditar)) return toast.error("Seu acesso não permite esta importação.");
+    if (!podeCriar || (modo === "atualizar" && !podeEditar)) { toast.error("Seu acesso não permite esta importação."); return; }
     const validas = analises.filter((a) => !a.erros.length);
     if (!validas.length) {
       toast.error("Nenhuma linha válida para importar.");

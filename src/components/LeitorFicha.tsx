@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function LeitorFicha({ editando, permitido, onAplicar }: { editando: boolean; permitido: boolean; onAplicar: (dados: DadosFicha, arquivo: File) => void }) {
+export function LeitorFicha({ arquivo, editando, permitido, onAplicar }: { arquivo: File | null; editando: boolean; permitido: boolean; onAplicar: (dados: DadosFicha) => void }) {
   const chamar = useServerFn(assistenciaIA);
-  const [arquivo, setArquivo] = useState<File | null>(null);
   const [dados, setDados] = useState<DadosFicha | null>(null);
   const [avisos, setAvisos] = useState<string[]>([]);
   const [erro, setErro] = useState("");
@@ -26,15 +25,13 @@ export function LeitorFicha({ editando, permitido, onAplicar }: { editando: bool
     } catch { setErro("Não foi possível ler a ficha. Verifique sua conexão."); } finally { setOcupado(false); }
   }
   return <section className="space-y-3 border-b border-border pb-4" aria-label="Leitura da ficha">
-    <Label htmlFor="foto-ficha-ia">Foto da ficha</Label>
-    <Input id="foto-ficha-ia" type="file" accept="image/jpeg,image/png,image/webp" disabled={!permitido || ocupado} onChange={(e) => { setArquivo(e.target.files?.[0] ?? null); setDados(null); setErro(""); }} />
     <Button type="button" variant="outline" size="sm" disabled={!arquivo || !permitido || ocupado} onClick={() => void ler()}>{ocupado ? <Loader2 className="size-4 animate-spin" /> : <ScanText className="size-4" />}{ocupado ? "Lendo ficha…" : "Ler ficha com IA"}</Button>
     {erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}
     {dados && <div className="space-y-3">
       <h3 className="text-sm font-semibold">Revisar dados da ficha</h3>
       {avisos.map((a, i) => <p key={i} className="text-sm text-muted-foreground">{a}</p>)}
       <div className="grid gap-3 sm:grid-cols-2">{CAMPOS_FICHA.filter(([c]) => c in dados).map(([c, label]) => <div key={c} className="space-y-1"><Label htmlFor={`ia-${c}`}>{label}</Label><Input id={`ia-${c}`} value={dados[c] ?? ""} onChange={(e) => setDados({ ...dados, [c]: e.target.value })} /></div>)}</div>
-      <Button type="button" disabled={!arquivo || !permitido} onClick={() => { if (arquivo) { onAplicar(dados, arquivo); setDados(null); } }}>Aplicar dados revisados</Button>
+      <Button type="button" disabled={!arquivo || !permitido} onClick={() => { if (arquivo) { onAplicar(dados); setDados(null); } }}>Aplicar dados revisados</Button>
     </div>}
   </section>;
 }

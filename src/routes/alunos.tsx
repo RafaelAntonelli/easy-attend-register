@@ -1161,16 +1161,6 @@ function AlunosPage() {
               <DialogTitle className="font-display">{editando ? "Editar aluno" : "Nova matrícula"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={salvar} className="space-y-4">
-              <LeitorFicha key={editando?.id ?? "nova"} editando={Boolean(editando)} permitido={permitido(editando ? "alunos_editar" : "alunos_cadastrar")} onAplicar={(dados, arquivo) => {
-                if (!permitido(editando ? "alunos_editar" : "alunos_cadastrar")) return;
-                setForm((atual) => ({ ...atual, ...Object.fromEntries(Object.entries(dados).filter(([, v]) => v?.trim())),
-                  ...(dados.nome ? { nome: capitalizarNome(dados.nome) } : {}),
-                  ...(dados.telefone ? { telefone: formatarCelular(dados.telefone) } : {}),
-                  ...(dados.telefone2 ? { telefone2: formatarCelular(dados.telefone2) } : {}),
-                  ...(dados.cpf ? { cpf: formatarCPF(dados.cpf) } : {}),
-                }));
-                setDocs((atual) => ({ ...atual, doc_ficha_path: arquivo }));
-              }} />
               <div className="space-y-2">
                 <Label>Nome completo</Label>
                 <Input
@@ -1531,6 +1521,7 @@ function AlunosPage() {
                     <div className="flex items-center gap-2">
                       <Input
                         id={`doc-${d.campo}`}
+                        aria-label={d.rotulo}
                         type="file"
                         accept="image/*,application/pdf"
                         onChange={(e) => {
@@ -1553,6 +1544,21 @@ function AlunosPage() {
                         <Trash2 className="size-4" />
                       </Button>
                     </div>
+                    {d.campo === "doc_ficha_path" && <LeitorFicha
+                      key={`${editando?.id ?? "nova"}-${docs.doc_ficha_path?.name ?? "sem-ficha"}-${docs.doc_ficha_path?.lastModified ?? 0}-${docs.doc_ficha_path?.size ?? 0}`}
+                      arquivo={docs.doc_ficha_path}
+                      editando={Boolean(editando)}
+                      permitido={permitido(editando ? "alunos_editar" : "alunos_cadastrar")}
+                      onAplicar={(dados) => {
+                        if (!permitido(editando ? "alunos_editar" : "alunos_cadastrar")) return;
+                        setForm((atual) => ({ ...atual, ...Object.fromEntries(Object.entries(dados).filter(([, v]) => v?.trim())),
+                          ...(dados.nome ? { nome: capitalizarNome(dados.nome) } : {}),
+                          ...(dados.telefone ? { telefone: formatarCelular(dados.telefone) } : {}),
+                          ...(dados.telefone2 ? { telefone2: formatarCelular(dados.telefone2) } : {}),
+                          ...(dados.cpf ? { cpf: formatarCPF(dados.cpf) } : {}),
+                        }));
+                      }}
+                    />}
                      {d.campo === "doc_atestado_path" && docs.doc_atestado_path && (!form.atestado_entregue || !form.atestado_data) ? (
                        <p className="flex items-center gap-1 text-xs font-medium text-destructive" role="alert">
                          <AlertTriangle className="size-3.5 shrink-0" /> Marque “Entregou atestado?” e informe a data para salvar.

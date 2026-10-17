@@ -26,5 +26,6 @@
 - Keep the build-time runtime guard in `src/lib/worker-runtime.ts`, not the generated-output `build/` directory, so deployment preserves its source; guard the generated server `_runtime.mjs` module URL because dynamic Worker modules may have no `import.meta.url` and crash the generated `createRequire` helper.
 - Route AI assistance through authenticated `ai.functions.ts` with existing action permissions and request-local, server-only streaming Responses helpers; this prevents browser secrets and unauthorized AI calls.
 - AI enrollment and column mapping must remain reviewed proposals passed through existing form/import validation, never direct writes; this preserves enrollment rules and human confirmation.
+- The ficha reader consumes the enrollment document attachment state and resets when that attachment changes; this keeps the analyzed image identical to the file saved with enrollment.
 - Give the report AI only server-computed aggregates and generate WhatsApp drafts without student identifiers or medical details; this minimizes data disclosure and prevents automatic messaging.
 - Persist terminal provider denial in the application configuration and check it before AI calls; clear it only after provider access is restored and an administrator explicitly resumes use.

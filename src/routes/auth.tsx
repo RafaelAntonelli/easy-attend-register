@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -93,6 +94,7 @@ function AuthPage() {
   const [novaSenha, setNovaSenha] = useState("");
   const [contaCriada, setContaCriada] = useState(false);
   const [offline, setOffline] = useState(false);
+  const [acesso, setAcesso] = useState("equipe");
 
   useEffect(() => {
     const atualizar = () => setOffline(!navigator.onLine);
@@ -208,14 +210,28 @@ function AuthPage() {
                 alt="Logo Arena Aquática LF"
                 className="mb-2 size-16 rounded-2xl shadow-md"
               />
-              <CardTitle className="font-display text-2xl">{titulo}</CardTitle>
+              <CardTitle className="font-display text-2xl">{acesso === "aluno" ? "Área do aluno" : titulo}</CardTitle>
               <CardDescription>
-                {modo === "criar" && !recuperando && !redefinindo
+                {acesso === "aluno"
+                  ? "Arena Aquática LF"
+                  : modo === "criar" && !recuperando && !redefinindo
                   ? "Crie sua conta. Um administrador precisará liberar seu acesso."
                   : "Entre para gerenciar alunos, turmas e presenças."}
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <Tabs value={acesso} onValueChange={setAcesso}>
+                <TabsList className="mb-4 grid w-full grid-cols-2" aria-label="Tipo de acesso">
+                  <TabsTrigger value="equipe" disabled={busy || redefinindo}>Equipe</TabsTrigger>
+                  <TabsTrigger value="aluno" disabled={busy || redefinindo}>Aluno</TabsTrigger>
+                </TabsList>
+                <TabsContent value="aluno" className="space-y-4 text-center">
+                  <p className="text-sm text-muted-foreground">O acesso dos alunos ainda não está disponível.</p>
+                  <Button type="button" variant="outline" className="w-full" onClick={() => setAcesso("equipe")}>
+                    Voltar para Equipe
+                  </Button>
+                </TabsContent>
+                <TabsContent value="equipe">
               {offline && (
                 <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                   <WifiOff className="mt-0.5 size-4 shrink-0" />
@@ -331,6 +347,8 @@ function AuthPage() {
                   </p>
                 </form>
               )}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>

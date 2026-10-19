@@ -39,5 +39,6 @@ export const enviarAvisoEquipe=createServerFn({method:'POST'}).middleware([requi
  const ids:string[]=[];for(let offset=0;;offset+=500){const {data:rows,error}=await query.range(offset,offset+499);if(error)throw new Error('Não foi possível buscar destinatários.');ids.push(...(rows??[]).map(r=>r.id));if((rows??[]).length<500)break;}
  if(!ids.length)throw new Error('Aluno não encontrado.');const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
  for(let i=0;i<ids.length;i+=500){const {error}=await supabaseAdmin.from('avisos_alunos').insert(ids.slice(i,i+500).map(aluno_id=>({aluno_id,titulo:data.titulo,mensagem:data.mensagem,autor_id:context.userId})));if(error)throw new Error('Não foi possível salvar avisos.');}
- const {enviarPush}=await import('./portal-extras.server');const entrega=await enviarPush(ids,data.titulo,data.mensagem);return {destinatarios:ids.length,...entrega};
+ const key=process.env['FIREBASE_MESSAGING_API_KEY'],auth=process.env['LOVABLE_API_KEY'];if(!key||!auth)throw new Error('Avisos foram salvos, mas a conexão das notificações está indisponível.');
+ const {enviarPush}=await import('./portal-extras.server');const entrega=await enviarPush(ids,data.titulo,data.mensagem,key,auth);return {destinatarios:ids.length,...entrega};
 });

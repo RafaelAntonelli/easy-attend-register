@@ -6,11 +6,10 @@ export async function validarPortal(supabase: SupabaseClient<Database>, userId: 
  if(!aparelho?.aprovado_em || !vinculo || aparelho.aluno_id!==vinculo.aluno_id) throw new Error('Aparelho não autorizado. Procure a equipe.');
  return {alunoId:vinculo.aluno_id,aparelhoId:aparelho.id};
 }
-export async function enviarPush(alunoIds:string[], titulo:string, mensagem:string) {
+export async function enviarPush(alunoIds:string[], titulo:string, mensagem:string, key:string, auth:string) {
  const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
- const key=process.env['FIREBASE_MESSAGING_API_KEY'], auth=process.env['LOVABLE_API_KEY'];
- if(!key || !auth) return {enviados:0,falhas:0};
- const {data:tokens}=await supabaseAdmin.from('push_alunos').select('id,token,aparelho_id,user_id,aluno_id').in('aluno_id',alunoIds);
+ const tokens=[];
+ for(let offset=0;;offset+=500){const {data:rows,error}=await supabaseAdmin.from('push_alunos').select('id,token,aparelho_id,user_id,aluno_id').in('aluno_id',alunoIds).order('id').range(offset,offset+499);if(error)throw new Error('Não foi possível buscar aparelhos para notificar.');tokens.push(...(rows??[]));if((rows??[]).length<500)break;}
  let enviados=0,falhas=0;
  for(const item of tokens??[]) {
  const {data:device}=await supabaseAdmin.from('aparelhos_alunos').select('id').eq('id',item.aparelho_id).eq('aluno_id',item.aluno_id).gt('expires_at',new Date().toISOString()).not('aprovado_em','is',null).maybeSingle();

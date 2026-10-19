@@ -4,12 +4,13 @@ import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-
 import QRCode from "qrcode";
 import { LogOut, CalendarDays, FileCheck, UserRound } from "lucide-react";
 import { consultarPortalAluno } from "@/lib/portal-aluno.functions";
+import { tokenAparelhoLocal } from "@/lib/aparelho-local";
 import { supabase } from "@/integrations/supabase/client";
 import { vencimentoAtestado, atestadoVencido } from "@/lib/atestado";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-const consulta = queryOptions({ queryKey: ["portal-aluno"], queryFn: () => consultarPortalAluno(), staleTime: 0 });
+const consulta = queryOptions({ queryKey: ["portal-aluno"], queryFn: () => consultarPortalAluno({ data: { aparelho: tokenAparelhoLocal() } }), staleTime: 0 });
 export const Route = createFileRoute("/_authenticated/area-aluno")({
   loader: ({ context }) => context.queryClient.ensureQueryData(consulta),
   head: () => ({ meta: [

@@ -92,6 +92,13 @@
       "when": 1792372119810,
       "tag": "0012_perfil_avisos_portal",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792372443409,
+      "tag": "0013_restringir_edicao_avisos_portal",
+      "breakpoints": true
     }
   ]
 }

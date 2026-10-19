@@ -1,0 +1,2 @@
+REVOKE UPDATE ON public.avisos_alunos FROM authenticated;
+COMMENT ON FUNCTION public.gerar_lembretes_aulas() IS 'Generates unique 30-minute and 15-minute lesson reminders; requires a supported scheduler and notification dispatcher before background delivery is active.';

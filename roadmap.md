@@ -1,7 +1,7 @@
 # Roadmap
 
 - [x] Validar consulta isolada de crachá, turma e atestado, autenticação e bloqueio com conta temporária; dados temporários removidos. Modelo com senha aguarda substituição segura solicitada pelo usuário.
-- [ ] Revisar pedido de entrada sem senha por CPF/matrícula e nascimento — exige confirmação adicional segura antes de liberar dados pessoais.
+- [ ] Implementar CPF/matrícula e nascimento sem senha, com aprovação presencial do aparelho, revogação e testes de isolamento.
 
 - [x] Relatórios IA: perguntas complexas com média e mediana de idade, filtros cruzados e comparação de grupos; cálculos no sistema, idades ausentes contabilizadas e perguntas reais autenticadas validadas.
 

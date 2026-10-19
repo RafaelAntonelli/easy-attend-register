@@ -16,9 +16,9 @@ const baseNav = [
   { to: "/turmas", label: "Turmas", icon: CalendarDays },
   { to: "/presenca", label: "Presença", icon: QrCode },
   { to: "/relatorios", label: "Relatórios", icon: FileBarChart },
-  { to: "/avisos", label: "Avisos", icon: Bell },
 ];
 const adminNav = [
+  { to: "/avisos", label: "Avisos", icon: Bell },
   { to: "/backup", label: "Backup", icon: CloudUpload },
   { to: "/equipe", label: "Equipe", icon: ShieldCheck },
 ];

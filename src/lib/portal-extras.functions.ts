@@ -34,7 +34,7 @@ export const registrarPushPortal=createServerFn({method:'POST'}).middleware([req
  const {error}=await supabaseAdmin.from('push_alunos').upsert({token:data.token,user_id:context.userId,aluno_id:alunoId,aparelho_id:aparelhoId},{onConflict:'token'});if(error)throw new Error('Não foi possível ativar avisos.');return {ok:true};
 });
 export const enviarAvisoEquipe=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>avisoPortalSchema.parse(d)).handler(async({data,context})=>{
- const {data:staff}=await context.supabase.rpc('is_staff',{_user_id:context.userId});if(!staff)throw new Error('Apenas a equipe pode enviar avisos.');
+ const {data:admin}=await context.supabase.rpc('has_role',{_user_id:context.userId,_role:'admin'});if(!admin)throw new Error('Apenas administradores podem enviar avisos.');
  let query=context.supabase.from('alunos').select('id').order('id');if(data.alunoId)query=query.eq('id',data.alunoId);
  const ids:string[]=[];for(let offset=0;;offset+=500){const {data:rows,error}=await query.range(offset,offset+499);if(error)throw new Error('Não foi possível buscar destinatários.');ids.push(...(rows??[]).map(r=>r.id));if((rows??[]).length<500)break;}
  if(!ids.length)throw new Error('Aluno não encontrado.');const {supabaseAdmin}=await import('@/integrations/supabase/client.server');

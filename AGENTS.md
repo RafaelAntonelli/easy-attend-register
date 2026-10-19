@@ -32,3 +32,4 @@
 - Student devices: admin-only physical approval, hashed tokens only, sessions after device+birth date+identifier checks. Token via partitioned HttpOnly cookie plus browser copy (aparelho-local.ts), since previews drop cookies. Rate-limit per IP, and per device when a token exists. Device requests require an exact active student match (else no code is issued) and feed the admin waiting list.
 - Device approval QR uses the versioned aparelho-qr.ts parser with only the public device code; reading fills the existing form without bypassing admin authorization or physical confirmation.
 - Profile camera and gallery share the validated photo mutation; native front-camera capture updates the enrollment photo through the existing storage path.
+- Student notice alerts read the shared avisos query at the student route level and silently re-register push when permission is already granted; this keeps unread badges across tabs and device tokens fresh.

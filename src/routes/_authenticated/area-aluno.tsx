@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import QRCode from "qrcode";
@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { vencimentoAtestado, atestadoVencido } from "@/lib/atestado";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AvisosPortal } from "@/components/AvisosPortal";
+import { AvisosPortal, ChamadaAvisos, useAvisosNovos, usePushAluno } from "@/components/AvisosPortal";
 import { obterPerfilPortal } from "@/lib/portal-extras.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -41,6 +41,8 @@ function AcessoIndisponivel() {
 function AreaAluno() {
   const { data: aluno } = useSuspenseQuery(consulta); const sair = useSairAluno();
   const [qr, setQr] = useState("");
+  const [aba, setAba] = useState("inicio"); const verAvisos = useCallback(() => setAba("avisos"), []);
+  const push = usePushAluno(); const naoLidos = useAvisosNovos(verAvisos);
   const [cracha,setCracha]=useState(''); const [gerando,setGerando]=useState(false); const perfilFn=useServerFn(obterPerfilPortal);
   async function gerar(pdf:boolean){setGerando(true);try{const perfil=await perfilFn({data:{aparelho:tokenAparelhoLocal()}});const turma=aluno.turmas[0];const dados={nome:aluno.nome,codigo:aluno.codigo,rg:perfil.rg,cpf:perfil.cpf,responsavel:perfil.responsavel,telefone:perfil.telefone,pcd:perfil.pcd,modalidade:turma?.modalidade??null,horario:turma?.horario??null,dias:turma?.dias_semana??[],fotoUrl:aluno.fotoUrl};const lib=await import('@/lib/cracha');if(pdf)await lib.gerarCrachasPdfFielAoPreview([dados],`cracha-${aluno.codigo}.pdf`);else setCracha(await lib.gerarCrachaPreviewImagem(dados));}catch(e){toast.error(e instanceof Error?e.message:'Não foi possível gerar crachá.');}finally{setGerando(false);}}
   useEffect(() => { let ativo = true; QRCode.toDataURL(aluno.codigo, { width: 320, margin: 2, errorCorrectionLevel: "H" }).then(v => { if (ativo) setQr(v); }).catch(() => { if (ativo) setQr(""); }); return () => { ativo = false; }; }, [aluno.codigo]);
@@ -62,9 +64,10 @@ function AreaAluno() {
     </section>
     <main className="mx-auto max-w-6xl px-5 py-6 sm:px-8 sm:py-8">
       {!aluno.ativo&&<div role="alert" className="mb-6 rounded-md border border-destructive bg-destructive/10 p-4"><h2 className="font-semibold text-destructive">Compareça à administração</h2><p className="mt-1 text-sm">Sua matrícula está inativa. Compareça à administração da Arena Aquática para verificar sua situação.</p></div>}
-      <Tabs defaultValue="inicio" className="gap-7">
+      {aba!=='avisos'&&<ChamadaAvisos naoLidos={naoLidos} push={push} onVer={verAvisos}/>}
+      <Tabs value={aba} onValueChange={setAba} className="gap-7">
         <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b border-border bg-transparent p-0">
-          {[['inicio','Meu dia',CalendarDays],['cracha','Crachá',CreditCard],['avisos','Avisos',Bell]].map(([value,label,Icon])=>{const TabIcon=Icon as typeof CalendarDays;return <TabsTrigger key={String(value)} value={String(value)} className="h-12 flex-none rounded-none border-0 border-b-2 border-transparent px-3 text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none sm:px-5"><TabIcon className="mr-2 size-4"/>{String(label)}</TabsTrigger>;})}
+          {[['inicio','Meu dia',CalendarDays],['cracha','Crachá',CreditCard],['avisos','Avisos',Bell]].map(([value,label,Icon])=>{const TabIcon=Icon as typeof CalendarDays;return <TabsTrigger key={String(value)} value={String(value)} className="h-12 flex-none rounded-none border-0 border-b-2 border-transparent px-3 text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none sm:px-5"><TabIcon className="mr-2 size-4"/>{String(label)}{value==='avisos'&&naoLidos>0&&<span aria-label={`${naoLidos} avisos novos`} className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-semibold text-destructive-foreground">{naoLidos}</span>}</TabsTrigger>;})}
         </TabsList>
         <TabsContent value="inicio">
           <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-10">
@@ -75,7 +78,7 @@ function AreaAluno() {
           </div>
         </TabsContent>
         <TabsContent value="cracha"><section aria-label="Crachá digital" className="grid items-start gap-8 md:grid-cols-[minmax(0,1fr)_240px]"><div><h2 className="font-display text-xl font-semibold">Meu crachá</h2><div className="my-5 flex flex-wrap gap-3"><Button variant="outline" disabled={gerando} onClick={()=>gerar(false)}><CreditCard className="mr-2 size-4"/>{gerando?'Gerando…':'Gerar crachá'}</Button><Button disabled={gerando} onClick={()=>gerar(true)}><Download className="mr-2 size-4"/>Gerar PDF do crachá</Button></div>{cracha?<img src={cracha} alt={`Crachá de ${aluno.nome}`} className="w-full max-w-xl rounded-lg"/>:<div className="flex min-h-40 max-w-xl items-center gap-4 rounded-md border border-dashed border-border p-6 text-muted-foreground"><CreditCard className="size-8 shrink-0"/><div><p className="font-medium text-foreground">{aluno.nome}</p><p className="mt-1 font-mono text-sm">{aluno.codigo}</p></div></div>}</div><div className="border-t border-border pt-6 md:border-l md:border-t-0 md:pl-7 md:pt-0"><p className="mb-4 text-sm font-semibold">Identificação para presença</p><div className="aspect-square w-44">{qr?<img src={qr} alt={`QR Code da matrícula ${aluno.codigo}`} className="h-full w-full rounded-md"/>:<p className="text-sm text-muted-foreground">QR Code indisponível</p>}</div><p className="mt-3 font-mono text-sm font-semibold">{aluno.codigo}</p></div></section></TabsContent>
-        <TabsContent value="avisos"><AvisosPortal/></TabsContent>
+        <TabsContent value="avisos"><AvisosPortal push={push}/></TabsContent>
       </Tabs>
       <footer className="mt-12 flex flex-wrap items-center justify-between gap-2 border-t border-border py-5 text-xs text-muted-foreground"><span>Arena Aquática LF</span><span>Programa Esporte 360</span></footer>
     </main>

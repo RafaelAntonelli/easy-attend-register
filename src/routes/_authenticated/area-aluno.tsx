@@ -54,10 +54,10 @@ function AreaAluno() {
       </div>
     </header>
     <section className="border-b border-border bg-card">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-5 px-5 py-8 sm:px-8 sm:py-10">
+      <div className="mx-auto grid max-w-6xl grid-cols-[auto_minmax(0,1fr)] items-center gap-5 sm:grid-cols-[auto_minmax(0,1fr)_auto] px-5 py-8 sm:px-8 sm:py-10">
         {aluno.fotoUrl?<img src={aluno.fotoUrl} alt={`Foto de ${aluno.nome}`} className="size-20 shrink-0 rounded-full object-cover ring-4 ring-secondary sm:size-24"/>:<div className="flex size-20 shrink-0 items-center justify-center rounded-full bg-secondary ring-4 ring-secondary/50 sm:size-24"><UserRound className="size-10 text-secondary-foreground"/></div>}
         <div className="min-w-0 flex-1"><p className="mb-1 text-sm text-muted-foreground">Bom ter você aqui</p><h1 className="break-words font-display text-2xl font-semibold sm:text-3xl">{aluno.nome}</h1><div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2"><p className="text-sm text-muted-foreground">Matrícula <span className="ml-1 font-mono font-semibold text-foreground">{aluno.codigo}</span></p><span className="flex items-center gap-1.5 text-xs font-medium"><span className={`size-2 rounded-full ${aluno.ativo?'bg-success':'bg-destructive'}`}/>{aluno.ativo?'Aluno ativo':'Aluno inativo'}</span></div></div>
-        <Button asChild variant="outline" className="ml-auto"><Link to="/perfil-aluno"><UserRound className="mr-2 size-4"/>Meu perfil<ArrowUpRight className="ml-3 size-4"/></Link></Button>
+        <Button asChild variant="outline" className="col-span-2 w-full sm:col-span-1 sm:w-auto"><Link to="/perfil-aluno"><UserRound className="mr-2 size-4"/>Meu perfil<ArrowUpRight className="ml-3 size-4"/></Link></Button>
       </div>
     </section>
     <main className="mx-auto max-w-6xl px-5 py-6 sm:px-8 sm:py-8">

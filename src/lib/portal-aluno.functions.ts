@@ -6,6 +6,10 @@ import { portalAlunoSchema } from "@/lib/portal-aluno";
 export const consultarPortalAluno = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const { aparelhoAtual } = await import("./aparelho-aluno.server");
+    const aparelho = await aparelhoAtual();
+    const { data: vinculo } = await context.supabase.from("acessos_alunos").select("aluno_id").eq("user_id", context.userId).eq("ativo", true).maybeSingle();
+    if (!aparelho?.aprovado_em || !vinculo || aparelho.aluno_id !== vinculo.aluno_id) throw new Error("Aparelho não autorizado. Procure a equipe.");
     const { data, error } = await context.supabase.rpc("consultar_portal_aluno");
     if (error) throw new Error("Seu acesso de aluno não está disponível. Procure a equipe.");
     const aluno = portalAlunoSchema.parse(data);

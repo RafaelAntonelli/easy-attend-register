@@ -64,6 +64,13 @@
       "when": 1792194335954,
       "tag": "0008_acoes_alunos_permissoes_separadas",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792368036084,
+      "tag": "0009_portal_aluno_consulta_individual",
+      "breakpoints": true
     }
   ]
 }

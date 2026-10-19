@@ -25,7 +25,7 @@ export async function buscarAlunoSolicitante(dados: { identificador: string; nas
   let consulta = supabaseAdmin.from("alunos").select("id").eq("ativo", true).eq("data_nascimento", dados.nascimento);
   consulta = /^\d{11}$/.test(id) ? consulta.in("cpf", [id, `${id.slice(0, 3)}.${id.slice(3, 6)}.${id.slice(6, 9)}-${id.slice(9)}`]) : consulta.eq("codigo", id);
   const { data } = await consulta.limit(2);
-  return data?.length === 1 ? data[0].id : null;
+  return data?.length === 1 ? data[0]?.id ?? null : null;
 }
 /** Liga um pedido de aparelho ainda pendente ao aluno, para a equipe ver quem aguarda. */
 export async function registrarSolicitacao(deviceId: string, alunoId: string) {

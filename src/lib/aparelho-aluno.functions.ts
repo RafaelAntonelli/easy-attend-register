@@ -1,21 +1,29 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { aprovarAparelhoSchema, entradaAparelhoSchema, emailContaAluno, solicitarAparelhoSchema } from "./portal-aluno";
+import { aprovarAparelhoSchema, entradaAparelhoSchema, emailContaAluno, MENSAGEM_ALUNO_NAO_ENCONTRADO, solicitarAparelhoSchema } from "./portal-aluno";
 
 export const prepararAparelho = createServerFn({ method: "POST" }).inputValidator((d: unknown) => solicitarAparelhoSchema.parse(d ?? {})).handler(async ({ data }) => {
-  const { aparelhoAtual, gravarAparelho, hashToken, limitarEntrada, registrarSolicitacao } = await import("./aparelho-aluno.server");
+  const { aparelhoAtual, buscarAlunoSolicitante, gravarAparelho, hashToken, limitarEntrada, registrarSolicitacao } = await import("./aparelho-aluno.server");
   await limitarEntrada(data.aparelho);
   const atual = await aparelhoAtual(data.aparelho);
-  if (atual && !atual.aprovado_em && data.dados) await registrarSolicitacao(atual.id, data.dados);
-  if (atual && data.aparelho) { gravarAparelho(data.aparelho); return { codigo: atual.codigo, aprovado: !!atual.aprovado_em, token: data.aparelho }; }
-  if (atual) return { codigo: atual.codigo, aprovado: !!atual.aprovado_em, token: null };
+  if (atual?.aprovado_em) {
+    if (data.aparelho) gravarAparelho(data.aparelho);
+    return { codigo: atual.codigo, aprovado: true, token: data.aparelho ?? null };
+  }
+  const alunoId = await buscarAlunoSolicitante(data.dados);
+  if (!alunoId) throw new Error(MENSAGEM_ALUNO_NAO_ENCONTRADO);
+  if (atual) {
+    await registrarSolicitacao(atual.id, alunoId);
+    if (data.aparelho) gravarAparelho(data.aparelho);
+    return { codigo: atual.codigo, aprovado: false, token: data.aparelho ?? null };
+  }
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const token = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join("");
   const codigo = crypto.randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase();
   const { data: novo, error } = await supabaseAdmin.from("aparelhos_alunos").insert({ token_hash: await hashToken(token), codigo }).select("id").single();
   if (error || !novo) throw new Error("Não foi possível preparar o aparelho.");
-  if (data.dados) await registrarSolicitacao(novo.id, data.dados);
+  await registrarSolicitacao(novo.id, alunoId);
   gravarAparelho(token);
   return { codigo, aprovado: false, token };
 });
@@ -72,10 +80,10 @@ export const aprovarAparelho = createServerFn({ method: "POST" }).middleware([re
 });
 
 export const entrarAparelho = createServerFn({ method: "POST" }).inputValidator((d: unknown) => entradaAparelhoSchema.parse(d)).handler(async ({ data }) => {
-  const { aparelhoAtual, limitarEntrada, registrarSolicitacao } = await import("./aparelho-aluno.server");
+  const { aparelhoAtual, buscarAlunoSolicitante, limitarEntrada, registrarSolicitacao } = await import("./aparelho-aluno.server");
   await limitarEntrada(data.aparelho);
   const device = await aparelhoAtual(data.aparelho);
-  if (device && !device.aprovado_em) await registrarSolicitacao(device.id, data);
+  if (device && !device.aprovado_em) { const alunoId = await buscarAlunoSolicitante(data); if (alunoId) await registrarSolicitacao(device.id, alunoId); }
   if (!device?.aprovado_em || !device.aluno_id) throw new Error("Este aparelho precisa de liberação presencial pela equipe.");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: aluno } = await supabaseAdmin.from("alunos").select("id,codigo,cpf,data_nascimento,ativo").eq("id", device.aluno_id).maybeSingle();

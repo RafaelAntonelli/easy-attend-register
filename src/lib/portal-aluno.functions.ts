@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { portalAlunoSchema } from "@/lib/portal-aluno";
+import { portalAlunoSchema, tokenAparelhoSchema } from "@/lib/portal-aluno";
 
 export const consultarPortalAluno = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

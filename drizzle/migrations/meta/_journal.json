@@ -78,6 +78,13 @@
       "when": 1792368239897,
       "tag": "0010_corrigir_nome_registro_sem_campo_ativo",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792368559440,
+      "tag": "0011_portal_aparelhos_autorizados",
+      "breakpoints": true
     }
   ]
 }

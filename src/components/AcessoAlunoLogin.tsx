@@ -1,40 +1,44 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, LogIn, WifiOff } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { LogIn, Smartphone } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { emailContaAluno, loginAlunoSchema } from "@/lib/portal-aluno";
+import { entradaAparelhoSchema } from "@/lib/portal-aluno";
+import { entrarAparelho, prepararAparelho } from "@/lib/aparelho-aluno.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function AcessoAlunoLogin({ offline }: { offline: boolean }) {
-  const [codigo, setCodigo] = useState("");
-  const [senha, setSenha] = useState("");
-  const [ver, setVer] = useState(false);
+  const [identificador, setIdentificador] = useState("");
+  const [nascimento, setNascimento] = useState("");
+  const [aparelho, setAparelho] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [erro, setErro] = useState("");
+  const entrarFn = useServerFn(entrarAparelho), preparar = useServerFn(prepararAparelho);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   async function entrar(e: React.FormEvent) {
     e.preventDefault(); setErro("");
-    const validado = loginAlunoSchema.safeParse({ codigo, senha });
+    const validado = entradaAparelhoSchema.safeParse({ identificador, nascimento });
     if (!validado.success) { setErro(validado.error.issues[0]?.message ?? "Confira os dados."); return; }
     setBusy(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email: emailContaAluno(validado.data.codigo), password: validado.data.senha });
-      if (error) { setErro(error.status === 429 ? "Muitas tentativas. Aguarde alguns minutos." : "Matrícula ou senha incorreta, ou acesso ainda não liberado."); return; }
-      await queryClient.cancelQueries(); queryClient.clear(); setSenha("");
+      const { token } = await entrarFn({ data: validado.data });
+      const { error } = await supabase.auth.verifyOtp({ token_hash: token, type: "magiclink" });
+      if (error) throw new Error("Não foi possível entrar. Tente novamente.");
+      await queryClient.cancelQueries(); queryClient.clear();
       await navigate({ to: "/area-aluno" });
-    } catch { setErro("Não foi possível entrar. Verifique sua conexão."); }
+    } catch (e) { setErro(e instanceof Error ? e.message : "Não foi possível entrar."); }
     finally { setBusy(false); }
   }
   return <form onSubmit={entrar} className="space-y-4 text-left">
-    {offline && <p className="flex items-center gap-2 text-sm text-destructive"><WifiOff className="size-4" />Você está sem internet.</p>}
-    <div className="space-y-2"><Label htmlFor="matricula-aluno">Matrícula</Label><Input id="matricula-aluno" value={codigo} maxLength={7} autoComplete="username" autoCapitalize="characters" spellCheck={false} onChange={e => setCodigo(e.target.value.toUpperCase())} required /></div>
-    <div className="space-y-2"><Label htmlFor="senha-aluno">Senha</Label><div className="relative"><Input id="senha-aluno" type={ver ? "text" : "password"} value={senha} maxLength={128} autoComplete="current-password" className="pr-12" onChange={e => setSenha(e.target.value)} required /><Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0" aria-label={ver ? "Esconder senha do aluno" : "Mostrar senha do aluno"} onClick={() => setVer(!ver)}>{ver ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</Button></div></div>
+    <div className="space-y-2"><Label htmlFor="matricula-aluno">CPF ou matrícula</Label><Input id="matricula-aluno" value={identificador} maxLength={14} autoComplete="username" autoCapitalize="characters" spellCheck={false} onChange={e => setIdentificador(e.target.value.toUpperCase())} required /></div>
+    <div className="space-y-2"><Label htmlFor="nascimento-aluno">Data de nascimento</Label><Input id="nascimento-aluno" type="date" value={nascimento} onChange={e => setNascimento(e.target.value)} required /></div>
     {erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}
-    <Button type="submit" className="w-full" disabled={busy || offline}><LogIn className="mr-2 size-4" />{busy ? "Entrando…" : "Entrar como aluno"}</Button>
-    <p className="text-center text-xs text-muted-foreground">Primeiro acesso ou esqueceu a senha? Procure a equipe para liberar ou recuperar seu acesso.</p>
+    <Button type="submit" className="w-full" disabled={busy || offline}><LogIn className="mr-2 size-4" />{busy ? "Aguarde…" : "Entrar como aluno"}</Button>
+    <Button type="button" variant="outline" className="w-full" disabled={busy || offline} onClick={async () => { setBusy(true); setErro(""); try { const a = await preparar(); setAparelho(a.aprovado ? "Aparelho já liberado" : a.codigo); } catch (e) { setErro(e instanceof Error ? e.message : "Falha ao preparar aparelho."); } finally { setBusy(false); } }}><Smartphone className="mr-2 size-4" />Solicitar liberação deste aparelho</Button>
+    {aparelho && <div className="border-t border-border pt-3 text-center"><p className="text-xs text-muted-foreground">Código para apresentar presencialmente à equipe</p><p className="break-all font-mono text-lg font-semibold">{aparelho}</p></div>}
   </form>;
 }

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      acessos_alunos: {
+        Row: {
+          aluno_id: string
+          ativo: boolean
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          aluno_id: string
+          ativo?: boolean
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          aluno_id?: string
+          ativo?: boolean
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acessos_alunos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acessos_alunos_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alunos: {
         Row: {
           atestado_data: string | null
@@ -688,6 +724,7 @@ export type Database = {
         Returns: string
       }
       calc_turno: { Args: { _horario: string }; Returns: string }
+      consultar_portal_aluno: { Args: never; Returns: Json }
       disparar_backup_semanal: { Args: never; Returns: undefined }
       equipe_acessos: {
         Args: never
@@ -697,6 +734,7 @@ export type Database = {
           last_sign_in_at: string
         }[]
       }
+      foto_do_proprio_aluno: { Args: { _path: string }; Returns: boolean }
       gerar_codigo_matricula: { Args: never; Returns: string }
       has_role: {
         Args: {

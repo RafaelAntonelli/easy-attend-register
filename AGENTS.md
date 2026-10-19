@@ -30,4 +30,5 @@
 - Give the report AI only server-computed aggregates and generate WhatsApp drafts without student identifiers or medical details; this minimizes data disclosure and prevents automatic messaging.
 - Complex AI reports translate questions to typed filters, reuse report intersections, then calculate unique-student age statistics locally from paginated authorized reads; only aggregate results reach the answering model so comparisons remain reproducible.
 - Persist terminal provider denial in the application configuration and check it before AI calls; clear it only after provider access is restored and an administrator explicitly resumes use.
-- Keep login audience tabs presentation-only until student authentication is defined; never reuse staff access as a student portal.
+- Keep student accounts in a separate account-to-enrollment link with mutually exclusive staff roles; the portal uses an auth.uid-scoped, minimal read-only database function, never broad student-table read policies.
+- Provision and reset enrollment/password student accounts only through admin-authorized server functions with account-specific email confirmation; never change global signup confirmation or expose student passwords, documents, medical notes or staff caches in the portal.

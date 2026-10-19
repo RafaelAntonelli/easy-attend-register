@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Implementar login de aluno por matrícula e senha, liberação/recuperação pelo administrador e consulta isolada de crachá, turma e atestado; validar autenticação e isolamento com conta temporária.
+
 - [x] Relatórios IA: perguntas complexas com média e mediana de idade, filtros cruzados e comparação de grupos; cálculos no sistema, idades ausentes contabilizadas e perguntas reais autenticadas validadas.
 
 - [x] IA: ler foto da Ficha com revisão antes de preencher matrícula.

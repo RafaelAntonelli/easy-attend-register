@@ -9,6 +9,7 @@ import { PERMISSOES_PROFESSOR, permissaoAtiva, usePermissoesProfessor } from "@/
 import { normalizarTexto } from "@/lib/formatacao";
 import { removerContaPendente, confirmarSenhaPermissoes, alterarPermissaoProfessor } from "@/lib/equipe.functions";
 import { AppShell } from "@/components/AppShell";
+import { AcessosAlunos } from "@/components/AcessosAlunos";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -121,7 +122,7 @@ function EquipePage() {
     }
     const mapaAcesso = new Map((acessos ?? []).map((a) => [a.id, a.last_sign_in_at as string | null]));
     setMembros(
-      (perfis ?? []).map((p) => ({
+      (perfis ?? []).filter(p => !p.email?.endsWith("@alunos.arena.invalid")).map((p) => ({
         id: p.id,
         nome: p.nome,
         email: p.email,
@@ -279,8 +280,9 @@ function EquipePage() {
         <p className="text-sm text-muted-foreground">Carregando...</p>
       ) : (
         <Tabs value={aba} onValueChange={trocarAba}>
-          <TabsList>
+          <TabsList className="h-auto flex-wrap">
             <TabsTrigger value="equipe">Equipe</TabsTrigger>
+            <TabsTrigger value="alunos">Acessos dos alunos</TabsTrigger>
             <TabsTrigger value="permissoes"><LockKeyhole className="mr-1 size-4" />Permissões dos professores</TabsTrigger>
           </TabsList>
 
@@ -303,6 +305,7 @@ function EquipePage() {
             ))}
           </TabsContent>
 
+          <TabsContent value="alunos" className="mt-4"><AcessosAlunos /></TabsContent>
           {confirmacao ? <TabsContent value="permissoes" className="mt-4">
             <Card>
               <CardHeader>

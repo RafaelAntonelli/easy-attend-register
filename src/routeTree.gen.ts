@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AlunosRouteImport } from './routes/alunos'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BackupRouteImport } from './routes/backup'
@@ -17,11 +18,16 @@ import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as PresencaRouteImport } from './routes/presenca'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as TurmasRouteImport } from './routes/turmas'
+import { Route as AuthenticatedAreaAlunoRouteImport } from './routes/_authenticated/area-aluno'
 import { Route as ApiPublicBackupSemanalRouteImport } from './routes/api/public/backup-semanal'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlunosRoute = AlunosRouteImport.update({
@@ -59,6 +65,11 @@ const TurmasRoute = TurmasRouteImport.update({
   path: '/turmas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAreaAlunoRoute = AuthenticatedAreaAlunoRouteImport.update({
+  id: '/area-aluno',
+  path: '/area-aluno',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ApiPublicBackupSemanalRoute = ApiPublicBackupSemanalRouteImport.update({
   id: '/api/public/backup-semanal',
   path: '/api/public/backup-semanal',
@@ -74,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/presenca': typeof PresencaRoute
   '/relatorios': typeof RelatoriosRoute
   '/turmas': typeof TurmasRoute
+  '/area-aluno': typeof AuthenticatedAreaAlunoRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
 }
 export interface FileRoutesByTo {
@@ -85,11 +97,13 @@ export interface FileRoutesByTo {
   '/presenca': typeof PresencaRoute
   '/relatorios': typeof RelatoriosRoute
   '/turmas': typeof TurmasRoute
+  '/area-aluno': typeof AuthenticatedAreaAlunoRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/alunos': typeof AlunosRoute
   '/auth': typeof AuthRoute
   '/backup': typeof BackupRoute
@@ -97,6 +111,7 @@ export interface FileRoutesById {
   '/presenca': typeof PresencaRoute
   '/relatorios': typeof RelatoriosRoute
   '/turmas': typeof TurmasRoute
+  '/_authenticated/area-aluno': typeof AuthenticatedAreaAlunoRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +125,7 @@ export interface FileRouteTypes {
     | '/presenca'
     | '/relatorios'
     | '/turmas'
+    | '/area-aluno'
     | '/api/public/backup-semanal'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,10 +137,12 @@ export interface FileRouteTypes {
     | '/presenca'
     | '/relatorios'
     | '/turmas'
+    | '/area-aluno'
     | '/api/public/backup-semanal'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/alunos'
     | '/auth'
     | '/backup'
@@ -132,11 +150,13 @@ export interface FileRouteTypes {
     | '/presenca'
     | '/relatorios'
     | '/turmas'
+    | '/_authenticated/area-aluno'
     | '/api/public/backup-semanal'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AlunosRoute: typeof AlunosRoute
   AuthRoute: typeof AuthRoute
   BackupRoute: typeof BackupRoute
@@ -154,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alunos': {
@@ -205,6 +232,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TurmasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/area-aluno': {
+      id: '/_authenticated/area-aluno'
+      path: '/area-aluno'
+      fullPath: '/area-aluno'
+      preLoaderRoute: typeof AuthenticatedAreaAlunoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/backup-semanal': {
       id: '/api/public/backup-semanal'
       path: '/api/public/backup-semanal'
@@ -215,8 +249,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAreaAlunoRoute: typeof AuthenticatedAreaAlunoRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAreaAlunoRoute: AuthenticatedAreaAlunoRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AlunosRoute: AlunosRoute,
   AuthRoute: AuthRoute,
   BackupRoute: BackupRoute,

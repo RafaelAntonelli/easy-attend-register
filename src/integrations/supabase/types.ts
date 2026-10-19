@@ -237,6 +237,50 @@ export type Database = {
           },
         ]
       }
+      avisos_alunos: {
+        Row: {
+          aluno_id: string
+          autor_id: string | null
+          chave: string | null
+          created_at: string
+          id: string
+          lido_em: string | null
+          mensagem: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          aluno_id: string
+          autor_id?: string | null
+          chave?: string | null
+          created_at?: string
+          id?: string
+          lido_em?: string | null
+          mensagem: string
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          aluno_id?: string
+          autor_id?: string | null
+          chave?: string | null
+          created_at?: string
+          id?: string
+          lido_em?: string | null
+          mensagem?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avisos_alunos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backup_cron: {
         Row: {
           ativo: boolean
@@ -709,6 +753,48 @@ export type Database = {
         }
         Relationships: []
       }
+      push_alunos: {
+        Row: {
+          aluno_id: string
+          aparelho_id: string
+          created_at: string
+          id: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          aluno_id: string
+          aparelho_id: string
+          created_at?: string
+          id?: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          aluno_id?: string
+          aparelho_id?: string
+          created_at?: string
+          id?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_alunos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_alunos_aparelho_id_fkey"
+            columns: ["aparelho_id"]
+            isOneToOne: false
+            referencedRelation: "aparelhos_alunos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       turmas: {
         Row: {
           ativa: boolean
@@ -789,6 +875,10 @@ export type Database = {
         Returns: boolean
       }
       disparar_backup_semanal: { Args: never; Returns: undefined }
+      editar_contato_portal: {
+        Args: { _email: string; _telefone: string; _telefone2: string }
+        Returns: undefined
+      }
       equipe_acessos: {
         Args: never
         Returns: {
@@ -799,6 +889,7 @@ export type Database = {
       }
       foto_do_proprio_aluno: { Args: { _path: string }; Returns: boolean }
       gerar_codigo_matricula: { Args: never; Returns: string }
+      gerar_lembretes_aulas: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -807,6 +898,8 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      marcar_aviso_lido: { Args: { _id: string }; Returns: undefined }
+      perfil_portal_aluno: { Args: never; Returns: Json }
       pode: { Args: { _chave: string; _user_id: string }; Returns: boolean }
     }
     Enums: {

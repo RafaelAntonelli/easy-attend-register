@@ -85,6 +85,20 @@
       "when": 1792368559440,
       "tag": "0011_portal_aparelhos_autorizados",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792372119810,
+      "tag": "0012_perfil_avisos_portal",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792372443409,
+      "tag": "0013_restringir_edicao_avisos_portal",
+      "breakpoints": true
     }
   ]
 }

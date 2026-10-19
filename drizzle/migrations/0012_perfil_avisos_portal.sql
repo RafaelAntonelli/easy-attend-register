@@ -1,0 +1,30 @@
+CREATE OR REPLACE FUNCTION public.perfil_portal_aluno() RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT jsonb_build_object('nome',a.nome,'codigo',a.codigo,'data_nascimento',a.data_nascimento,'telefone',a.telefone,'telefone2',a.telefone2,'email',a.email,'responsavel',a.responsavel,'rg',a.rg,'cpf',a.cpf,'pcd',a.pcd) FROM public.alunos a JOIN public.acessos_alunos v ON v.aluno_id=a.id WHERE v.user_id=auth.uid() AND v.ativo $$;
+REVOKE ALL ON FUNCTION public.perfil_portal_aluno() FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.perfil_portal_aluno() TO authenticated;
+CREATE OR REPLACE FUNCTION public.editar_contato_portal(_telefone text, _telefone2 text, _email text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ DECLARE v_id uuid; BEGIN SELECT aluno_id INTO v_id FROM acessos_alunos WHERE user_id=auth.uid() AND ativo; IF v_id IS NULL THEN RAISE EXCEPTION 'Acesso indisponível' USING ERRCODE='42501'; END IF; IF length(COALESCE(_telefone,''))>20 OR length(COALESCE(_telefone2,''))>20 OR length(COALESCE(_email,''))>254 THEN RAISE EXCEPTION 'Contato inválido'; END IF; UPDATE alunos SET telefone=NULLIF(_telefone,''),telefone2=NULLIF(_telefone2,''),email=NULLIF(_email,'') WHERE id=v_id; END $$;
+REVOKE ALL ON FUNCTION public.editar_contato_portal(text,text,text) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.editar_contato_portal(text,text,text) TO authenticated;
+CREATE OR REPLACE FUNCTION public.validar_alteracao_aluno_permissoes() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ BEGIN
+IF public.has_role(auth.uid(),'admin') OR auth.role()='service_role' THEN RETURN NEW; END IF;
+IF EXISTS(SELECT 1 FROM public.acessos_alunos WHERE user_id=auth.uid() AND aluno_id=OLD.id AND ativo) AND (to_jsonb(NEW)-ARRAY['telefone','telefone2','email']) IS NOT DISTINCT FROM (to_jsonb(OLD)-ARRAY['telefone','telefone2','email']) THEN RETURN NEW; END IF;
+IF NEW.ativo IS DISTINCT FROM OLD.ativo THEN IF NOT public.pode(auth.uid(),CASE WHEN NEW.ativo THEN 'alunos_reativar' ELSE 'alunos_inativar' END) THEN RAISE EXCEPTION 'Sem permissão para alterar a situação do aluno' USING ERRCODE='42501'; END IF; END IF;
+IF (to_jsonb(NEW)-ARRAY['ativo','motivo_inativacao','inativado_em','inativado_por','inativado_por_nome']) IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['ativo','motivo_inativacao','inativado_em','inativado_por','inativado_por_nome']) AND NOT public.pode(auth.uid(),'alunos_editar') THEN RAISE EXCEPTION 'Sem permissão para editar alunos' USING ERRCODE='42501'; END IF;
+IF NEW.ativo IS NOT DISTINCT FROM OLD.ativo AND NOT public.pode(auth.uid(),'alunos_editar') THEN RAISE EXCEPTION 'Sem permissão para editar alunos' USING ERRCODE='42501'; END IF; RETURN NEW; END $$;
+CREATE TABLE public.avisos_alunos(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),aluno_id uuid NOT NULL REFERENCES public.alunos(id) ON DELETE CASCADE,titulo text NOT NULL,mensagem text NOT NULL,autor_id uuid,created_at timestamptz NOT NULL DEFAULT now(),lido_em timestamptz,tipo text NOT NULL DEFAULT 'equipe',chave text UNIQUE);
+GRANT SELECT,UPDATE ON public.avisos_alunos TO authenticated; GRANT ALL ON public.avisos_alunos TO service_role;
+ALTER TABLE public.avisos_alunos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY avisos_equipe_select ON public.avisos_alunos FOR SELECT TO authenticated USING(public.is_staff(auth.uid()));
+CREATE POLICY avisos_proprio_select ON public.avisos_alunos FOR SELECT TO authenticated USING(EXISTS(SELECT 1 FROM public.acessos_alunos v WHERE v.user_id=auth.uid() AND v.ativo AND v.aluno_id=avisos_alunos.aluno_id));
+CREATE TABLE public.push_alunos(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid NOT NULL,aluno_id uuid NOT NULL REFERENCES public.alunos(id) ON DELETE CASCADE,aparelho_id uuid NOT NULL REFERENCES public.aparelhos_alunos(id) ON DELETE CASCADE,token text NOT NULL UNIQUE,created_at timestamptz NOT NULL DEFAULT now());
+GRANT ALL ON public.push_alunos TO service_role; ALTER TABLE public.push_alunos ENABLE ROW LEVEL SECURITY;
+CREATE OR REPLACE FUNCTION public.marcar_aviso_lido(_id uuid) RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path=public AS $$ UPDATE avisos_alunos SET lido_em=now() WHERE id=_id AND aluno_id IN(SELECT aluno_id FROM acessos_alunos WHERE user_id=auth.uid() AND ativo) $$;
+REVOKE ALL ON FUNCTION public.marcar_aviso_lido(uuid) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.marcar_aviso_lido(uuid) TO authenticated;
+CREATE OR REPLACE FUNCTION public.gerar_lembretes_aulas() RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ DECLARE agora timestamp := now() AT TIME ZONE 'America/Sao_Paulo'; BEGIN
+INSERT INTO avisos_alunos(aluno_id,titulo,mensagem,tipo,chave)
+SELECT DISTINCT a.id,'Lembrete de aula', 'Sua aula de '||t.modalidade||' começa às '||substring(t.horario from '^\s*[0-9]{1,2}:[0-9]{2}')||'. Faltam '||minutos.n||' minutos.','aula',a.id::text||':'||t.id::text||':'||agora::date::text||':'||minutos.n::text
+FROM alunos a JOIN matriculas m ON m.aluno_id=a.id AND m.status='ativa' JOIN turmas t ON t.id=m.turma_id AND t.ativa CROSS JOIN (VALUES(30),(15)) minutos(n)
+WHERE a.ativo AND EXISTS(SELECT 1 FROM acessos_alunos v WHERE v.aluno_id=a.id AND v.ativo)
+AND t.horario ~ '^\s*[0-9]{1,2}:[0-9]{2}'
+AND EXISTS(SELECT 1 FROM unnest(t.dias_semana) d WHERE lower(d) IN ((ARRAY['domingo','segunda','terça','quarta','quinta','sexta','sábado'])[extract(dow from agora)::int+1],(ARRAY['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'])[extract(dow from agora)::int+1]))
+AND date_trunc('minute',agora)=(agora::date + substring(t.horario from '^\s*[0-9]{1,2}:[0-9]{2}')::time - make_interval(mins=>minutos.n))
+ON CONFLICT(chave) DO NOTHING;
+END $$;
+REVOKE ALL ON FUNCTION public.gerar_lembretes_aulas() FROM PUBLIC,anon,authenticated; GRANT EXECUTE ON FUNCTION public.gerar_lembretes_aulas() TO service_role;

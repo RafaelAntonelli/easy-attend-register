@@ -51,7 +51,7 @@ export const entrarAparelho = createServerFn({ method: "POST" }).inputValidator(
   if (!device?.aprovado_em || !device.aluno_id) throw new Error("Este aparelho precisa de liberação presencial pela equipe.");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: aluno } = await supabaseAdmin.from("alunos").select("id,codigo,cpf,data_nascimento,ativo").eq("id", device.aluno_id).maybeSingle();
-  if (!aluno?.ativo || aluno.data_nascimento !== data.nascimento || (aluno.codigo !== data.identificador && aluno.cpf?.replace(/\D/g, "") !== data.identificador)) throw new Error("Confira os dados ou procure a equipe.");
+  if (!aluno || aluno.data_nascimento !== data.nascimento || (aluno.codigo !== data.identificador && aluno.cpf?.replace(/\D/g, "") !== data.identificador)) throw new Error("Confira os dados ou procure a equipe.");
   const { data: vinculo } = await supabaseAdmin.from("acessos_alunos").select("user_id").eq("aluno_id", aluno.id).eq("ativo", true).maybeSingle();
   if (!vinculo) throw new Error("Confira os dados ou procure a equipe.");
   const { data: link, error } = await supabaseAdmin.auth.admin.generateLink({ type: "magiclink", email: emailContaAluno(aluno.codigo) });

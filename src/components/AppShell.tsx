@@ -1,7 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
-import { LayoutDashboard, Users, CalendarDays, QrCode, LogOut, Waves, ShieldCheck, FileBarChart, CloudUpload } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, QrCode, LogOut, Waves, ShieldCheck, FileBarChart, CloudUpload, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { permissaoAtiva, usePermissoesProfessor } from "@/lib/permissoes";
@@ -16,6 +16,7 @@ const baseNav = [
   { to: "/turmas", label: "Turmas", icon: CalendarDays },
   { to: "/presenca", label: "Presença", icon: QrCode },
   { to: "/relatorios", label: "Relatórios", icon: FileBarChart },
+  { to: "/avisos", label: "Avisos", icon: Bell },
 ];
 const adminNav = [
   { to: "/backup", label: "Backup", icon: CloudUpload },
@@ -122,13 +123,13 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
 
       <main className="px-5 py-6 md:px-10">{children}</main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-sidebar-border bg-sidebar md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex overflow-x-auto border-t border-sidebar-border bg-sidebar md:hidden">
         {nav.map((item) => (
           <Link
             key={item.to}
             to={item.to}
             className={cn(
-              "flex flex-1 flex-col items-center gap-1 py-3 text-[11px] font-medium text-sidebar-foreground/60",
+              "flex min-w-16 flex-1 flex-col items-center gap-1 py-3 text-[11px] font-medium text-sidebar-foreground/60",
               pathname === item.to && "text-sidebar-primary",
             )}
           >

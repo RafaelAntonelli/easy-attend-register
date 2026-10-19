@@ -13,12 +13,14 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AlunosRouteImport } from './routes/alunos'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AvisosRouteImport } from './routes/avisos'
 import { Route as BackupRouteImport } from './routes/backup'
 import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as PresencaRouteImport } from './routes/presenca'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as TurmasRouteImport } from './routes/turmas'
 import { Route as AuthenticatedAreaAlunoRouteImport } from './routes/_authenticated/area-aluno'
+import { Route as AuthenticatedPerfilAlunoRouteImport } from './routes/_authenticated/perfil-aluno'
 import { Route as ApiPublicBackupSemanalRouteImport } from './routes/api/public/backup-semanal'
 
 const IndexRoute = IndexRouteImport.update({
@@ -38,6 +40,11 @@ const AlunosRoute = AlunosRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AvisosRoute = AvisosRouteImport.update({
+  id: '/avisos',
+  path: '/avisos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BackupRoute = BackupRouteImport.update({
@@ -70,6 +77,12 @@ const AuthenticatedAreaAlunoRoute = AuthenticatedAreaAlunoRouteImport.update({
   path: '/area-aluno',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPerfilAlunoRoute =
+  AuthenticatedPerfilAlunoRouteImport.update({
+    id: '/perfil-aluno',
+    path: '/perfil-aluno',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiPublicBackupSemanalRoute = ApiPublicBackupSemanalRouteImport.update({
   id: '/api/public/backup-semanal',
   path: '/api/public/backup-semanal',
@@ -80,24 +93,28 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alunos': typeof AlunosRoute
   '/auth': typeof AuthRoute
+  '/avisos': typeof AvisosRoute
   '/backup': typeof BackupRoute
   '/equipe': typeof EquipeRoute
   '/presenca': typeof PresencaRoute
   '/relatorios': typeof RelatoriosRoute
   '/turmas': typeof TurmasRoute
   '/area-aluno': typeof AuthenticatedAreaAlunoRoute
+  '/perfil-aluno': typeof AuthenticatedPerfilAlunoRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alunos': typeof AlunosRoute
   '/auth': typeof AuthRoute
+  '/avisos': typeof AvisosRoute
   '/backup': typeof BackupRoute
   '/equipe': typeof EquipeRoute
   '/presenca': typeof PresencaRoute
   '/relatorios': typeof RelatoriosRoute
   '/turmas': typeof TurmasRoute
   '/area-aluno': typeof AuthenticatedAreaAlunoRoute
+  '/perfil-aluno': typeof AuthenticatedPerfilAlunoRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
 }
 export interface FileRoutesById {
@@ -106,12 +123,14 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/alunos': typeof AlunosRoute
   '/auth': typeof AuthRoute
+  '/avisos': typeof AvisosRoute
   '/backup': typeof BackupRoute
   '/equipe': typeof EquipeRoute
   '/presenca': typeof PresencaRoute
   '/relatorios': typeof RelatoriosRoute
   '/turmas': typeof TurmasRoute
   '/_authenticated/area-aluno': typeof AuthenticatedAreaAlunoRoute
+  '/_authenticated/perfil-aluno': typeof AuthenticatedPerfilAlunoRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
 }
 export interface FileRouteTypes {
@@ -120,24 +139,28 @@ export interface FileRouteTypes {
     | '/'
     | '/alunos'
     | '/auth'
+    | '/avisos'
     | '/backup'
     | '/equipe'
     | '/presenca'
     | '/relatorios'
     | '/turmas'
     | '/area-aluno'
+    | '/perfil-aluno'
     | '/api/public/backup-semanal'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/alunos'
     | '/auth'
+    | '/avisos'
     | '/backup'
     | '/equipe'
     | '/presenca'
     | '/relatorios'
     | '/turmas'
     | '/area-aluno'
+    | '/perfil-aluno'
     | '/api/public/backup-semanal'
   id:
     | '__root__'
@@ -145,12 +168,14 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/alunos'
     | '/auth'
+    | '/avisos'
     | '/backup'
     | '/equipe'
     | '/presenca'
     | '/relatorios'
     | '/turmas'
     | '/_authenticated/area-aluno'
+    | '/_authenticated/perfil-aluno'
     | '/api/public/backup-semanal'
   fileRoutesById: FileRoutesById
 }
@@ -159,6 +184,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AlunosRoute: typeof AlunosRoute
   AuthRoute: typeof AuthRoute
+  AvisosRoute: typeof AvisosRoute
   BackupRoute: typeof BackupRoute
   EquipeRoute: typeof EquipeRoute
   PresencaRoute: typeof PresencaRoute
@@ -195,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/avisos': {
+      id: '/avisos'
+      path: '/avisos'
+      fullPath: '/avisos'
+      preLoaderRoute: typeof AvisosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/backup': {
@@ -239,6 +272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAreaAlunoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/perfil-aluno': {
+      id: '/_authenticated/perfil-aluno'
+      path: '/perfil-aluno'
+      fullPath: '/perfil-aluno'
+      preLoaderRoute: typeof AuthenticatedPerfilAlunoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/backup-semanal': {
       id: '/api/public/backup-semanal'
       path: '/api/public/backup-semanal'
@@ -251,10 +291,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAreaAlunoRoute: typeof AuthenticatedAreaAlunoRoute
+  AuthenticatedPerfilAlunoRoute: typeof AuthenticatedPerfilAlunoRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAreaAlunoRoute: AuthenticatedAreaAlunoRoute,
+  AuthenticatedPerfilAlunoRoute: AuthenticatedPerfilAlunoRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -265,6 +307,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AlunosRoute: AlunosRoute,
   AuthRoute: AuthRoute,
+  AvisosRoute: AvisosRoute,
   BackupRoute: BackupRoute,
   EquipeRoute: EquipeRoute,
   PresencaRoute: PresencaRoute,

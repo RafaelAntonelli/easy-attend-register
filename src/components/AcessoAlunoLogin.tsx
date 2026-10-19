@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { LogIn, Smartphone } from "lucide-react";
@@ -10,6 +10,7 @@ import { salvarTokenAparelho, tokenAparelhoLocal } from "@/lib/aparelho-local";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function AcessoAlunoLogin({ offline }: { offline: boolean }) {
   const [identificador, setIdentificador] = useState("");
@@ -17,6 +18,8 @@ export function AcessoAlunoLogin({ offline }: { offline: boolean }) {
   const [aparelho, setAparelho] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [erro, setErro] = useState("");
+  const [lembrar, setLembrar] = useState(false);
+  useEffect(() => { try { const salvo = JSON.parse(localStorage.getItem('arena-login-aluno') ?? 'null'); if (salvo && typeof salvo.identificador === 'string' && typeof salvo.nascimento === 'string') {setIdentificador(salvo.identificador); setNascimento(salvo.nascimento);setLembrar(true);} } catch { /* storage unavailable */ } }, []);
   const entrarFn = useServerFn(entrarAparelho), preparar = useServerFn(prepararAparelho);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -29,6 +32,7 @@ export function AcessoAlunoLogin({ offline }: { offline: boolean }) {
       const { token } = await entrarFn({ data: validado.data });
       const { error } = await supabase.auth.verifyOtp({ token_hash: token, type: "magiclink" });
       if (error) throw new Error("Não foi possível entrar. Tente novamente.");
+      try { if(lembrar) { localStorage.setItem('arena-consentimento','permitido');localStorage.setItem('arena-login-aluno',JSON.stringify({identificador: validado.data.identificador,nascimento})); } else localStorage.removeItem('arena-login-aluno'); } catch { /* login still works without storage */ }
       await queryClient.cancelQueries(); queryClient.clear();
       await navigate({ to: "/area-aluno" });
     } catch (e) { setErro(e instanceof Error ? e.message : "Não foi possível entrar."); }
@@ -38,6 +42,7 @@ export function AcessoAlunoLogin({ offline }: { offline: boolean }) {
     <div className="space-y-2"><Label htmlFor="matricula-aluno">CPF ou matrícula</Label><Input id="matricula-aluno" value={identificador} maxLength={14} autoComplete="username" autoCapitalize="characters" spellCheck={false} onChange={e => setIdentificador(e.target.value.toUpperCase())} required /></div>
     <div className="space-y-2"><Label htmlFor="nascimento-aluno">Data de nascimento</Label><Input id="nascimento-aluno" type="date" value={nascimento} onChange={e => setNascimento(e.target.value)} required /></div>
     {erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}
+    <label className="flex items-start gap-2 text-sm"><Checkbox checked={lembrar} onCheckedChange={v=>{setLembrar(v===true);if(v!==true)try{localStorage.removeItem('arena-login-aluno');}catch{}}} /><span>Salvar login neste aparelho<span className="block text-xs text-muted-foreground">Guarda CPF/matrícula e nascimento. Use somente em aparelho pessoal.</span></span></label>
     <Button type="submit" className="w-full" disabled={busy || offline}><LogIn className="mr-2 size-4" />{busy ? "Aguarde…" : "Entrar como aluno"}</Button>
     <Button type="button" variant="outline" className="w-full" disabled={busy || offline} onClick={async () => { setBusy(true); setErro(""); try { const a = await preparar({ data: { aparelho: tokenAparelhoLocal() } }); if (a.token) salvarTokenAparelho(a.token); setAparelho(a.aprovado ? "Aparelho já liberado" : a.codigo); } catch (e) { setErro(e instanceof Error ? e.message : "Falha ao preparar aparelho."); } finally { setBusy(false); } }}><Smartphone className="mr-2 size-4" />Solicitar liberação deste aparelho</Button>
     {aparelho && <div className="border-t border-border pt-3 text-center"><p className="text-xs text-muted-foreground">Código para apresentar presencialmente à equipe</p><p className="break-all font-mono text-lg font-semibold">{aparelho}</p></div>}

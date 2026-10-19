@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Renovar somente a apresentação da área do aluno, preservando perfil, crachá, turmas, atestado e avisos.
+
 - [x] Implementar consentimento de armazenamento e login salvo; restauração validada com Testealuno.
 - [x] Adicionar geração de crachá e PDF; geração e download validados.
 - [x] Mostrar aviso para comparecer à administração ao entrar como aluno inativo, sem dispensar a autorização do aparelho.

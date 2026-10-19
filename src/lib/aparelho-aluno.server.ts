@@ -1,5 +1,6 @@
 import { getCookie, getRequest, setCookie } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { opcoesCookieAparelho } from "./aparelho-cookie";
 
 export async function hashToken(value: string) {
   return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))), b => b.toString(16).padStart(2, "0")).join("");
@@ -11,7 +12,7 @@ export async function aparelhoAtual() {
   return data;
 }
 export function gravarAparelho(token: string) {
-  setCookie("arena-aparelho", token, { httpOnly: true, secure: getRequest().url.startsWith("https:"), sameSite: "strict", path: "/", maxAge: 180 * 86400 });
+  setCookie("arena-aparelho", token, opcoesCookieAparelho(getRequest().url));
 }
 export async function limitarEntrada() {
   const device = getCookie("arena-aparelho") ?? "sem-aparelho";

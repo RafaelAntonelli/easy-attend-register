@@ -99,6 +99,13 @@
       "when": 1792372443409,
       "tag": "0013_restringir_edicao_avisos_portal",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792415337983,
+      "tag": "0014_solicitacao_aparelho_aluno",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Login: exibir QR Code para solicitar liberação presencial do aparelho.
+- [ ] Equipe / Acessos dos alunos: ler QR Code e confirmar liberação do aparelho.
+- [ ] Perfil do aluno: tirar foto pela câmera e atualizar o cadastro existente.
+
 - [x] Renovar apresentação da área do aluno com perfil em destaque e abas Meu dia, Crachá e Avisos; visual e navegação conferidos com dados ilustrativos em desktop/celular, sem excesso de largura. Consulta real não revalidada: sessão disponível não possui aparelho autorizado.
 
 - [x] Implementar consentimento de armazenamento e login salvo; restauração validada com Testealuno.

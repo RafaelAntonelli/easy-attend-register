@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Criar guia ilustrado dos professores com dados fictícios e instruções alinhadas às permissões.
+- [ ] Adaptar guias de alunos e professores para WhatsApp: imagens numeradas, PDF e pacotes para download; revisar todas as páginas.
+
 - [x] Login: QR Code de liberação exibido e conferido no celular; sem token ou dados pessoais no QR.
 - [x] Equipe / Acessos dos alunos: QR lido por câmera simulada e liberação real validada com administrador, confirmação presencial e entrada de Testealuno; aparelho temporário revogado.
 - [x] Perfil do aluno: botão Tirar foto abre captura nativa frontal; envio e leitura da foto no cadastro validados, foto temporária removida. Captura física no Android depende de teste no aparelho após publicar.

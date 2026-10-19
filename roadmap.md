@@ -1,5 +1,12 @@
 # Roadmap
 
+- [ ] Definir e implementar consentimento de armazenamento e login salvo no aparelho.
+- [ ] Adicionar geração de crachá e PDF na área do aluno.
+- [ ] Mostrar aviso para comparecer à administração ao entrar como aluno inativo.
+- [ ] Adicionar perfil editável e foto sincronizados com o cadastro, com acesso restrito ao próprio aluno.
+- [ ] Adicionar avisos da equipe individuais e gerais, com notificações.
+- [ ] Implementar lembretes de aula 30 e 15 minutos antes e validar entrega.
+
 - [x] Validar consulta isolada de crachá, turma e atestado, autenticação e bloqueio com conta temporária; dados temporários removidos.
 - [x] Implementar CPF/matrícula e nascimento sem senha, com aprovação presencial do aparelho, revogação e testes de isolamento.
 

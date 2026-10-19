@@ -24,7 +24,7 @@ export type PushAluno=ReturnType<typeof usePushAluno>;
 /** Mostra um toast quando chega um aviso novo com a área do aluno aberta. */
 export function useAvisosNovos(onVer:()=>void){
  const {data:avisos=[]}=useQuery(avisosPortalConsulta);const vistos=useRef<Set<string>|null>(null);
- useEffect(()=>{if(!avisos.length&&vistos.current===null)return;const ids=new Set(avisos.map(a=>a.id));if(vistos.current===null){vistos.current=ids;return;}const novos=avisos.filter(a=>!a.lido_em&&!vistos.current!.has(a.id));vistos.current=ids;if(novos.length)toast(novos.length===1?`Novo aviso: ${novos[0].titulo}`:`${novos.length} novos avisos`,{icon:<BellRing className="size-4"/>,action:{label:'Ver',onClick:onVer},duration:10000});},[avisos,onVer]);
+ useEffect(()=>{if(!avisos.length&&vistos.current===null)return;const ids=new Set(avisos.map(a=>a.id));if(vistos.current===null){vistos.current=ids;return;}const novos=avisos.filter(a=>!a.lido_em&&!vistos.current!.has(a.id));vistos.current=ids;if(novos.length)toast(novos.length===1?`Novo aviso: ${novos[0]?.titulo??""}`:`${novos.length} novos avisos`,{icon:<BellRing className="size-4"/>,action:{label:'Ver',onClick:onVer},duration:10000});},[avisos,onVer]);
  return avisos.filter(a=>!a.lido_em).length;
 }
 

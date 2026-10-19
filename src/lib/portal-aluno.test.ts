@@ -38,3 +38,13 @@ describe("solicitação de liberação de aparelho", () => {
     expect(solicitarAparelhoSchema.safeParse({ dados: { identificador: "M8E2C6Y", nascimento: "1990-02-31" } }).success).toBe(false);
   });
 });
+
+describe("pedido de liberação sem aluno correspondente", () => {
+  it("exige CPF/matrícula e nascimento para gerar o QR Code", () => {
+    expect(solicitarAparelhoSchema.safeParse({}).success).toBe(false);
+  });
+  it("avisa para procurar a administração", async () => {
+    const { MENSAGEM_ALUNO_NAO_ENCONTRADO } = await import("./portal-aluno");
+    expect(MENSAGEM_ALUNO_NAO_ENCONTRADO).toBe("Procure a administração!");
+  });
+});

@@ -199,38 +199,51 @@ export type Database = {
       aparelhos_alunos: {
         Row: {
           aluno_id: string | null
+          aluno_solicitado_id: string | null
           aprovado_em: string | null
           aprovado_por: string | null
           codigo: string
           created_at: string
           expires_at: string
           id: string
+          solicitado_em: string | null
           token_hash: string
         }
         Insert: {
           aluno_id?: string | null
+          aluno_solicitado_id?: string | null
           aprovado_em?: string | null
           aprovado_por?: string | null
           codigo: string
           created_at?: string
           expires_at?: string
           id?: string
+          solicitado_em?: string | null
           token_hash: string
         }
         Update: {
           aluno_id?: string | null
+          aluno_solicitado_id?: string | null
           aprovado_em?: string | null
           aprovado_por?: string | null
           codigo?: string
           created_at?: string
           expires_at?: string
           id?: string
+          solicitado_em?: string | null
           token_hash?: string
         }
         Relationships: [
           {
             foreignKeyName: "aparelhos_alunos_aluno_id_fkey"
             columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aparelhos_alunos_aluno_solicitado_id_fkey"
+            columns: ["aluno_solicitado_id"]
             isOneToOne: false
             referencedRelation: "alunos"
             referencedColumns: ["id"]

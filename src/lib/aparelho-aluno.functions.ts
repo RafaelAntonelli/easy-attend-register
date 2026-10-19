@@ -1,21 +1,48 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { aprovarAparelhoSchema, entradaAparelhoSchema, emailContaAluno, tokenAparelhoSchema } from "./portal-aluno";
+import { aprovarAparelhoSchema, entradaAparelhoSchema, emailContaAluno, solicitarAparelhoSchema } from "./portal-aluno";
 
-export const prepararAparelho = createServerFn({ method: "POST" }).inputValidator((d: unknown) => z.object({ aparelho: tokenAparelhoSchema }).strict().parse(d ?? {})).handler(async ({ data }) => {
-  const { aparelhoAtual, gravarAparelho, hashToken, limitarEntrada } = await import("./aparelho-aluno.server");
+export const prepararAparelho = createServerFn({ method: "POST" }).inputValidator((d: unknown) => solicitarAparelhoSchema.parse(d ?? {})).handler(async ({ data }) => {
+  const { aparelhoAtual, gravarAparelho, hashToken, limitarEntrada, registrarSolicitacao } = await import("./aparelho-aluno.server");
   await limitarEntrada(data.aparelho);
   const atual = await aparelhoAtual(data.aparelho);
+  if (atual && !atual.aprovado_em && data.dados) await registrarSolicitacao(atual.id, data.dados);
   if (atual && data.aparelho) { gravarAparelho(data.aparelho); return { codigo: atual.codigo, aprovado: !!atual.aprovado_em, token: data.aparelho }; }
   if (atual) return { codigo: atual.codigo, aprovado: !!atual.aprovado_em, token: null };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const token = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join("");
   const codigo = crypto.randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase();
-  const { error } = await supabaseAdmin.from("aparelhos_alunos").insert({ token_hash: await hashToken(token), codigo });
-  if (error) throw new Error("Não foi possível preparar o aparelho.");
+  const { data: novo, error } = await supabaseAdmin.from("aparelhos_alunos").insert({ token_hash: await hashToken(token), codigo }).select("id").single();
+  if (error || !novo) throw new Error("Não foi possível preparar o aparelho.");
+  if (data.dados) await registrarSolicitacao(novo.id, data.dados);
   gravarAparelho(token);
   return { codigo, aprovado: false, token };
+});
+
+export const listarSolicitacoesAparelho = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  const { data: admin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+  if (!admin) throw new Error("Apenas administradores podem gerenciar acessos de alunos.");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: pedidos, error } = await supabaseAdmin.from("aparelhos_alunos").select("id,codigo,solicitado_em,expires_at,aluno_solicitado_id").is("aprovado_em", null).not("aluno_solicitado_id", "is", null).gt("expires_at", new Date().toISOString()).order("solicitado_em", { ascending: false }).limit(50);
+  if (error) throw new Error("Não foi possível carregar as solicitações.");
+  const ids = [...new Set((pedidos ?? []).map(p => p.aluno_solicitado_id as string))];
+  if (!ids.length) return [];
+  const { data: alunos, error: ae } = await context.supabase.from("alunos").select("id,nome,codigo,ativo").in("id", ids);
+  if (ae) throw new Error("Não foi possível carregar os alunos.");
+  return (pedidos ?? []).flatMap(p => {
+    const aluno = alunos?.find(a => a.id === p.aluno_solicitado_id);
+    return aluno?.ativo ? [{ id: p.id, aparelho: p.codigo, solicitadoEm: p.solicitado_em, expiraEm: p.expires_at, aluno }] : [];
+  });
+});
+
+export const recusarSolicitacaoAparelho = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).strict().parse(d)).handler(async ({ data, context }) => {
+  const { data: admin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+  if (!admin) throw new Error("Apenas administradores podem gerenciar acessos de alunos.");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { error } = await supabaseAdmin.from("aparelhos_alunos").update({ expires_at: new Date().toISOString() }).eq("id", data.id).is("aprovado_em", null);
+  if (error) throw new Error("Não foi possível recusar a solicitação.");
+  return { ok: true };
 });
 
 export const aprovarAparelho = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((d: unknown) => aprovarAparelhoSchema.parse(d)).handler(async ({ data, context }) => {
@@ -45,9 +72,10 @@ export const aprovarAparelho = createServerFn({ method: "POST" }).middleware([re
 });
 
 export const entrarAparelho = createServerFn({ method: "POST" }).inputValidator((d: unknown) => entradaAparelhoSchema.parse(d)).handler(async ({ data }) => {
-  const { aparelhoAtual, limitarEntrada } = await import("./aparelho-aluno.server");
+  const { aparelhoAtual, limitarEntrada, registrarSolicitacao } = await import("./aparelho-aluno.server");
   await limitarEntrada(data.aparelho);
   const device = await aparelhoAtual(data.aparelho);
+  if (device && !device.aprovado_em) await registrarSolicitacao(device.id, data);
   if (!device?.aprovado_em || !device.aluno_id) throw new Error("Este aparelho precisa de liberação presencial pela equipe.");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: aluno } = await supabaseAdmin.from("alunos").select("id,codigo,cpf,data_nascimento,ativo").eq("id", device.aluno_id).maybeSingle();

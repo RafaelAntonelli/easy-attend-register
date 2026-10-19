@@ -28,3 +28,13 @@ describe("login de aluno por matrícula", () => {
     expect(aluno).not.toHaveProperty("doc_atestado_path");
   });
 });
+import { solicitarAparelhoSchema } from "./portal-aluno";
+describe("solicitação de liberação de aparelho", () => {
+  it("aceita CPF/matrícula e nascimento para identificar o aluno em espera", () => {
+    const r = solicitarAparelhoSchema.parse({ dados: { identificador: "123.456.789-01", nascimento: "1990-11-15" } });
+    expect(r.dados?.identificador).toBe("12345678901");
+  });
+  it("rejeita pedido com data de nascimento inválida", () => {
+    expect(solicitarAparelhoSchema.safeParse({ dados: { identificador: "M8E2C6Y", nascimento: "1990-02-31" } }).success).toBe(false);
+  });
+});

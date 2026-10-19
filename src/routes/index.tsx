@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Users, CalendarDays, Plus, Trash2 } from "lucide-react";
+import { Users, CalendarDays, Plus, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CONDICOES_PCD } from "@/lib/pcd";
@@ -62,6 +62,7 @@ function Painel() {
   const { lista: listaHorarios } = useHorarios();
   const [stats, setStats] = useState({ alunos: 0, turmas: 0 });
   const [fila, setFila] = useState<Fila[]>([]);
+  const [mostrarFila, setMostrarFila] = useState(false);
   const [perfilId, setPerfilId] = useState<string | null>(null);
   const filaVazia = {
     nome: "",
@@ -184,8 +185,14 @@ function Painel() {
       <PerfilAluno alunoId={perfilId} onFechar={() => setPerfilId(null)} />
 
       <Card className="mt-6 border-border/70">
-        <CardHeader><CardTitle className="font-display text-lg">Fila de espera</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <CardTitle className="font-display text-lg">Fila de espera</CardTitle>
+          <Button type="button" variant="outline" size="sm" aria-expanded={mostrarFila} aria-controls="fila-espera-conteudo" onClick={() => setMostrarFila((atual) => !atual)}>
+            {mostrarFila ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            {mostrarFila ? "Esconder fila de espera" : "Mostrar fila de espera"}
+          </Button>
+        </CardHeader>
+        <CardContent id="fila-espera-conteudo" hidden={!mostrarFila} className="space-y-4">
           <form onSubmit={adicionarFila} className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <Input

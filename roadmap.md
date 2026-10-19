@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Renovar apresentação da área do aluno com perfil em destaque e abas Meu dia, Crachá e Avisos; visual e navegação conferidos com dados ilustrativos em desktop/celular, sem excesso de largura. Consulta real não revalidada: sessão disponível não possui aparelho autorizado.
+
 - [x] Implementar consentimento de armazenamento e login salvo; restauração validada com Testealuno.
 - [x] Adicionar geração de crachá e PDF; geração e download validados.
 - [x] Mostrar aviso para comparecer à administração ao entrar como aluno inativo, sem dispensar a autorização do aparelho.

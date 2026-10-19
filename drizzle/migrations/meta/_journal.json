@@ -71,6 +71,13 @@
       "when": 1792368036084,
       "tag": "0009_portal_aluno_consulta_individual",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792368239897,
+      "tag": "0010_corrigir_nome_registro_sem_campo_ativo",
+      "breakpoints": true
     }
   ]
 }

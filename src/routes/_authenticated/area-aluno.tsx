@@ -38,7 +38,6 @@ function AreaAluno() {
   useEffect(() => { let ativo = true; QRCode.toDataURL(aluno.codigo, { width: 320, margin: 2, errorCorrectionLevel: "H" }).then(v => { if (ativo) setQr(v); }).catch(() => { if (ativo) setQr(""); }); return () => { ativo = false; }; }, [aluno.codigo]);
   const validade = vencimentoAtestado(aluno.atestado_data);
   const situacao = !aluno.atestado_entregue ? "Não entregue" : !validade ? "Data não informada" : atestadoVencido(aluno.atestado_data) ? "Vencido" : "Válido";
-  const dias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
   return <div className="min-h-screen bg-background">
     <header className="border-b border-border bg-card"><div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-5"><div className="flex items-center gap-3"><img src="/icons/icon-192x192.png" alt="Arena Aquática LF" className="size-10 rounded-lg" /><div><h1 className="font-display text-lg font-semibold">Arena Aquática LF</h1><p className="text-sm text-muted-foreground">Área do aluno</p></div></div><Button variant="outline" onClick={sair}><LogOut className="mr-2 size-4" />Sair</Button></div></header>
     <main className="mx-auto grid max-w-5xl gap-8 px-5 py-8 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">

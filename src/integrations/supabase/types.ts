@@ -196,6 +196,47 @@ export type Database = {
           },
         ]
       }
+      aparelhos_alunos: {
+        Row: {
+          aluno_id: string | null
+          aprovado_em: string | null
+          aprovado_por: string | null
+          codigo: string
+          created_at: string
+          expires_at: string
+          id: string
+          token_hash: string
+        }
+        Insert: {
+          aluno_id?: string | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          codigo: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token_hash: string
+        }
+        Update: {
+          aluno_id?: string | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          codigo?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aparelhos_alunos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backup_cron: {
         Row: {
           ativo: boolean
@@ -543,6 +584,24 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_limites: {
+        Row: {
+          chave: string
+          janela: string
+          tentativas: number
+        }
+        Insert: {
+          chave: string
+          janela?: string
+          tentativas?: number
+        }
+        Update: {
+          chave?: string
+          janela?: string
+          tentativas?: number
+        }
+        Relationships: []
+      }
       presencas: {
         Row: {
           aluno_id: string
@@ -725,6 +784,10 @@ export type Database = {
       }
       calc_turno: { Args: { _horario: string }; Returns: string }
       consultar_portal_aluno: { Args: never; Returns: Json }
+      consumir_limite_portal: {
+        Args: { _chave: string; _max: number }
+        Returns: boolean
+      }
       disparar_backup_semanal: { Args: never; Returns: undefined }
       equipe_acessos: {
         Args: never

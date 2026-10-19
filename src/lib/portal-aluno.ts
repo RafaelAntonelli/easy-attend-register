@@ -11,5 +11,5 @@ export function emailContaAluno(codigo: string) {
 export const portalAlunoSchema = z.object({
   id: z.string().uuid(), nome: z.string(), codigo: codigoAlunoSchema, ativo: z.boolean(), foto_path: z.string().nullable(),
   atestado_entregue: z.boolean(), atestado_data: z.string().nullable(),
-  turmas: z.array(z.object({ id: z.string().uuid(), nome: z.string(), modalidade: z.string(), horario: z.string().nullable(), professor: z.string().nullable(), dias_semana: z.array(z.number()) })),
+  turmas: z.array(z.object({ id: z.string().uuid(), nome: z.string(), modalidade: z.string(), horario: z.string().nullable(), professor: z.string().nullable(), dias_semana: z.array(z.string()) })),
 });

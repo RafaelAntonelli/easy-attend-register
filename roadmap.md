@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Implementar login de aluno por matrícula e senha, liberação/recuperação pelo administrador e consulta isolada de crachá, turma e atestado; validar autenticação e isolamento com conta temporária.
+- [x] Validar consulta isolada de crachá, turma e atestado, autenticação e bloqueio com conta temporária; dados temporários removidos. Modelo com senha aguarda substituição segura solicitada pelo usuário.
+- [ ] Revisar pedido de entrada sem senha por CPF/matrícula e nascimento — exige confirmação adicional segura antes de liberar dados pessoais.
 
 - [x] Relatórios IA: perguntas complexas com média e mediana de idade, filtros cruzados e comparação de grupos; cálculos no sistema, idades ausentes contabilizadas e perguntas reais autenticadas validadas.
 

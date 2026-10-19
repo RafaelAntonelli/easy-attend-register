@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AcessoAlunoLogin } from "@/components/AcessoAlunoLogin";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -81,7 +82,7 @@ function CampoSenha({
 }
 
 function AuthPage() {
-  const { session, loading } = useAuth();
+  const { session, loading, isStudent } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -116,8 +117,8 @@ function AuthPage() {
   }, []);
 
   useEffect(() => {
-    if (!loading && session && !redefinindo) navigate({ to: "/" });
-  }, [loading, session, navigate, redefinindo]);
+    if (!loading && session && !redefinindo) navigate({ to: isStudent ? "/area-aluno" : "/" });
+  }, [loading, session, navigate, redefinindo, isStudent]);
 
   async function enviarRecuperacao(e: React.FormEvent) {
     e.preventDefault();
@@ -191,7 +192,7 @@ function AuthPage() {
           <span className="font-display text-xl font-semibold">Arena Aquática LF</span>
         </div>
         <div className="relative z-10">
-          <p className="text-sm text-primary-foreground/80">Acesso exclusivo da equipe</p>
+          <p className="text-sm text-primary-foreground/80">Acesso da equipe e dos alunos</p>
         </div>
       </div>
 
@@ -226,10 +227,7 @@ function AuthPage() {
                   <TabsTrigger value="aluno" disabled={busy || redefinindo}>Aluno</TabsTrigger>
                 </TabsList>
                 <TabsContent value="aluno" className="space-y-4 text-center">
-                  <p className="text-sm text-muted-foreground">O acesso dos alunos ainda não está disponível.</p>
-                  <Button type="button" variant="outline" className="w-full" onClick={() => setAcesso("equipe")}>
-                    Voltar para Equipe
-                  </Button>
+                  <AcessoAlunoLogin offline={offline} />
                 </TabsContent>
                 <TabsContent value="equipe">
               {offline && (

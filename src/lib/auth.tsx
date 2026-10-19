@@ -9,6 +9,7 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
+  const [isStudent, setIsStudent] = useState(false);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -26,18 +27,19 @@ export function useAuth() {
     const userId = session?.user?.id;
     if (!userId) {
       setRoles([]);
+      setIsStudent(false);
       setRolesLoading(false);
       return;
     }
     let active = true;
     setRolesLoading(true);
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .then(({ data }) => {
+    Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("acessos_alunos").select("user_id").eq("user_id", userId).maybeSingle(),
+    ]).then(([{ data }, { data: acesso }]) => {
         if (!active) return;
         setRoles(((data ?? []) as { role: AppRole }[]).map((r) => r.role));
+        setIsStudent(!!acesso);
         setRolesLoading(false);
       });
     return () => {
@@ -52,5 +54,6 @@ export function useAuth() {
     roles,
     isAdmin: roles.includes("admin"),
     isStaff: roles.length > 0,
+    isStudent,
   };
 }

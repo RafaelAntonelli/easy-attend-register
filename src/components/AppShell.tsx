@@ -1,4 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
 import { LayoutDashboard, Users, CalendarDays, QrCode, LogOut, Waves, ShieldCheck, FileBarChart, CloudUpload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,16 +24,18 @@ const adminNav = [
 
 
 export function AppShell({ children, title, subtitle }: { children: ReactNode; title: string; subtitle?: string }) {
-  const { session, loading, isStaff, isAdmin } = useAuth();
+  const { session, loading, isStaff, isAdmin, isStudent } = useAuth();
+  const queryClient = useQueryClient();
   const { mapa: permissoes } = usePermissoesProfessor();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
-    if (!loading && !session) navigate({ to: "/auth" });
-  }, [loading, session, navigate]);
+    if (!loading && !session) navigate({ to: "/auth", replace: true });
+    else if (!loading && isStudent && !isStaff) navigate({ to: "/area-aluno", replace: true });
+  }, [loading, session, navigate, isStudent, isStaff]);
 
-  if (loading || !session) {
+  if (loading || !session || (isStudent && !isStaff)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Waves className="size-8 animate-pulse text-primary" />
@@ -54,8 +57,10 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
         <Button
           variant="outline"
           onClick={async () => {
+            await queryClient.cancelQueries();
+            queryClient.clear();
             await supabase.auth.signOut();
-            navigate({ to: "/auth" });
+            navigate({ to: "/auth", replace: true });
           }}
         >
           <LogOut className="mr-2 size-4" /> Sair
@@ -97,8 +102,10 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
           variant="ghost"
           className="justify-start gap-3 text-sidebar-foreground/70"
           onClick={async () => {
+            await queryClient.cancelQueries();
+            queryClient.clear();
             await supabase.auth.signOut();
-            navigate({ to: "/auth" });
+            navigate({ to: "/auth", replace: true });
           }}
         >
           <LogOut className="size-4" /> Sair

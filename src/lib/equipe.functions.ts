@@ -58,6 +58,8 @@ export const removerContaPendente = createServerFn({ method: "POST" })
     if (!ehAdmin) throw new Error("Apenas administradores podem remover contas.");
     if (data.userId === context.userId) throw new Error("Você não pode remover a própria conta.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: aluno, error: alunoError } = await context.supabase.from("acessos_alunos").select("user_id").eq("user_id", data.userId).maybeSingle();
+    if (alunoError || aluno) throw new Error("Contas de alunos devem ser gerenciadas em Acessos dos alunos.");
     const { count } = await supabaseAdmin
       .from("user_roles")
       .select("id", { count: "exact", head: true })

@@ -25,9 +25,10 @@ export async function registrarSolicitacao(deviceId: string, dados: { identifica
   let consulta = supabaseAdmin.from("alunos").select("id").eq("ativo", true).eq("data_nascimento", dados.nascimento);
   consulta = /^\d{11}$/.test(id) ? consulta.in("cpf", [id, `${id.slice(0, 3)}.${id.slice(3, 6)}.${id.slice(6, 9)}-${id.slice(9)}`]) : consulta.eq("codigo", id);
   const { data } = await consulta.limit(2);
-  if (data?.length !== 1) return;
+  const aluno = data?.length === 1 ? data[0] : undefined;
+  if (!aluno) return;
   const agora = Date.now();
-  await supabaseAdmin.from("aparelhos_alunos").update({ aluno_solicitado_id: data[0].id, solicitado_em: new Date(agora).toISOString(), expires_at: new Date(agora + 30 * 60000).toISOString() }).eq("id", deviceId).is("aprovado_em", null);
+  await supabaseAdmin.from("aparelhos_alunos").update({ aluno_solicitado_id: aluno.id, solicitado_em: new Date(agora).toISOString(), expires_at: new Date(agora + 30 * 60000).toISOString() }).eq("id", deviceId).is("aprovado_em", null);
 }
 export async function limitarEntrada(enviado?: string) {
   const device = tokenRecebido(enviado);

@@ -1,5 +1,9 @@
 # Roadmap
 
+- [x] Login: QR Code de liberação exibido e conferido no celular; sem token ou dados pessoais no QR.
+- [x] Equipe / Acessos dos alunos: QR lido por câmera simulada e liberação real validada com administrador, confirmação presencial e entrada de Testealuno; aparelho temporário revogado.
+- [x] Perfil do aluno: botão Tirar foto abre captura nativa frontal; envio e leitura da foto no cadastro validados, foto temporária removida. Captura física no Android depende de teste no aparelho após publicar.
+
 - [x] Renovar apresentação da área do aluno com perfil em destaque e abas Meu dia, Crachá e Avisos; visual e navegação conferidos com dados ilustrativos em desktop/celular, sem excesso de largura. Consulta real não revalidada: sessão disponível não possui aparelho autorizado.
 
 - [x] Implementar consentimento de armazenamento e login salvo; restauração validada com Testealuno.

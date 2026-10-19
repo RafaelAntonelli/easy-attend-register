@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { QRCodeSVG } from "qrcode.react";
+import { gerarQrAparelho } from "@/lib/aparelho-qr";
 
 export function AcessoAlunoLogin({ offline }: { offline: boolean }) {
   const [identificador, setIdentificador] = useState("");
@@ -45,6 +47,6 @@ export function AcessoAlunoLogin({ offline }: { offline: boolean }) {
     <label className="flex items-start gap-2 text-sm"><Checkbox checked={lembrar} onCheckedChange={v=>{setLembrar(v===true);if(v!==true)try{localStorage.removeItem('arena-login-aluno');}catch{}}} /><span>Salvar login neste aparelho<span className="block text-xs text-muted-foreground">Guarda CPF/matrícula e nascimento. Use somente em aparelho pessoal.</span></span></label>
     <Button type="submit" className="w-full" disabled={busy || offline}><LogIn className="mr-2 size-4" />{busy ? "Aguarde…" : "Entrar como aluno"}</Button>
     <Button type="button" variant="outline" className="w-full" disabled={busy || offline} onClick={async () => { setBusy(true); setErro(""); try { const a = await preparar({ data: { aparelho: tokenAparelhoLocal() } }); if (a.token) salvarTokenAparelho(a.token); setAparelho(a.aprovado ? "Aparelho já liberado" : a.codigo); } catch (e) { setErro(e instanceof Error ? e.message : "Falha ao preparar aparelho."); } finally { setBusy(false); } }}><Smartphone className="mr-2 size-4" />Solicitar liberação deste aparelho</Button>
-    {aparelho && <div className="border-t border-border pt-3 text-center"><p className="text-xs text-muted-foreground">Código para apresentar presencialmente à equipe</p><p className="break-all font-mono text-lg font-semibold">{aparelho}</p></div>}
+    {aparelho && <div className="space-y-3 border-t border-border pt-3 text-center">{aparelho === "Aparelho já liberado" ? <p className="text-sm font-semibold" role="status">Aparelho já liberado</p> : <><p className="text-sm font-medium">Liberação presencial do aparelho</p><QRCodeSVG value={gerarQrAparelho(aparelho)} size={208} marginSize={4} level="M" className="mx-auto max-w-full" title="QR Code para liberação deste aparelho" /><p className="text-xs text-muted-foreground">Apresente este QR Code à equipe.</p></>}</div>}
   </form>;
 }

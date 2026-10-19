@@ -13,10 +13,7 @@
 - A planilha do backup no servidor usa SheetJS; ExcelJS permanece apenas nas exportações do navegador porque não é compatível com o ambiente publicado.
 - Keep expired and soon-expiring certificate notification eligibility in src/lib/atestado.ts and reuse it for both notification lists and filters, so they cannot diverge.
 - Keep WhatsApp contact URL normalization in src/lib/whatsapp.ts and reuse ConversarWhatsApp across student forms and profiles to avoid divergent contact behavior.
-- Keep school options grouped by education network in src/lib/escolas.ts; the enrollment form consumes these lists and preserves unlisted legacy school values so existing records remain editable.
-- Keep the searchable enrollment school selector in a focused component consuming the shared school lists and text normalization, so searching does not change stored school names or legacy values.
-- Persist custom school options as individual network-scoped configuracoes rows through src/lib/escolas-personalizadas.ts; merge them with the shared lists in the selector so new enrollments retain additions without overwriting concurrent additions.
-- Keep report school grouping in src/lib/escolas.ts and reuse its network filter so per-school counts match the selected network total.
+- Use escolas.ts for network-grouped school options and report totals; the focused searchable selector preserves stored and legacy names. Persist additions as individual network-scoped configuracoes rows via escolas-personalizadas.ts to avoid concurrent overwrites.
 - Keep report intersections and chart grouping in src/lib/relatorio-cruzado.ts; evaluate class filters on the same active enrollment and count students once, reusing its result for the chart, detailed lists, school totals and CSV/PDF.
 - Keep report chart presentation in GraficoAlunos, consuming the existing grouped result without refiltering; this preserves consistent totals and the SVG used by PDF export.
 - Reuse DOCUMENTOS_PLANILHA for enrollment and profile document lists so uploads, previews and spreadsheet links support the same document fields.
@@ -33,3 +30,5 @@
 - Student accounts link separately to enrollments, exclude staff roles and use auth.uid-scoped minimal reads, never broad student-table policies. Keep overview, badge and notices in tabs on the student route without changing authorization.
 - Portal mutations and push registration validate the device server-side; delivery rechecks device/account authorization to exclude revoked access. Keep reminder timing in SQL; never invent unsupported HTTP scheduling.
 - Student devices: admin-only physical code approval, only hashed tokens stored, sessions only after device+birth date+identifier checks. Token travels by partitioned HttpOnly cookie and an explicit browser copy (aparelho-local.ts), since previews drop cookies. Rate-limit per IP and per device only when a token exists; revoke devices with access.
+- Device approval QR uses the versioned aparelho-qr.ts parser with only the public device code; reading fills the existing form without bypassing admin authorization or physical confirmation.
+- Profile camera and gallery share the validated photo mutation; native front-camera capture updates the enrollment photo through the existing storage path.

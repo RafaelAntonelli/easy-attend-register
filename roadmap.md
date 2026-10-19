@@ -6,6 +6,7 @@
 - [ ] Adicionar perfil editável e foto sincronizados com o cadastro, com acesso restrito ao próprio aluno.
 - [ ] Adicionar avisos da equipe individuais e gerais, com notificações.
 - [ ] Implementar lembretes de aula 30 e 15 minutos antes e validar entrega.
+- [ ] Orientar a conexão do Firebase Cloud Messaging com notificações web e concluir a vinculação.
 
 - [x] Validar consulta isolada de crachá, turma e atestado, autenticação e bloqueio com conta temporária; dados temporários removidos.
 - [x] Implementar CPF/matrícula e nascimento sem senha, com aprovação presencial do aparelho, revogação e testes de isolamento.

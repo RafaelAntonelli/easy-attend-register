@@ -169,6 +169,11 @@
     border-color: var(--color-border);
   }
 
+  .dark {
+    color-scheme: dark;
+  }
+
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);

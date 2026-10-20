@@ -113,6 +113,13 @@
       "when": 1792521643120,
       "tag": "0015_lembretes_aulas_agendados",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792522111523,
+      "tag": "0016_preferencia_lembretes_portal",
+      "breakpoints": true
     }
   ]
 }

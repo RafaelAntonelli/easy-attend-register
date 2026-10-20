@@ -25,8 +25,11 @@ export type PushAluno=ReturnType<typeof usePushAluno>;
 /** Mostra um toast quando chega um aviso novo com a área do aluno aberta. */
 export function useAvisosNovos(onVer:()=>void){
  const {data:avisos=[]}=useQuery(avisosPortalConsulta);const vistos=useRef<Set<string>|null>(null);
+ const naoLidos=avisos.filter(a=>!a.lido_em).length;
+ // Contador no ícone do app quando o aparelho permite (funciona mesmo sem notificações no celular).
+ useEffect(()=>{const nav=navigator as Navigator&{setAppBadge?:(n?:number)=>Promise<void>;clearAppBadge?:()=>Promise<void>};try{if(naoLidos>0)void nav.setAppBadge?.(naoLidos)?.catch(()=>undefined);else void nav.clearAppBadge?.()?.catch(()=>undefined);}catch{/* opcional */}},[naoLidos]);
  useEffect(()=>{if(!avisos.length&&vistos.current===null)return;const ids=new Set(avisos.map(a=>a.id));if(vistos.current===null){vistos.current=ids;return;}const novos=avisos.filter(a=>!a.lido_em&&!vistos.current!.has(a.id));vistos.current=ids;if(novos.length)toast(novos.length===1?`Novo aviso: ${novos[0]?.titulo??""}`:`${novos.length} novos avisos`,{icon:<BellRing className="size-4"/>,action:{label:'Ver',onClick:onVer},duration:10000});},[avisos,onVer]);
- return avisos.filter(a=>!a.lido_em).length;
+ return naoLidos;
 }
 
 export function ChamadaAvisos({naoLidos,push,onVer}:{naoLidos:number;push:PushAluno;onVer:()=>void}){
@@ -40,9 +43,10 @@ export function ChamadaAvisos({naoLidos,push,onVer}:{naoLidos:number;push:PushAl
 
 function StatusPush({push}:{push:PushAluno}){
  if(push.estado==='ativo')return <p className="flex items-center gap-2 text-sm text-muted-foreground"><BellRing className="size-4 text-primary"/>Notificações ativadas neste aparelho</p>;
- if(push.estado==='negado')return <p className="flex items-center gap-2 text-sm text-muted-foreground"><BellOff className="size-4"/>Notificações bloqueadas. Libere nas configurações do navegador para este site.</p>;
- if(push.estado==='nova-aba')return <p className="text-sm text-muted-foreground">Abra o app em uma aba própria para ativar notificações.</p>;
- if(push.estado==='indisponivel')return <p className="text-sm text-muted-foreground">Este navegador não oferece notificações.</p>;
+ const central=' Os avisos continuam chegando aqui, na central de avisos do app.';
+ if(push.estado==='negado')return <p className="flex items-center gap-2 text-sm text-muted-foreground"><BellOff className="size-4 shrink-0"/>Notificações bloqueadas. Libere nas configurações do navegador para este site.{central}</p>;
+ if(push.estado==='nova-aba')return <p className="text-sm text-muted-foreground">Abra o app em uma aba própria para ativar notificações.{central}</p>;
+ if(push.estado==='indisponivel')return <p className="flex items-center gap-2 text-sm text-muted-foreground"><BellOff className="size-4 shrink-0"/>Este aparelho não oferece notificações no celular.{central}</p>;
  return <Button variant="outline" disabled={push.busy} onClick={push.ativar}><Bell className="mr-2 size-4"/>{push.busy?'Ativando…':'Ativar notificações'}</Button>;
 }
 

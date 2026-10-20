@@ -39,8 +39,12 @@ export const enviarAvisoEquipe=createServerFn({method:'POST'}).middleware([requi
  const ids:string[]=[];for(let offset=0;;offset+=500){const {data:rows,error}=await query.range(offset,offset+499);if(error)throw new Error('Não foi possível buscar destinatários.');ids.push(...(rows??[]).map(r=>r.id));if((rows??[]).length<500)break;}
  if(!ids.length)throw new Error('Aluno não encontrado.');const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
  for(let i=0;i<ids.length;i+=500){const {error}=await supabaseAdmin.from('avisos_alunos').insert(ids.slice(i,i+500).map(aluno_id=>({aluno_id,titulo:data.titulo,mensagem:data.mensagem,autor_id:context.userId})));if(error)throw new Error('Não foi possível salvar avisos.');}
- const key=process.env['FIREBASE_MESSAGING_API_KEY'],auth=process.env['LOVABLE_API_KEY'];if(!key||!auth)throw new Error('Avisos foram salvos, mas a conexão das notificações está indisponível.');
- const {enviarPush}=await import('./portal-extras.server');const entrega=await enviarPush(ids,data.titulo,data.mensagem,key,auth);return {destinatarios:ids.length,...entrega};
+ // O aviso já está salvo na central da área do aluno; o celular é um canal extra.
+ // Se a notificação no aparelho falhar ou não estiver disponível, o aviso continua garantido no app.
+ const key=process.env['FIREBASE_MESSAGING_API_KEY'],auth=process.env['LOVABLE_API_KEY'];
+ if(!key||!auth){console.error('[avisos] notificações no celular indisponíveis: conexão não configurada');return {destinatarios:ids.length,enviados:0,falhas:0,pushIndisponivel:true};}
+ try{const {enviarPush}=await import('./portal-extras.server');const entrega=await enviarPush(ids,data.titulo,data.mensagem,key,auth);return {destinatarios:ids.length,...entrega,pushIndisponivel:false};}
+ catch(err){console.error('[avisos] falha ao enviar notificações no celular',err);return {destinatarios:ids.length,enviados:0,falhas:0,pushIndisponivel:true};}
 });
 export const obterLembretesPortal=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>dispositivo.parse(d)).handler(async({data,context})=>{
  const {validarPortal}=await import('./portal-extras.server');await validarPortal(context.supabase,context.userId,data.aparelho);

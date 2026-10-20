@@ -10,6 +10,8 @@ import { TURNOS, turnoDoHorario } from "@/lib/turnos";
 
 import { useGruposDias, diasDoLabel } from "@/lib/dias";
 import { AppShell } from "@/components/AppShell";
+import { BotoesChamada, ProgressoChamada } from "@/components/BotoesChamada";
+import { licencaEmVigor, type Licenca } from "@/lib/licenca";
 import { PerfilAluno } from "@/components/PerfilAluno";
 import { FotoAmpliavel } from "@/components/FotoAmpliavel";
 import { Button } from "@/components/ui/button";
@@ -305,6 +307,42 @@ function TurmasPage() {
       setStatusPresenca(mapa);
       setObservacoesPresenca(mapaObs);
     }
+  }
+
+  const [marcandoTodos, setMarcandoTodos] = useState(false);
+  const [confirmarTodos, setConfirmarTodos] = useState(false);
+
+  /** Marca presente quem ainda não tem registro hoje e não está de licença médica. */
+  async function marcarTodosPresentes() {
+    const pendentes = (alunosTurma ?? []).filter((a) => a.status === "ativa" && !statusPresenca[a.id]);
+    if (!pendentes.length) return;
+    setMarcandoTodos(true);
+    const hoje = new Date().toISOString().slice(0, 10);
+    const { data: lic } = await supabase
+      .from("licencas_medicas")
+      .select("id,aluno_id,data_inicio,data_retorno,motivo,encerrada_em")
+      .is("encerrada_em", null)
+      .in("aluno_id", pendentes.map((a) => a.id));
+    const dataLocal = new Date();
+    const hojeLocal = `${dataLocal.getFullYear()}-${String(dataLocal.getMonth() + 1).padStart(2, "0")}-${String(dataLocal.getDate()).padStart(2, "0")}`;
+    const deLicenca = new Set(((lic ?? []) as Licenca[]).filter((l) => licencaEmVigor(l, hojeLocal)).map((l) => l.aluno_id));
+    const alvos = pendentes.filter((a) => !deLicenca.has(a.id));
+    const { error } = alvos.length
+      ? await supabase.from("presencas").insert(
+          alvos.map((a) => ({ aluno_id: a.id, turma_id: turmaAberta?.id ?? null, data: hoje, metodo: "manual" as const, status: "presente" as const })),
+        )
+      : { error: null };
+    setMarcandoTodos(false);
+    if (error) {
+      toast.error("Não foi possível marcar todos. Recarregue a turma e tente de novo.");
+      return;
+    }
+    setStatusPresenca((s) => ({ ...s, ...Object.fromEntries(alvos.map((a) => [a.id, "presente" as StatusPresenca])) }));
+    const pulados = pendentes.length - alvos.length;
+    toast.success(
+      `${alvos.length} marcado${alvos.length === 1 ? "" : "s"} como presente${alvos.length === 1 ? "" : "s"}` +
+        (pulados ? ` · ${pulados} de licença médica não mudou` : ""),
+    );
   }
 
   async function registrarPresenca(alunoId: string, status: StatusPresenca) {
@@ -657,6 +695,28 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
               aria-label="Buscar aluno na turma"
             />
           </div>
+          {alunosTurma && alunosTurma.length ? (
+            <div className="space-y-3 rounded-xl border border-border/70 bg-muted/30 p-3">
+              <ProgressoChamada
+                marcados={alunosTurma.filter((a) => statusPresenca[a.id]).length}
+                total={alunosTurma.length}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 w-full border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
+                disabled={marcandoTodos || !alunosTurma.some((a) => a.status === "ativa" && !statusPresenca[a.id])}
+                onClick={() => setConfirmarTodos(true)}
+              >
+                <Users className="size-4" />
+                {marcandoTodos
+                  ? "Marcando..."
+                  : alunosTurma.some((a) => a.status === "ativa" && !statusPresenca[a.id])
+                    ? "Marcar todos como presentes"
+                    : "Todos já foram marcados"}
+              </Button>
+            </div>
+          ) : null}
           {buscaAluno && alunosTurma ? (
             <p className="text-xs text-muted-foreground">{alunosFiltrados.length} de {alunosTurma.length} alunos</p>
           ) : null}
@@ -669,13 +729,13 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
               <p className="py-6 text-center text-sm text-muted-foreground">Nenhum aluno encontrado.</p>
             ) : (
               alunosFiltrados.map((a) => (
-                <div key={a.id} className="space-y-2 rounded-lg border border-border/70 px-3 py-2">
+                <div key={a.id} className="space-y-3 rounded-xl border border-border/70 bg-card px-3 py-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                       {fotos[a.id] ? (
-                        <FotoAmpliavel src={fotos[a.id] as string} nome={a.nome} className="size-10 shrink-0 rounded-full object-cover" />
+                        <FotoAmpliavel src={fotos[a.id] as string} nome={a.nome} className="size-14 shrink-0 rounded-full object-cover ring-2 ring-border" />
                       ) : (
-                        <div className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold">
+                        <div className="grid size-14 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold">
                           {a.nome.slice(0, 2).toUpperCase()}
                         </div>
                       )}
@@ -694,42 +754,27 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-1.5">
                       {a.pcd ? <Badge variant="outline">PCD</Badge> : null}
                       <Badge variant={a.status === "ativa" ? "default" : "secondary"}>{a.status}</Badge>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-10 rounded-xl"
+                        aria-label={`Observação de ${a.nome}`}
+                        title="Editar observação"
+                        onClick={() => setEditandoObservacao({ alunoId: a.id, nome: a.nome, texto: observacoesPresenca[a.id] ?? "" })}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    <Button
-                      size="sm"
-                      variant={statusPresenca[a.id] === "presente" ? "default" : "outline"}
-                      onClick={() => void registrarPresenca(a.id, "presente")}
-                    >
-                      <Check className="size-4" /> Presença
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={statusPresenca[a.id] === "falta" ? "destructive" : "outline"}
-                      onClick={() => void registrarPresenca(a.id, "falta")}
-                    >
-                      <X className="size-4" /> Falta
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={statusPresenca[a.id] === "falta_justificada" ? "secondary" : "outline"}
-                      onClick={() => void registrarPresenca(a.id, "falta_justificada")}
-                    >
-                      <FileCheck className="size-4" /> Justificada
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      title="Editar observação"
-                      onClick={() => setEditandoObservacao({ alunoId: a.id, nome: a.nome, texto: observacoesPresenca[a.id] ?? "" })}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                  </div>
+                  <BotoesChamada
+                    className="sm:w-full sm:min-w-0"
+                    nome={a.nome}
+                    atual={statusPresenca[a.id]}
+                    onEscolher={(st) => void registrarPresenca(a.id, st)}
+                  />
                 </div>
               ))
 
@@ -737,6 +782,28 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
           </div>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={confirmarTodos} onOpenChange={setConfirmarTodos}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Marcar todos como presentes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os alunos de {turmaAberta?.nome} que ainda não foram marcados hoje ficarão como presentes. Quem está
+              de licença médica ou já foi marcado não muda. Depois, é só tocar em Falta para quem não veio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmarTodos(false);
+                void marcarTodosPresentes();
+              }}
+            >
+              Marcar presentes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Dialog open={!!editandoObservacao} onOpenChange={(o) => !o && setEditandoObservacao(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

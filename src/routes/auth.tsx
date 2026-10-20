@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, WifiOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, GraduationCap, Lock, Mail, Users, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import loginImagem from "@/assets/login-esporte-360.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AcessoAlunoLogin } from "@/components/AcessoAlunoLogin";
@@ -26,6 +27,8 @@ export const Route = createFileRoute("/auth")({
     ],
   }),
 });
+
+const CHAVE_LEMBRAR_EMAIL = "arena-lembrar-email";
 
 function traduzirErro(msg: string): string {
   const m = msg.toLowerCase();
@@ -60,20 +63,23 @@ function CampoSenha({
   const [ver, setVer] = useState(false);
   return (
     <div className="relative">
+      <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         id={id}
         type={ver ? "text" : "password"}
         required
         minLength={minLength}
         value={value}
+        placeholder="Sua senha"
+        autoComplete="current-password"
         onChange={(e) => onChange(e.target.value)}
-        className="pr-10"
+        className="h-12 rounded-xl pl-10 pr-11"
       />
       <button
         type="button"
         onClick={() => setVer((v) => !v)}
         aria-label={ver ? "Esconder senha" : "Mostrar senha"}
-        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground hover:text-foreground"
       >
         {ver ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
       </button>
@@ -96,6 +102,19 @@ function AuthPage() {
   const [contaCriada, setContaCriada] = useState(false);
   const [offline, setOffline] = useState(false);
   const [acesso, setAcesso] = useState("equipe");
+  const [lembrarEmail, setLembrarEmail] = useState(false);
+
+  useEffect(() => {
+    try {
+      const salvo = localStorage.getItem(CHAVE_LEMBRAR_EMAIL);
+      if (salvo) {
+        setEmail(salvo);
+        setLembrarEmail(true);
+      }
+    } catch {
+      /* armazenamento indisponível */
+    }
+  }, []);
 
   useEffect(() => {
     const atualizar = () => setOffline(!navigator.onLine);
@@ -150,6 +169,12 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
     setBusy(false);
     if (error) { toast.error(traduzirErro(error.message)); return; }
+    try {
+      if (lembrarEmail) localStorage.setItem(CHAVE_LEMBRAR_EMAIL, email.trim());
+      else localStorage.removeItem(CHAVE_LEMBRAR_EMAIL);
+    } catch {
+      /* armazenamento indisponível */
+    }
     navigate({ to: "/" });
   }
 
@@ -179,7 +204,7 @@ function AuthPage() {
         : "Bem-vindo(a) à Arena Aquática LF";
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <div className="grid min-h-screen bg-background lg:grid-cols-2">
       <div className="relative hidden flex-col justify-between overflow-hidden p-12 text-primary-foreground lg:flex">
         <img
           src={loginImagem.url}
@@ -197,21 +222,38 @@ function AuthPage() {
       </div>
 
       <div className="flex flex-col">
-        {/* Faixa da imagem no celular */}
-        <div className="relative h-40 overflow-hidden lg:hidden">
-          <img src={loginImagem.url} alt="Programa Esporte 360" className="h-full w-full object-cover object-center" />
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/30 to-background" />
+        {/* Topo azul-marinho com ondas (celular) */}
+        <div className="relative overflow-hidden bg-sidebar px-6 pb-20 pt-10 text-center text-sidebar-foreground lg:hidden">
+          <Ondas />
+          <img
+            src="/icons/icon-192x192.png"
+            alt="Logo Arena Aquática LF"
+            className="relative mx-auto size-24 rounded-full shadow-pool ring-4 ring-sidebar-primary/30"
+          />
+          <p className="relative mt-4 font-display text-2xl font-semibold">Arena Aquática LF</p>
+          <p className="relative mt-1 text-sm text-sidebar-foreground/75">Bem-vindo(a) de volta!</p>
         </div>
 
-        <div className="-mt-12 flex flex-1 items-start justify-center p-6 lg:mt-0 lg:items-center">
-          <Card className="relative w-full max-w-md border-border/70 shadow-pool">
-            <CardHeader className="items-center text-center">
+        <div className="relative -mt-10 flex flex-1 items-start justify-center px-4 pb-8 lg:mt-0 lg:items-center lg:p-10">
+          <Card className="w-full max-w-md rounded-3xl border-border/70 shadow-pool">
+            <CardHeader className="items-center pb-4 text-center">
               <img
                 src="/icons/icon-192x192.png"
                 alt="Logo Arena Aquática LF"
-                className="mb-2 size-16 rounded-2xl shadow-md"
+                className="mb-2 hidden size-16 rounded-2xl shadow-md lg:block"
               />
-              <CardTitle className="font-display text-2xl">{acesso === "aluno" ? "Área do aluno" : titulo}</CardTitle>
+              <CardTitle className="font-display text-2xl">
+                {acesso === "aluno" ? (
+                  "Área do aluno"
+                ) : !redefinindo && !recuperando && modo === "entrar" ? (
+                  <>
+                    <span className="lg:hidden">Acesse sua conta</span>
+                    <span className="hidden lg:inline">{titulo}</span>
+                  </>
+                ) : (
+                  titulo
+                )}
+              </CardTitle>
               <CardDescription>
                 {acesso === "aluno"
                   ? "Arena Aquática LF"
@@ -222,9 +264,21 @@ function AuthPage() {
             </CardHeader>
             <CardContent>
               <Tabs value={acesso} onValueChange={setAcesso}>
-                <TabsList className="mb-4 grid w-full grid-cols-2" aria-label="Tipo de acesso">
-                  <TabsTrigger value="equipe" disabled={busy || redefinindo}>Equipe</TabsTrigger>
-                  <TabsTrigger value="aluno" disabled={busy || redefinindo}>Aluno</TabsTrigger>
+                <TabsList className="mb-5 grid h-12 w-full grid-cols-2 rounded-xl p-1" aria-label="Tipo de acesso">
+                  <TabsTrigger
+                    value="equipe"
+                    disabled={busy || redefinindo}
+                    className="h-full gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    <Users className="size-4" /> Equipe
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="aluno"
+                    disabled={busy || redefinindo}
+                    className="h-full gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    <GraduationCap className="size-4" /> Aluno
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="aluno" className="space-y-4 text-center">
                   <AcessoAlunoLogin offline={offline} />
@@ -244,7 +298,7 @@ function AuthPage() {
                     <Label htmlFor="nova-senha">Nova senha</Label>
                     <CampoSenha id="nova-senha" minLength={6} value={novaSenha} onChange={setNovaSenha} />
                   </div>
-                  <Button type="submit" className="w-full" disabled={busy || offline}>
+                  <Button type="submit" variant="pool" className="h-12 w-full rounded-xl text-base" disabled={busy || offline}>
                     Salvar nova senha
                   </Button>
                 </form>
@@ -255,15 +309,18 @@ function AuthPage() {
                   </p>
                   <div className="space-y-2">
                     <Label htmlFor="email-recuperacao">E-mail</Label>
-                    <Input
-                      id="email-recuperacao"
-                      type="email"
-                      required
-                      value={emailRecuperacao}
-                      onChange={(e) => setEmailRecuperacao(e.target.value)}
-                    />
+                    <CampoComIcone icone={Mail}>
+                      <Input
+                        id="email-recuperacao"
+                        type="email"
+                        required
+                        value={emailRecuperacao}
+                        onChange={(e) => setEmailRecuperacao(e.target.value)}
+                        className="h-12 rounded-xl pl-10"
+                      />
+                    </CampoComIcone>
                   </div>
-                  <Button type="submit" className="w-full" disabled={busy || offline}>
+                  <Button type="submit" variant="pool" className="h-12 w-full rounded-xl text-base" disabled={busy || offline}>
                     Enviar link de recuperação
                   </Button>
                   <Button type="button" variant="ghost" className="w-full" onClick={() => setRecuperando(false)}>
@@ -278,7 +335,8 @@ function AuthPage() {
                       Arena Aquática liberar seu acesso.
                     </p>
                     <Button
-                      className="w-full"
+                      variant="pool"
+                      className="h-12 w-full rounded-xl"
                       onClick={() => {
                         setContaCriada(false);
                         setModo("entrar");
@@ -291,17 +349,19 @@ function AuthPage() {
                   <form onSubmit={cadastrar} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="nome">Nome</Label>
-                      <Input id="nome" required value={nome} onChange={(e) => setNome(e.target.value)} />
+                      <Input id="nome" required value={nome} onChange={(e) => setNome(e.target.value)} className="h-12 rounded-xl" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email2">E-mail</Label>
-                      <Input id="email2" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                      <CampoComIcone icone={Mail}>
+                        <Input id="email2" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 rounded-xl pl-10" />
+                      </CampoComIcone>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="senha2">Senha</Label>
                       <CampoSenha id="senha2" minLength={6} value={senha} onChange={setSenha} />
                     </div>
-                    <Button type="submit" className="w-full" disabled={busy || offline}>
+                    <Button type="submit" variant="pool" className="h-12 w-full rounded-xl text-base" disabled={busy || offline}>
                       Criar conta
                     </Button>
                     <Button type="button" variant="ghost" className="w-full" onClick={() => setModo("entrar")}>
@@ -313,14 +373,29 @@ function AuthPage() {
                 <form onSubmit={entrar} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">E-mail</Label>
-                    <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <CampoComIcone icone={Mail}>
+                      <Input
+                        id="email"
+                        type="email"
+                        required
+                        autoComplete="email"
+                        placeholder="seu@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-12 rounded-xl pl-10"
+                      />
+                    </CampoComIcone>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="senha">Senha</Label>
                     <CampoSenha id="senha" value={senha} onChange={setSenha} />
                   </div>
-                  <Button type="submit" className="w-full" disabled={busy || offline}>
-                    Entrar
+                  <label className="flex items-center gap-2 text-sm text-foreground">
+                    <Checkbox checked={lembrarEmail} onCheckedChange={(v) => setLembrarEmail(v === true)} />
+                    Lembrar meu e-mail
+                  </label>
+                  <Button type="submit" variant="pool" className="h-12 w-full rounded-xl text-base" disabled={busy || offline}>
+                    {busy ? "Entrando..." : "Entrar"} <ArrowRight className="size-4" />
                   </Button>
                   <Button
                     type="button"
@@ -333,11 +408,14 @@ function AuthPage() {
                   >
                     Esqueci minha senha
                   </Button>
-                  <p className="border-t border-border pt-4 text-center text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
+                  </div>
+                  <p className="text-center text-sm text-muted-foreground">
                     Sou novo na equipe?{" "}
                     <button
                       type="button"
-                      className="font-medium text-primary hover:underline"
+                      className="font-semibold text-primary hover:underline"
                       onClick={() => setModo("criar")}
                     >
                       Solicitar acesso
@@ -352,5 +430,31 @@ function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function CampoComIcone({ icone: Icone, children }: { icone: typeof Mail; children: React.ReactNode }) {
+  return (
+    <div className="relative">
+      <Icone className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      {children}
+    </div>
+  );
+}
+
+/** Linhas de onda decorativas do topo da tela de login. */
+function Ondas() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 400 220"
+      preserveAspectRatio="none"
+      className="pointer-events-none absolute inset-0 h-full w-full text-sidebar-primary"
+    >
+      <path d="M0 120 C 80 80, 160 160, 240 120 S 360 80, 400 110" fill="none" stroke="currentColor" strokeOpacity="0.35" strokeWidth="1.5" />
+      <path d="M0 150 C 90 110, 170 190, 260 145 S 370 110, 400 140" fill="none" stroke="currentColor" strokeOpacity="0.22" strokeWidth="1.5" />
+      <path d="M0 180 C 100 140, 180 215, 280 170 S 380 140, 400 170" fill="none" stroke="currentColor" strokeOpacity="0.15" strokeWidth="1.5" />
+      <path d="M0 60 C 70 30, 150 90, 230 60 S 350 30, 400 55" fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="1" />
+    </svg>
   );
 }

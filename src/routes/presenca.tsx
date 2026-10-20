@@ -3,10 +3,11 @@ import { useMinhasTurmas } from "@/lib/permissoes";
 import { FotoAmpliavel } from "@/components/FotoAmpliavel";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Check, Search, X, FileCheck, CalendarIcon, ChevronDown } from "lucide-react";
+import { Camera, CameraOff, Search, X, CalendarIcon, ChevronDown, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
+import { BotoesChamada, ProgressoChamada } from "@/components/BotoesChamada";
 import { PerfilAluno } from "@/components/PerfilAluno";
 import { dataBR, licencaEmVigor, type Licenca } from "@/lib/licenca";
 import { Button } from "@/components/ui/button";
@@ -269,10 +270,15 @@ function PresencaPage() {
       .then(({ data }) => setLicencas((data ?? []) as Licenca[]));
   }, []);
 
-  async function registrar(aluno: Aluno, metodo: "qrcode" | "manual", status: StatusPresenca = "presente") {
+  async function registrar(
+    aluno: Aluno,
+    metodo: "qrcode" | "manual",
+    status: StatusPresenca = "presente",
+    opcoes: { emLote?: boolean } = {},
+  ): Promise<boolean> {
     const licenca = licencas.find((l) => l.aluno_id === aluno.id && licencaEmVigor(l, hoje));
     if (licenca && status === "falta") status = "falta_justificada";
-    const obs = observacao.trim()
+    const obs = !opcoes.emLote && observacao.trim()
       ? observacao.trim()
       : licenca && status === "falta_justificada"
         ? `Licença médica até ${dataBR(licenca.data_retorno)}`
@@ -299,9 +305,11 @@ function PresencaPage() {
         { nome: aluno.nome, hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }), status, obs },
         ...r.filter((x) => x.nome !== aluno.nome),
       ]);
-      setObservacao("");
-      toast.success(`${rotuloStatus[status]}: ${aluno.nome} (salvo offline)`);
-      return;
+      if (!opcoes.emLote) {
+        setObservacao("");
+        toast.success(`${rotuloStatus[status]}: ${aluno.nome} (salvo offline)`);
+      }
+      return true;
     }
 
     const existente = await supabase
@@ -318,7 +326,7 @@ function PresencaPage() {
         .eq("id", existente.data.id);
       if (error) {
         toast.error(error.message);
-        return;
+        return false;
       }
     } else {
       const { error } = await supabase.from("presencas").insert({
@@ -331,11 +339,30 @@ function PresencaPage() {
       });
       if (error) {
         toast.error(error.message);
-        return;
+        return false;
       }
     }
+    if (opcoes.emLote) return true;
     toast.success(`${rotuloStatus[status]}: ${aluno.nome}`);
     setObservacao("");
+    void carregarPresencasDoDia();
+    return true;
+  }
+
+  const [confirmarTodos, setConfirmarTodos] = useState(false);
+  const [marcandoTodos, setMarcandoTodos] = useState(false);
+
+  /** Marca presença, um por vez, para quem ainda não tem registro e não está de licença. */
+  async function marcarTodosPresentes(alvos: Aluno[]) {
+    setMarcandoTodos(true);
+    let feitos = 0;
+    for (const aluno of alvos) {
+      const ok = await registrar(aluno, "manual", "presente", { emLote: true });
+      if (!ok) break;
+      feitos++;
+    }
+    setMarcandoTodos(false);
+    if (feitos) toast.success(`${feitos} aluno${feitos === 1 ? "" : "s"} marcado${feitos === 1 ? "" : "s"} como presente${feitos === 1 ? "" : "s"}`);
     void carregarPresencasDoDia();
   }
 
@@ -484,6 +511,9 @@ function PresencaPage() {
       return true;
     })
     .sort((a, b) => relevanciaBusca(a.nome, busca) - relevanciaBusca(b.nome, busca) || a.nome.localeCompare(b.nome));
+  const semRegistro = filtrados.filter(
+    (a) => !statusPorAluno[a.id] && !licencas.some((l) => l.aluno_id === a.id && licencaEmVigor(l, hoje)),
+  );
   return (
     <AppShell title="Presença" subtitle={`Registros de ${data.toLocaleDateString("pt-BR")}`}>
       <div className="mb-6 grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -720,11 +750,28 @@ function PresencaPage() {
                   />
                   <p className="text-xs text-muted-foreground">O texto é salvo no histórico do aluno junto com o registro.</p>
                 </div>
+                <div className="space-y-3 rounded-xl border border-border/70 bg-muted/30 p-3">
+                  <ProgressoChamada marcados={filtrados.filter((a) => statusPorAluno[a.id]).length} total={filtrados.length} />
+                  {turmaIdsValidos.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11 w-full border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
+                      disabled={marcandoTodos || !semRegistro.length}
+                      onClick={() => setConfirmarTodos(true)}
+                    >
+                      <Users className="size-4" />
+                      {marcandoTodos ? "Marcando..." : semRegistro.length ? `Marcar todos como presentes (${semRegistro.length})` : "Todos já foram marcados"}
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Escolha a turma da aula para marcar todos como presentes de uma vez.</p>
+                  )}
+                </div>
                 <div className="max-h-[36rem] space-y-3 overflow-y-auto pr-1">
                   {filtrados.map((a) => {
                     const atual = statusPorAluno[a.id];
                     return (
-                      <div key={a.id} className="flex min-h-20 flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 px-4 py-3">
+                      <div key={a.id} className="flex min-h-20 flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-4 py-3">
                         <div className="flex min-w-40 flex-1 items-center gap-3">
                           {fotos[a.id] ? (
                             <FotoAmpliavel src={fotos[a.id]!} nome={a.nome} className="size-16 rounded-full border border-border object-cover" />
@@ -752,33 +799,11 @@ function PresencaPage() {
                             {atual ? <p className="text-xs text-muted-foreground">{rotuloStatus[atual]}</p> : null}
                           </div>
                         </div>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant={atual === "presente" ? "default" : "outline"}
-                            onClick={() => void (atual === "presente" ? desfazerRegistro(a) : registrar(a, "manual", "presente"))}
-                          >
-                            <Check className="size-4" /> Presença
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={atual === "falta" ? "destructive" : "outline"}
-                            onClick={() => void (atual === "falta" ? desfazerRegistro(a) : registrar(a, "manual", "falta"))}
-                          >
-                            <X className="size-4" /> Falta
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={atual === "falta_justificada" ? "secondary" : "outline"}
-                            onClick={() =>
-                              void (atual === "falta_justificada"
-                                ? desfazerRegistro(a)
-                                : registrar(a, "manual", "falta_justificada"))
-                            }
-                          >
-                            <FileCheck className="size-4" /> Justificada
-                          </Button>
-                        </div>
+                        <BotoesChamada
+                          nome={a.nome}
+                          atual={atual}
+                          onEscolher={(st) => void (atual === st ? desfazerRegistro(a) : registrar(a, "manual", st))}
+                        />
                       </div>
                     );
                   })}
@@ -809,6 +834,32 @@ function PresencaPage() {
       </div>
 
       <PerfilAluno alunoId={perfilAlunoId} onFechar={() => setPerfilAlunoId(null)} />
+
+      <AlertDialog open={confirmarTodos} onOpenChange={setConfirmarTodos}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Marcar todos como presentes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {semRegistro.length} aluno{semRegistro.length === 1 ? "" : "s"} sem registro em{" "}
+              {format(data, "dd/MM/yyyy", { locale: ptBR })} será{semRegistro.length === 1 ? "" : "ão"} marcado
+              {semRegistro.length === 1 ? "" : "s"} como presente{semRegistro.length === 1 ? "" : "s"}. Quem está de licença
+              médica ou já foi marcado não muda. Depois, é só tocar em Falta para quem não veio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const alvos = semRegistro;
+                setConfirmarTodos(false);
+                void marcarTodosPresentes(alvos);
+              }}
+            >
+              Marcar presentes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={Boolean(confirmacao)} onOpenChange={(aberto) => !aberto && setConfirmacao(null)}>
         <AlertDialogContent>

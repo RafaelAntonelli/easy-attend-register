@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp, X, MoreHorizontal, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,8 @@ import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/li
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { atestadoVencido, diasParaVencer, notificarAtestadoVencido, notificarAtestadoVencendo } from "@/lib/atestado";
 import { PerfilAluno } from "@/components/PerfilAluno";
+import { SituacaoAluno, pontoSituacao, type TomSituacao } from "@/components/SituacaoAluno";
+import { hojeISO, licencaEmVigor, type Licenca } from "@/lib/licenca";
 import { AvisoLicencas } from "@/components/AvisoLicencas";
 import { PainelNotificacoes } from "@/components/painel/PainelNotificacoes";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
@@ -190,8 +192,20 @@ function AlunosPage() {
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [turnoForm, setTurnoForm] = useState("todos");
   const [filtroNotificacao, setFiltroNotificacao] = useState<
-    "todos" | "ativos" | "inativos" | "sem_atestado" | "atestado_vencido" | "atestado_vencer" | "excesso_faltas"
+    "todos" | "ativos" | "em_licenca" | "inativos" | "sem_atestado" | "atestado_vencido" | "atestado_vencer" | "excesso_faltas"
   >("todos");
+  const [emLicenca, setEmLicenca] = useState<Set<string>>(new Set());
+  const [filtrosCelular, setFiltrosCelular] = useState(false);
+  useEffect(() => {
+    void supabase
+      .from("licencas_medicas")
+      .select("id,aluno_id,data_inicio,data_retorno,motivo,encerrada_em")
+      .is("encerrada_em", null)
+      .then(({ data }) => {
+        const hoje = hojeISO();
+        setEmLicenca(new Set(((data ?? []) as Licenca[]).filter((l) => licencaEmVigor(l, hoje)).map((l) => l.aluno_id)));
+      });
+  }, []);
   const [listasNotificacoes, setListasNotificacoes] = useState<Record<string, boolean>>({
     inativos: false,
     sem_atestado: false,
@@ -955,6 +969,7 @@ function AlunosPage() {
       if (!correspondeBusca(a, busca)) return false;
       if (filtroNotificacao === "ativos" && !a.ativo) return false;
       if (filtroNotificacao === "inativos" && a.ativo) return false;
+      if (filtroNotificacao === "em_licenca" && (!a.ativo || !emLicenca.has(a.id))) return false;
       if (filtroNotificacao === "sem_atestado" && a.atestado_entregue) return false;
       if (filtroNotificacao === "atestado_vencido" && !notificarAtestadoVencido(a)) return false;
       if (filtroNotificacao === "atestado_vencer" && !notificarAtestadoVencendo(a, prazoAviso)) return false;
@@ -994,6 +1009,31 @@ function AlunosPage() {
   const proximosVencimento = alunos.filter((a) => notificarAtestadoVencendo(a, prazoAviso));
   const excessoFaltas = alunos.filter((a) => a.ativo && (faltasPorAluno[a.id] ?? 0) >= 5);
   const inativos = alunos.filter((a) => !a.ativo).sort((a, b) => a.nome.localeCompare(b.nome));
+  const situacao = (a: Aluno): { tom: TomSituacao; rotulo: string } => {
+    if (!a.ativo) return { tom: "inativo", rotulo: "Inativo" };
+    if (emLicenca.has(a.id)) return { tom: "licenca", rotulo: "Licença médica" };
+    if (notificarAtestadoVencido(a)) return { tom: "vencido", rotulo: "Atestado vencido" };
+    return { tom: "ativo", rotulo: "Ativo" };
+  };
+  const totalAtivos = alunos.filter((a) => a.ativo).length;
+  const totalLicenca = alunos.filter((a) => a.ativo && emLicenca.has(a.id)).length;
+  const resumoSituacoes: { filtro: typeof filtroNotificacao; rotulo: string; tom: TomSituacao; valor: number }[] = [
+    { filtro: "ativos", rotulo: "Ativos", tom: "ativo", valor: totalAtivos },
+    { filtro: "em_licenca", rotulo: "Em licença", tom: "licenca", valor: totalLicenca },
+    { filtro: "atestado_vencido", rotulo: "Atestado vencido", tom: "vencido", valor: vencidos.length },
+    { filtro: "inativos", rotulo: "Inativos", tom: "inativo", valor: inativos.length },
+  ];
+  const qtdFiltrosExtras = [
+    filtroPcd !== "todos",
+    filtroSexo !== "todos",
+    filtroModalidade !== "todas",
+    filtrosHorario.length > 0,
+    filtroDias !== "todos",
+    filtroTurno !== "todos",
+    Boolean(idadeMin || idadeMax),
+    !["todos", "ativos", "em_licenca", "atestado_vencido", "inativos"].includes(filtroNotificacao),
+  ].filter(Boolean).length;
+  const percentual = (v: number) => (alunos.length ? `${Math.round((v / alunos.length) * 100)}% do total` : "—");
 
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
   const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
@@ -1021,6 +1061,7 @@ function AlunosPage() {
           <span className="text-muted-foreground">Filtro ativo:</span>
           <Badge variant="secondary">
             {filtroNotificacao === "ativos" && "Ativos"}
+            {filtroNotificacao === "em_licenca" && "Em licença médica"}
             {filtroNotificacao === "inativos" && "Inativos"}
             {filtroNotificacao === "sem_atestado" && "Sem atestado médico"}
             {filtroNotificacao === "atestado_vencido" && "Atestado vencido"}
@@ -1032,12 +1073,71 @@ function AlunosPage() {
           </Button>
         </div>
       )}
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden" role="group" aria-label="Situação dos alunos">
+        {[{ filtro: "todos" as const, rotulo: "Todos" }, ...resumoSituacoes].map((c) => (
+          <button
+            key={c.filtro}
+            type="button"
+            aria-pressed={filtroNotificacao === c.filtro}
+            onClick={() => setFiltroNotificacao(c.filtro)}
+            className={cn(
+              "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+              filtroNotificacao === c.filtro
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-card text-foreground hover:bg-accent",
+            )}
+          >
+            {c.rotulo}
+          </button>
+        ))}
+      </div>
+      <div className="mb-5 hidden gap-3 md:grid md:grid-cols-4">
+        {resumoSituacoes.map((c) => {
+          const ativo = filtroNotificacao === c.filtro;
+          return (
+            <button
+              key={c.filtro}
+              type="button"
+              aria-pressed={ativo}
+              onClick={() => setFiltroNotificacao(ativo ? "todos" : c.filtro)}
+              className={cn(
+                "rounded-2xl border bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                ativo ? "border-primary ring-2 ring-primary/30" : "border-border/70",
+              )}
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <span className={cn("size-2.5 rounded-full", pontoSituacao(c.tom))} aria-hidden />
+                {c.rotulo}
+              </span>
+              <span className="mt-2 block font-display text-3xl font-semibold text-foreground">{c.valor}</span>
+              <span className="text-xs text-muted-foreground">{percentual(c.valor)}</span>
+            </button>
+          );
+        })}
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        className="mb-3 min-h-11 w-full justify-between md:hidden"
+        aria-expanded={filtrosCelular}
+        onClick={() => setFiltrosCelular((v) => !v)}
+      >
+        <span className="flex items-center gap-2">
+          <SlidersHorizontal className="size-4" />
+          {filtrosCelular ? "Esconder filtros" : "Mais filtros"}
+          {qtdFiltrosExtras ? (
+            <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">{qtdFiltrosExtras}</span>
+          ) : null}
+        </span>
+        {filtrosCelular ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+      </Button>
+      <div className={cn("mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4", !filtrosCelular && "hidden md:grid")}>
         <Select value={filtroNotificacao} onValueChange={(v) => setFiltroNotificacao(v as typeof filtroNotificacao)}>
           <SelectTrigger><SelectValue placeholder="Situação" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todas as situações</SelectItem>
             <SelectItem value="ativos">Ativos</SelectItem>
+            <SelectItem value="em_licenca">Em licença médica</SelectItem>
             <SelectItem value="inativos">Inativos</SelectItem>
             <SelectItem value="sem_atestado">Sem atestado médico</SelectItem>
             <SelectItem value="atestado_vencido">Atestado vencido</SelectItem>
@@ -1131,7 +1231,7 @@ function AlunosPage() {
         </Select>
       </div>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-2">
+        <div className={cn("flex items-center gap-2", !filtrosCelular && "hidden md:flex")}>
           <Input className="w-24" type="number" min={0} placeholder="Idade mín." value={idadeMin} onChange={(e) => setIdadeMin(e.target.value)} />
           <span className="text-sm text-muted-foreground">a</span>
           <Input className="w-24" type="number" min={0} placeholder="Idade máx." value={idadeMax} onChange={(e) => setIdadeMax(e.target.value)} />
@@ -1153,7 +1253,7 @@ function AlunosPage() {
 
         <Dialog open={aberto} onOpenChange={setAberto}>
           <DialogTrigger asChild>
-            <Button disabled={!permitido("alunos_cadastrar")} onClick={abrirNovo}>
+            <Button variant="pool" disabled={!permitido("alunos_cadastrar")} onClick={abrirNovo}>
               <Plus className="size-4" /> Nova matrícula
             </Button>
           </DialogTrigger>
@@ -1695,57 +1795,112 @@ function AlunosPage() {
         </Card>
       ) : null}
 
-      <div className="grid gap-3">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+        {filtrados.length ? (
+          <div className="hidden grid-cols-[1.25rem_2.75rem_minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,2fr)_10rem_auto] items-center gap-4 border-b border-border/70 bg-muted/40 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid">
+            <span />
+            <span />
+            <span>Nome</span>
+            <span>Matrícula</span>
+            <span>Turma</span>
+            <span>Situação</span>
+            <span className="w-[4.5rem]" />
+          </div>
+        ) : null}
+        <ul className="divide-y divide-border/70">
         {filtrados.map((aluno) => {
           const turmasDoAluno = matriculas
             .filter((m) => m.aluno_id === aluno.id)
             .map((m) => turmas.find((t) => t.id === m.turma_id)?.nome)
             .filter(Boolean);
+          const sit = situacao(aluno);
+          const idade = aluno.idade ?? (idadePorNascimento(aluno.data_nascimento) || null);
+          const textoTurmas = turmasDoAluno.length ? turmasDoAluno.join(", ") : "Sem turma";
           return (
-            <Card key={aluno.id} className="border-border/70">
-              <CardContent className="flex flex-wrap items-center gap-4 py-4">
-                <Checkbox
-                  checked={selecionados.includes(aluno.id)}
-                  onCheckedChange={(v) =>
-                    setSelecionados((s) => (v ? [...s, aluno.id] : s.filter((x) => x !== aluno.id)))
-                  }
-                  aria-label={`Selecionar ${aluno.nome}`}
-                />
-                {fotos[aluno.id] ? (
-                  <FotoAmpliavel src={fotos[aluno.id]!} nome={aluno.nome} className="size-11 rounded-full object-cover" />
-                ) : (
-                  <div className="grid size-11 shrink-0 place-items-center rounded-full bg-pool font-display text-sm font-semibold text-primary-foreground">
-                    {aluno.nome.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
-                <div className="min-w-40 flex-1">
-                  <button type="button" onClick={() => void abrirDetalhe(aluno)} className="text-left font-medium text-foreground hover:text-primary hover:underline">
-                    {aluno.nome}
-                  </button>
-                  <p className="text-xs font-medium text-foreground">Matrícula {aluno.codigo}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {turmasDoAluno.length ? turmasDoAluno.join(", ") : "Sem turma"}
-                    {aluno.telefone ? ` · ${aluno.telefone}` : ""}
-                  </p>
+            <li
+              key={aluno.id}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 md:grid md:grid-cols-[1.25rem_2.75rem_minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,2fr)_10rem_auto] md:gap-4",
+                selecionados.includes(aluno.id) && "bg-secondary/60",
+              )}
+            >
+              <Checkbox
+                checked={selecionados.includes(aluno.id)}
+                onCheckedChange={(v) =>
+                  setSelecionados((s) => (v ? [...s, aluno.id] : s.filter((x) => x !== aluno.id)))
+                }
+                aria-label={`Selecionar ${aluno.nome}`}
+              />
+              {fotos[aluno.id] ? (
+                <FotoAmpliavel src={fotos[aluno.id]!} nome={aluno.nome} className="size-12 shrink-0 rounded-full object-cover ring-2 ring-border md:size-11" />
+              ) : (
+                <div className="grid size-12 shrink-0 place-items-center rounded-full bg-pool font-display text-sm font-semibold text-primary-foreground md:size-11">
+                  {aluno.nome.slice(0, 2).toUpperCase()}
                 </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <button type="button" onClick={() => void abrirDetalhe(aluno)} className="block max-w-full truncate text-left font-semibold text-foreground hover:text-primary hover:underline">
+                  {aluno.nome}
+                </button>
+                <p className="truncate text-xs text-muted-foreground">
+                  {[idade ? `${idade} anos` : null, aluno.telefone].filter(Boolean).join(" · ") || "\u00a0"}
+                </p>
+                <p className="truncate text-xs text-muted-foreground md:hidden">{textoTurmas}</p>
+                <p className="text-xs font-medium text-foreground md:hidden">Matrícula {aluno.codigo}</p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5 md:hidden">
+                  <SituacaoAluno tom={sit.tom} rotulo={sit.rotulo} />
+                  {aluno.pcd ? <Badge variant="outline">PCD</Badge> : null}
+                </div>
+              </div>
+              <span className="hidden font-mono text-sm text-foreground md:block">{aluno.codigo}</span>
+              <span className="hidden min-w-0 text-sm text-primary md:block">
+                <span className="line-clamp-2">{textoTurmas}</span>
+              </span>
+              <div className="hidden flex-wrap gap-1.5 md:flex">
+                <SituacaoAluno tom={sit.tom} rotulo={sit.rotulo} />
                 {aluno.pcd ? <Badge variant="outline">PCD</Badge> : null}
-                <Badge variant={aluno.ativo ? "default" : "secondary"}>{aluno.ativo ? "Ativo" : "Inativo"}</Badge>
-                <Button variant="ghost" size="icon" aria-label="Editar aluno" disabled={!permitido("alunos_editar")} onClick={() => abrirEdicao(aluno)}><Pencil className="size-4" /></Button>
-                <Button variant="outline" size="icon" title="Visualizar crachá" onClick={() => void abrirPreviewCracha(aluno)}><IdCard className="size-4" /></Button>
-                <Button variant="ghost" size="icon" title={aluno.ativo ? "Inativar" : "Reativar"} disabled={!permitido(aluno.ativo ? "alunos_inativar" : "alunos_reativar")} onClick={() => void alternarAtivo([aluno], !aluno.ativo)}>
-                  {aluno.ativo ? <UserX className="size-4" /> : <UserCheck className="size-4" />}
-                </Button>
-                <Button variant="ghost" size="icon" className="text-destructive" title="Excluir" disabled={!permitido("alunos_excluir")} onClick={() => { if (permitido("alunos_excluir")) setConfirmarExclusao([aluno]); }}>
-                  <Trash2 className="size-4" />
-                </Button>
-
-              </CardContent>
-            </Card>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button variant="ghost" size="icon" className="hidden md:inline-flex" aria-label="Editar aluno" title="Editar" disabled={!permitido("alunos_editar")} onClick={() => abrirEdicao(aluno)}><Pencil className="size-4" /></Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-10" aria-label={`Mais ações para ${aluno.nome}`}>
+                      <MoreHorizontal className="size-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem onClick={() => void abrirDetalhe(aluno)}>Ver ficha do aluno</DropdownMenuItem>
+                    <DropdownMenuItem disabled={!permitido("alunos_editar")} onClick={() => abrirEdicao(aluno)}>
+                      <Pencil className="size-4" /> Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void abrirPreviewCracha(aluno)}>
+                      <IdCard className="size-4" /> Visualizar crachá
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={!permitido(aluno.ativo ? "alunos_inativar" : "alunos_reativar")}
+                      onClick={() => void alternarAtivo([aluno], !aluno.ativo)}
+                    >
+                      {aluno.ativo ? <UserX className="size-4" /> : <UserCheck className="size-4" />}
+                      {aluno.ativo ? "Inativar" : "Reativar"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      disabled={!permitido("alunos_excluir")}
+                      onClick={() => { if (permitido("alunos_excluir")) setConfirmarExclusao([aluno]); }}
+                    >
+                      <Trash2 className="size-4" /> Excluir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </li>
           );
         })}
+        </ul>
         {!filtrados.length && (
-          <p className="rounded-xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">
-            Nenhum aluno cadastrado ainda.
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            {alunos.length ? "Nenhum aluno encontrado com esses filtros." : "Nenhum aluno cadastrado ainda."}
           </p>
         )}
       </div>

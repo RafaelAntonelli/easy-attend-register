@@ -1,0 +1,151 @@
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, type ReactNode } from "react";
+import { LayoutDashboard, Users, CalendarDays, QrCode, LogOut, Waves, ShieldCheck, FileBarChart, CloudUpload, Bell } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { permissaoAtiva, usePermissoesProfessor } from "@/lib/permissoes";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { StatusOffline } from "@/components/StatusOffline";
+
+
+const baseNav = [
+  { to: "/", label: "Painel", icon: LayoutDashboard },
+  { to: "/alunos", label: "Alunos", icon: Users },
+  { to: "/turmas", label: "Turmas", icon: CalendarDays },
+  { to: "/presenca", label: "Presença", icon: QrCode },
+  { to: "/relatorios", label: "Relatórios", icon: FileBarChart },
+];
+const adminNav = [
+  { to: "/avisos", label: "Avisos", icon: Bell },
+  { to: "/backup", label: "Backup", icon: CloudUpload },
+  { to: "/equipe", label: "Equipe", icon: ShieldCheck },
+];
+
+
+export function AppShell({ children, title, subtitle }: { children: ReactNode; title: string; subtitle?: string }) {
+  const { session, loading, isStaff, isAdmin, isStudent } = useAuth();
+  const queryClient = useQueryClient();
+  const { mapa: permissoes } = usePermissoesProfessor();
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    if (!loading && !session) navigate({ to: "/auth", replace: true });
+    else if (!loading && isStudent && !isStaff) navigate({ to: "/area-aluno", replace: true });
+  }, [loading, session, navigate, isStudent, isStaff]);
+
+  if (loading || !session || (isStudent && !isStaff)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Waves className="size-8 animate-pulse text-primary" />
+      </div>
+    );
+  }
+
+  if (!isStaff) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+        <Waves className="size-8 text-primary" />
+        <div>
+          <h1 className="font-display text-xl font-semibold text-foreground">Acesso aguardando liberação</h1>
+          <p className="mt-1 max-w-md text-sm text-muted-foreground">
+            Sua conta foi criada, mas ainda não tem permissão para acessar os dados. Peça a um administrador da Arena
+            Aquática para liberar seu acesso.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={async () => {
+            await queryClient.cancelQueries();
+            queryClient.clear();
+            await supabase.auth.signOut();
+            navigate({ to: "/auth", replace: true });
+          }}
+        >
+          <LogOut className="mr-2 size-4" /> Sair
+        </Button>
+      </div>
+    );
+  }
+
+  const nav = isAdmin
+    ? [...baseNav, ...adminNav]
+    : baseNav.filter((n) => n.to !== "/relatorios" || permissaoAtiva(permissoes, "relatorios_ver"));
+
+  return (
+    <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-64">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar px-4 py-4 md:flex">
+        <div className="flex shrink-0 items-center gap-2 px-2">
+          <img src="/icons/icon-192x192.png" alt="Arena Aquática LF" className="size-9 rounded-xl object-cover" />
+          <div className="leading-tight">
+            <p className="font-display text-base font-semibold text-sidebar-foreground">Arena Aquática LF</p>
+            <p className="text-xs text-sidebar-foreground/60">Gestão de alunos</p>
+          </div>
+        </div>
+        <nav aria-label="Menu principal" className="my-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain">
+          {nav.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={cn(
+                "flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                pathname === item.to && "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_var(--sidebar-primary)]",
+              )}
+            >
+              <item.icon className="size-4" />
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <Button
+          variant="ghost"
+          className="min-h-11 shrink-0 justify-start gap-3 border-t border-sidebar-border text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          onClick={async () => {
+            await queryClient.cancelQueries();
+            queryClient.clear();
+            await supabase.auth.signOut();
+            navigate({ to: "/auth", replace: true });
+          }}
+        >
+          <LogOut className="size-4" /> Sair
+        </Button>
+      </aside>
+
+      <StatusOffline />
+
+      <header className="border-b border-border bg-card/60 px-5 py-6 backdrop-blur md:px-10">
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="min-w-0 break-words font-display text-2xl font-semibold text-foreground md:text-3xl">{title}</h1>
+          <Button variant="outline" className="min-h-11 shrink-0 md:hidden" onClick={async () => {
+            await queryClient.cancelQueries();
+            queryClient.clear();
+            await supabase.auth.signOut();
+            navigate({ to: "/auth", replace: true });
+          }}><LogOut className="mr-2 size-4" />Sair</Button>
+        </div>
+        {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
+      </header>
+
+
+      <main className="px-5 py-6 md:px-10">{children}</main>
+
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex overflow-x-auto border-t border-sidebar-border bg-sidebar md:hidden">
+        {nav.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            className={cn(
+              "flex min-w-16 flex-1 flex-col items-center gap-1 py-3 text-[11px] font-medium text-sidebar-foreground/60",
+              pathname === item.to && "text-sidebar-primary",
+            )}
+          >
+            <item.icon className="size-5" />
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+    </div>
+  );
+}

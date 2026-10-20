@@ -22,6 +22,7 @@ import { Route as TurmasRouteImport } from './routes/turmas'
 import { Route as AuthenticatedAreaAlunoRouteImport } from './routes/_authenticated/area-aluno'
 import { Route as AuthenticatedPerfilAlunoRouteImport } from './routes/_authenticated/perfil-aluno'
 import { Route as ApiPublicBackupSemanalRouteImport } from './routes/api/public/backup-semanal'
+import { Route as ApiPublicLembretesAulasRouteImport } from './routes/api/public/lembretes-aulas'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -88,6 +89,11 @@ const ApiPublicBackupSemanalRoute = ApiPublicBackupSemanalRouteImport.update({
   path: '/api/public/backup-semanal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicLembretesAulasRoute = ApiPublicLembretesAulasRouteImport.update({
+  id: '/api/public/lembretes-aulas',
+  path: '/api/public/lembretes-aulas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/area-aluno': typeof AuthenticatedAreaAlunoRoute
   '/perfil-aluno': typeof AuthenticatedPerfilAlunoRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
+  '/api/public/lembretes-aulas': typeof ApiPublicLembretesAulasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/area-aluno': typeof AuthenticatedAreaAlunoRoute
   '/perfil-aluno': typeof AuthenticatedPerfilAlunoRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
+  '/api/public/lembretes-aulas': typeof ApiPublicLembretesAulasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/_authenticated/area-aluno': typeof AuthenticatedAreaAlunoRoute
   '/_authenticated/perfil-aluno': typeof AuthenticatedPerfilAlunoRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
+  '/api/public/lembretes-aulas': typeof ApiPublicLembretesAulasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/area-aluno'
     | '/perfil-aluno'
     | '/api/public/backup-semanal'
+    | '/api/public/lembretes-aulas'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/area-aluno'
     | '/perfil-aluno'
     | '/api/public/backup-semanal'
+    | '/api/public/lembretes-aulas'
   id:
     | '__root__'
     | '/'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/_authenticated/area-aluno'
     | '/_authenticated/perfil-aluno'
     | '/api/public/backup-semanal'
+    | '/api/public/lembretes-aulas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -191,6 +203,7 @@ export interface RootRouteChildren {
   RelatoriosRoute: typeof RelatoriosRoute
   TurmasRoute: typeof TurmasRoute
   ApiPublicBackupSemanalRoute: typeof ApiPublicBackupSemanalRoute
+  ApiPublicLembretesAulasRoute: typeof ApiPublicLembretesAulasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -286,6 +299,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBackupSemanalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/lembretes-aulas': {
+      id: '/api/public/lembretes-aulas'
+      path: '/api/public/lembretes-aulas'
+      fullPath: '/api/public/lembretes-aulas'
+      preLoaderRoute: typeof ApiPublicLembretesAulasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -314,6 +334,7 @@ const rootRouteChildren: RootRouteChildren = {
   RelatoriosRoute: RelatoriosRoute,
   TurmasRoute: TurmasRoute,
   ApiPublicBackupSemanalRoute: ApiPublicBackupSemanalRoute,
+  ApiPublicLembretesAulasRoute: ApiPublicLembretesAulasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

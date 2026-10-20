@@ -259,6 +259,7 @@ export type Database = {
           id: string
           lido_em: string | null
           mensagem: string
+          push_enviado_em: string | null
           tipo: string
           titulo: string
         }
@@ -270,6 +271,7 @@ export type Database = {
           id?: string
           lido_em?: string | null
           mensagem: string
+          push_enviado_em?: string | null
           tipo?: string
           titulo: string
         }
@@ -281,6 +283,7 @@ export type Database = {
           id?: string
           lido_em?: string | null
           mensagem?: string
+          push_enviado_em?: string | null
           tipo?: string
           titulo?: string
         }
@@ -516,6 +519,27 @@ export type Database = {
           horario?: string
           id?: string
           ordem?: number
+        }
+        Relationships: []
+      }
+      lembretes_cron: {
+        Row: {
+          created_at: string
+          id: boolean
+          token: string
+          ultima_execucao: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: boolean
+          token?: string
+          ultima_execucao?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: boolean
+          token?: string
+          ultima_execucao?: string | null
         }
         Relationships: []
       }
@@ -888,6 +912,7 @@ export type Database = {
         Returns: boolean
       }
       disparar_backup_semanal: { Args: never; Returns: undefined }
+      disparar_lembretes_aulas: { Args: never; Returns: undefined }
       editar_contato_portal: {
         Args: { _email: string; _telefone: string; _telefone2: string }
         Returns: undefined
@@ -911,9 +936,21 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      lembrete_aula_devido: {
+        Args: { _agora: string; _dias: string[]; _horario: string }
+        Returns: number
+      }
       marcar_aviso_lido: { Args: { _id: string }; Returns: undefined }
       perfil_portal_aluno: { Args: never; Returns: Json }
       pode: { Args: { _chave: string; _user_id: string }; Returns: boolean }
+      reservar_push_lembretes: {
+        Args: never
+        Returns: {
+          aluno_id: string
+          mensagem: string
+          titulo: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "professor"

@@ -754,29 +754,27 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-1.5">
                       {a.pcd ? <Badge variant="outline">PCD</Badge> : null}
                       <Badge variant={a.status === "ativa" ? "default" : "secondary"}>{a.status}</Badge>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-10 rounded-xl"
+                        aria-label={`Observação de ${a.nome}`}
+                        title="Editar observação"
+                        onClick={() => setEditandoObservacao({ alunoId: a.id, nome: a.nome, texto: observacoesPresenca[a.id] ?? "" })}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <BotoesChamada
-                      className="sm:w-full sm:min-w-0"
-                      nome={a.nome}
-                      atual={statusPresenca[a.id]}
-                      onEscolher={(st) => void registrarPresenca(a.id, st)}
-                    />
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="size-11 shrink-0 rounded-xl"
-                      aria-label={`Observação de ${a.nome}`}
-                      title="Editar observação"
-                      onClick={() => setEditandoObservacao({ alunoId: a.id, nome: a.nome, texto: observacoesPresenca[a.id] ?? "" })}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                  </div>
+                  <BotoesChamada
+                    className="sm:w-full sm:min-w-0"
+                    nome={a.nome}
+                    atual={statusPresenca[a.id]}
+                    onEscolher={(st) => void registrarPresenca(a.id, st)}
+                  />
                 </div>
               ))
 

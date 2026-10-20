@@ -52,7 +52,7 @@ export function BotoesChamada({
             aria-pressed={selecionado}
             onClick={() => onEscolher(o.status)}
             className={cn(
-              "flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-2 px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "flex min-h-11 items-center justify-center gap-1 rounded-xl border-2 px-1.5 text-[13px] font-semibold sm:gap-1.5 sm:px-2 sm:text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               selecionado ? o.ativo : cn("bg-card", o.inativo),
             )}
           >

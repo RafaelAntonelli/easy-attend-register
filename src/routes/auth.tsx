@@ -242,7 +242,18 @@ function AuthPage() {
                 alt="Logo Arena Aquática LF"
                 className="mb-2 hidden size-16 rounded-2xl shadow-md lg:block"
               />
-              <CardTitle className="font-display text-2xl">{acesso === "aluno" ? "Área do aluno" : titulo}</CardTitle>
+              <CardTitle className="font-display text-2xl">
+                {acesso === "aluno" ? (
+                  "Área do aluno"
+                ) : !redefinindo && !recuperando && modo === "entrar" ? (
+                  <>
+                    <span className="lg:hidden">Acesse sua conta</span>
+                    <span className="hidden lg:inline">{titulo}</span>
+                  </>
+                ) : (
+                  titulo
+                )}
+              </CardTitle>
               <CardDescription>
                 {acesso === "aluno"
                   ? "Arena Aquática LF"

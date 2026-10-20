@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp, X, MoreHorizontal } from "lucide-react";
+import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp, X, MoreHorizontal, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -195,6 +195,7 @@ function AlunosPage() {
     "todos" | "ativos" | "em_licenca" | "inativos" | "sem_atestado" | "atestado_vencido" | "atestado_vencer" | "excesso_faltas"
   >("todos");
   const [emLicenca, setEmLicenca] = useState<Set<string>>(new Set());
+  const [filtrosCelular, setFiltrosCelular] = useState(false);
   useEffect(() => {
     void supabase
       .from("licencas_medicas")
@@ -1022,6 +1023,16 @@ function AlunosPage() {
     { filtro: "atestado_vencido", rotulo: "Atestado vencido", tom: "vencido", valor: vencidos.length },
     { filtro: "inativos", rotulo: "Inativos", tom: "inativo", valor: inativos.length },
   ];
+  const qtdFiltrosExtras = [
+    filtroPcd !== "todos",
+    filtroSexo !== "todos",
+    filtroModalidade !== "todas",
+    filtrosHorario.length > 0,
+    filtroDias !== "todos",
+    filtroTurno !== "todos",
+    Boolean(idadeMin || idadeMax),
+    !["todos", "ativos", "em_licenca", "atestado_vencido", "inativos"].includes(filtroNotificacao),
+  ].filter(Boolean).length;
   const percentual = (v: number) => (alunos.length ? `${Math.round((v / alunos.length) * 100)}% do total` : "—");
 
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
@@ -1104,7 +1115,23 @@ function AlunosPage() {
           );
         })}
       </div>
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <Button
+        type="button"
+        variant="outline"
+        className="mb-3 min-h-11 w-full justify-between md:hidden"
+        aria-expanded={filtrosCelular}
+        onClick={() => setFiltrosCelular((v) => !v)}
+      >
+        <span className="flex items-center gap-2">
+          <SlidersHorizontal className="size-4" />
+          {filtrosCelular ? "Esconder filtros" : "Mais filtros"}
+          {qtdFiltrosExtras ? (
+            <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">{qtdFiltrosExtras}</span>
+          ) : null}
+        </span>
+        {filtrosCelular ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+      </Button>
+      <div className={cn("mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4", !filtrosCelular && "hidden md:grid")}>
         <Select value={filtroNotificacao} onValueChange={(v) => setFiltroNotificacao(v as typeof filtroNotificacao)}>
           <SelectTrigger><SelectValue placeholder="Situação" /></SelectTrigger>
           <SelectContent>
@@ -1204,7 +1231,7 @@ function AlunosPage() {
         </Select>
       </div>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-2">
+        <div className={cn("flex items-center gap-2", !filtrosCelular && "hidden md:flex")}>
           <Input className="w-24" type="number" min={0} placeholder="Idade mín." value={idadeMin} onChange={(e) => setIdadeMin(e.target.value)} />
           <span className="text-sm text-muted-foreground">a</span>
           <Input className="w-24" type="number" min={0} placeholder="Idade máx." value={idadeMax} onChange={(e) => setIdadeMax(e.target.value)} />

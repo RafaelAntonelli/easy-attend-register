@@ -33,3 +33,9 @@
 - Device approval QR uses the versioned aparelho-qr.ts parser with only the public device code; reading fills the existing form without bypassing admin authorization or physical confirmation.
 - Profile camera and gallery share the validated photo mutation; native front-camera capture updates the enrollment photo through the existing storage path.
 - Student notice alerts read the shared avisos query at the student route level and silently re-register push when permission is already granted; this keeps unread badges across tabs and device tokens fresh.
+- Backup Drive file names come only from src/lib/backup-nomes.ts (`[CODIGO]_[TIPO].ext`) and Drive restoration parses names with the same module, matching students by enrollment code only; the backup spreadsheet carries no file links, so names are the single link between rows and files.
+- Drive restoration recreates only students missing by code and restores files in small client-driven batches through admin server functions using the caller's client, keeping Worker subrequests bounded and existing student data untouched.
+- The offline queue (src/lib/offline.ts) sends one action at a time ordered by UTC timestamp plus device sequence and stops at the first failure until resolved or discarded; presence rows carry `executado_em` so a stale offline action never overwrites a newer record.
+- Export file links are signed in links-arquivos.server.ts with the admin-configured validity clamped by configuracoes-chaves.ts and are staff-only; in-app views use short-lived links, so no long-lived document URLs are generated.
+- Captured images are optimized with src/lib/imagem.ts at selection time, so previews, AI reading and uploads all use the same reduced file; PDFs pass through unchanged.
+- Student notices are saved to the in-app notice center before any push attempt and push failures never fail the send, so devices without Web Push still receive every notice.

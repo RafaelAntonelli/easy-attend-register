@@ -35,7 +35,7 @@ export const prepararBackupFn = createServerFn({ method: "POST" })
     }
   });
 
-/** Gera a planilha final (com os links do Drive) e envia para a pasta de planilhas. */
+/** Gera a planilha final (sem links) e envia para a pasta de planilhas. */
 export const gerarPlanilhaBackupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -51,25 +51,12 @@ export const gerarPlanilhaBackupFn = createServerFn({ method: "POST" })
     }
   });
 
-/** Links dos arquivos (fotos e documentos) já enviados ao Google Drive. */
-export const linksArquivosDriveFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async () => {
-    const { linksArquivosDrive } = await import("@/lib/backup.server");
-    try {
-      return await linksArquivosDrive();
-    } catch (err) {
-      console.error("[backup] não foi possível listar os links do Drive", err);
-      return {} as Record<string, string>;
-    }
-  });
-
-
 const falhaSchema = z.object({
   caminho: z.string(),
   nome: z.string(),
   pasta: z.string(),
   marcador: z.string(),
+  base: z.string().optional(),
   motivo: z.string(),
 });
 
@@ -80,6 +67,7 @@ const loteSchema = z.object({
       nome: z.string(),
       pasta: z.string(),
       marcador: z.string(),
+      base: z.string().optional(),
     }),
   ),
   existentes: z.record(z.string(), z.array(z.object({ id: z.string(), name: z.string() }))).optional(),

@@ -65,10 +65,10 @@ export type OpcoesPlanilha = {
   /** Progresso do processamento das linhas. */
   aoProgredir?: ((feitos: number, total: number) => void) | undefined;
   /**
-   * Links dos arquivos no Google Drive (onde ficam os backups).
-   * Devolve um mapa com a chave de `chaveLinkDrive(alunoId, campo)`.
+   * Links temporários (assinados) dos arquivos, com a chave de `chaveLinkDrive(alunoId, campo)`
+   * e o momento em que deixam de funcionar.
    */
-  linksDrive?: (() => Promise<Record<string, string>>) | undefined;
+  linksDrive?: (() => Promise<{ links: Record<string, string>; expiraEm?: string | null; horas?: number }>) | undefined;
 };
 
 
@@ -125,9 +125,14 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
   });
 
   let links: Record<string, string> = {};
+  let expiraEm: string | null = null;
+  let horas = 0;
   if (opcoes.linksDrive) {
     try {
-      links = await opcoes.linksDrive();
+      const r = await opcoes.linksDrive();
+      links = r.links ?? {};
+      expiraEm = r.expiraEm ?? null;
+      horas = r.horas ?? 0;
     } catch {
       links = {};
     }
@@ -238,5 +243,20 @@ export async function montarPlanilhaAlunos(opcoes: OpcoesPlanilha): Promise<Arra
   });
 
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cabecalho.length } };
+
+  if (Object.keys(links).length > 0 && expiraEm) {
+    const info = wb.addWorksheet("Sobre os links");
+    info.getColumn(1).width = 100;
+    info.addRow(["Links temporários de fotos e documentos"]).font = { bold: true };
+    info.addRow([`Os links desta planilha são assinados e param de funcionar em ${textoExpiracao(expiraEm)}${horas ? ` (${horas} h após a exportação)` : ""}.`]);
+    info.addRow(["Para proteger os dados pessoais (LGPD), gere uma nova exportação quando precisar abrir os arquivos depois desse prazo."]);
+  }
   return (await wb.xlsx.writeBuffer()) as ArrayBuffer;
+}
+
+/** Data e hora de expiração no formato brasileiro (horário de Brasília). */
+export function textoExpiracao(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
 }

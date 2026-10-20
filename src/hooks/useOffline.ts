@@ -1,14 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
-import { assinarFila, estaOnline, listarFila, sincronizar } from "@/lib/offline";
+import { assinarFila, descartarDaFila, estaOnline, listarFila, sincronizar, type OperacaoFila } from "@/lib/offline";
 
 export function useOffline() {
   const [online, setOnline] = useState(() => estaOnline());
   const [pendentes, setPendentes] = useState(0);
   const [sincronizando, setSincronizando] = useState(false);
+  const [bloqueada, setBloqueada] = useState<OperacaoFila | null>(null);
 
   const atualizar = useCallback(async () => {
-    setPendentes((await listarFila()).length);
+    const fila = await listarFila();
+    setPendentes(fila.length);
+    setBloqueada(fila[0]?.erro ? fila[0] : null);
   }, []);
+
+  const descartar = useCallback(async (id: string) => {
+    await descartarDaFila(id);
+    await atualizar();
+  }, [atualizar]);
 
   const sincronizarAgora = useCallback(async () => {
     setSincronizando(true);
@@ -35,5 +43,5 @@ export function useOffline() {
     };
   }, [atualizar, sincronizarAgora]);
 
-  return { online, pendentes, sincronizando, sincronizarAgora, atualizar };
+  return { online, pendentes, sincronizando, sincronizarAgora, atualizar, bloqueada, descartar };
 }

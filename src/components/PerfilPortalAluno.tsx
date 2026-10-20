@@ -5,13 +5,15 @@ import {queryOptions,useSuspenseQuery,useQueryClient} from '@tanstack/react-quer
 import {toast} from 'sonner';
 import {obterPerfilPortal,salvarContatoPortal,salvarFotoPortal} from '@/lib/portal-extras.functions';
 import {tokenAparelhoLocal} from '@/lib/aparelho-local';
+import {otimizarImagem} from '@/lib/imagem';
 import {Button} from '@/components/ui/button';import {Input} from '@/components/ui/input';import {Label} from '@/components/ui/label';
 export const perfilPortalConsulta=queryOptions({queryKey:['perfil-portal'],queryFn:()=>obterPerfilPortal({data:{aparelho:tokenAparelhoLocal()}})});
 export function PerfilPortalAluno(){const {data:perfil}=useSuspenseQuery(perfilPortalConsulta);const qc=useQueryClient();const salvar=useServerFn(salvarContatoPortal),foto=useServerFn(salvarFotoPortal);const [contato,setContato]=useState({telefone:perfil.telefone??'',telefone2:perfil.telefone2??'',email:perfil.email??''});const [busy,setBusy]=useState(false);
 const cameraRef=useRef<HTMLInputElement>(null),galeriaRef=useRef<HTMLInputElement>(null);
 async function enviarFoto(e:React.ChangeEvent<HTMLInputElement>){
-  const input=e.currentTarget,file=input.files?.[0];
-  if(!file)return;
+  const input=e.currentTarget,original=input.files?.[0];
+  if(!original)return;
+  const file=await otimizarImagem(original);
   if(file.size>5*1024*1024){toast.error('Use uma foto de até 5 MB.');input.value='';return;}
   const tipo=file.type;
   if(tipo!=='image/jpeg'&&tipo!=='image/png'&&tipo!=='image/webp'){toast.error('Use uma foto JPG, PNG ou WebP.');input.value='';return;}

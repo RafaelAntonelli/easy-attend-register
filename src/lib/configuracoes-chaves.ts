@@ -35,3 +35,18 @@ export function extrairIdPastaDrive(valor?: string | null): string {
   if (porUrl?.[1]) return porUrl[1];
   return /^[A-Za-z0-9_-]{10,}$/.test(bruto) ? bruto : "";
 }
+
+/** Validade (em horas) dos links temporários de fotos e documentos nas exportações. */
+export const CHAVE_VALIDADE_LINKS = "links_validade_horas";
+export const OPCOES_VALIDADE_LINKS = [1, 6, 12, 24, 48, 72] as const;
+export const VALIDADE_LINKS_PADRAO = 24;
+export const VALIDADE_LINKS_MAXIMA = 72;
+/** Links mostrados nas telas (perfil, listas) valem no máximo 1 hora. */
+export const VALIDADE_LINK_TELA_SEGUNDOS = 60 * 60;
+
+/** Lê a validade configurada, sempre entre 1 hora e o máximo permitido (padrão 24 h). */
+export function validadeLinksHoras(valor?: string | number | null): number {
+  const n = Math.floor(Number(valor));
+  if (!Number.isFinite(n) || n <= 0) return VALIDADE_LINKS_PADRAO;
+  return Math.min(Math.max(n, 1), VALIDADE_LINKS_MAXIMA);
+}

@@ -9,13 +9,28 @@ const DB_VERSAO = 1;
 const STORE_FILA = "fila";
 const STORE_CACHE = "cache";
 
-export type OperacaoFila =
-  | { id: string; criado_em: number; tipo: "aluno_novo"; aluno: Record<string, unknown>; foto?: Blob | null; fotoNome?: string | null }
-  | { id: string; criado_em: number; tipo: "aluno_update"; aluno_id: string; dados: Record<string, unknown>; foto?: Blob | null; fotoNome?: string | null }
-  | { id: string; criado_em: number; tipo: "matricula"; aluno_id: string; turma_id: string; modalidade: string; registrado_por?: string | null }
+/**
+ * Metadados de cada ação guardada offline: ID único, carimbo UTC e número de
+ * sequência no aparelho. A fila é enviada estritamente nessa ordem.
+ */
+type MetaFila = {
+  id: string;
+  /** Milissegundos desde 1970 (UTC). */
+  criado_em: number;
+  /** Mesmo instante em ISO 8601 UTC (ex.: 2026-10-20T19:34:00.000Z). */
+  criado_em_utc?: string;
+  /** Ordem de execução no aparelho, desempata ações no mesmo milissegundo. */
+  seq?: number;
+  /** Último erro ao enviar (a fila para nesta ação até ser resolvida). */
+  erro?: string | null;
+  tentativas?: number;
+};
+
+export type OperacaoFila = MetaFila & (
+  | { tipo: "aluno_novo"; aluno: Record<string, unknown>; foto?: Blob | null; fotoNome?: string | null }
+  | { tipo: "aluno_update"; aluno_id: string; dados: Record<string, unknown>; foto?: Blob | null; fotoNome?: string | null }
+  | { tipo: "matricula"; aluno_id: string; turma_id: string; modalidade: string; registrado_por?: string | null }
   | {
-      id: string;
-      criado_em: number;
       tipo: "presenca";
       aluno_id: string;
       turma_id: string | null;
@@ -25,7 +40,8 @@ export type OperacaoFila =
       observacoes: string | null;
       horario: string;
     }
-  | { id: string; criado_em: number; tipo: "presenca_remover"; aluno_id: string; data: string };
+  | { tipo: "presenca_remover"; aluno_id: string; data: string }
+);
 
 function suportado() {
   return typeof indexedDB !== "undefined";
@@ -93,17 +109,53 @@ export async function listarFila(): Promise<OperacaoFila[]> {
   if (!suportado()) return [];
   try {
     const itens = await comStore<OperacaoFila[]>(STORE_FILA, "readonly", (s) => s.getAll());
-    return (itens ?? []).sort((a, b) => a.criado_em - b.criado_em);
+    return ordenarFila(itens ?? []);
   } catch {
     return [];
   }
 }
 
-type SemMeta<T> = T extends unknown ? Omit<T, "id" | "criado_em"> & { id?: string } : never;
+/** Ordem exata de execução: instante UTC e, no mesmo instante, a sequência do aparelho. */
+export function ordenarFila<T extends { criado_em: number; seq?: number }>(itens: T[]): T[] {
+  return [...itens].sort((a, b) => a.criado_em - b.criado_em || (a.seq ?? 0) - (b.seq ?? 0));
+}
+
+type SemMeta<T> = T extends unknown ? Omit<T, keyof MetaFila> & { id?: string } : never;
+
+const CHAVE_SEQ = "arena:fila-seq";
+let ultimaSeq = 0;
+let ultimoInstante = 0;
+
+/** Próximo número de sequência, persistido para continuar crescendo entre aberturas do app. */
+function proximaSeq() {
+  try {
+    ultimaSeq = Math.max(ultimaSeq, Number(localStorage.getItem(CHAVE_SEQ)) || 0);
+  } catch {
+    /* sem armazenamento local: mantém a sequência em memória */
+  }
+  ultimaSeq += 1;
+  try {
+    localStorage.setItem(CHAVE_SEQ, String(ultimaSeq));
+  } catch {
+    /* ignora */
+  }
+  return ultimaSeq;
+}
 
 export async function enfileirar(op: SemMeta<OperacaoFila>): Promise<string> {
   const id = op.id ?? crypto.randomUUID();
-  const registro = { ...op, id, criado_em: Date.now() } as OperacaoFila;
+  // O instante nunca volta atrás, mesmo se o relógio do aparelho for ajustado durante o uso.
+  const agora = Math.max(Date.now(), ultimoInstante);
+  ultimoInstante = agora;
+  const registro = {
+    ...op,
+    id,
+    criado_em: agora,
+    criado_em_utc: new Date(agora).toISOString(),
+    seq: proximaSeq(),
+    erro: null,
+    tentativas: 0,
+  } as OperacaoFila;
   await comStore(STORE_FILA, "readwrite", (s) => s.put(registro));
   notificar();
   return id;
@@ -112,6 +164,22 @@ export async function enfileirar(op: SemMeta<OperacaoFila>): Promise<string> {
 async function remover(id: string) {
   await comStore(STORE_FILA, "readwrite", (s) => s.delete(id));
   notificar();
+}
+
+async function marcarErro(op: OperacaoFila, erro: string) {
+  const registro = { ...op, erro, tentativas: (op.tentativas ?? 0) + 1 } as OperacaoFila;
+  await comStore(STORE_FILA, "readwrite", (s) => s.put(registro));
+  notificar();
+}
+
+/** Remove da fila uma ação que não pode ser enviada (decisão do usuário), liberando as seguintes. */
+export async function descartarDaFila(id: string) {
+  await remover(id);
+}
+
+function mensagemErro(err: unknown) {
+  if (err && typeof err === "object" && "message" in err) return String((err as { message: unknown }).message).slice(0, 300);
+  return String(err).slice(0, 300);
 }
 
 export function estaOnline() {
@@ -152,18 +220,39 @@ async function executar(op: OperacaoFila) {
     if (error) throw error;
     return;
   }
+  const instante = instanteUtc(op);
   if (op.tipo === "presenca_remover") {
-    const { error } = await supabase.from("presencas").delete().eq("aluno_id", op.aluno_id).eq("data", op.data);
+    // Só remove se ninguém registrou essa presença depois desta ação.
+    const { error } = await supabase
+      .from("presencas")
+      .delete()
+      .eq("aluno_id", op.aluno_id)
+      .eq("data", op.data)
+      .lte("executado_em", instante);
     if (error) throw error;
     return;
   }
-  // presença: substitui o registro do dia, se existir
-  const existente = await supabase.from("presencas").select("id").eq("aluno_id", op.aluno_id).eq("data", op.data).maybeSingle();
+  // presença: substitui o registro do dia, se existir e for mais antigo que esta ação
+  const existente = await supabase
+    .from("presencas")
+    .select("id,executado_em")
+    .eq("aluno_id", op.aluno_id)
+    .eq("data", op.data)
+    .maybeSingle();
+  if (existente.error) throw existente.error;
   if (existente.data) {
     const { error } = await supabase
       .from("presencas")
-      .update({ status: op.status, metodo: op.metodo, turma_id: op.turma_id, horario: op.horario, observacoes: op.observacoes })
-      .eq("id", existente.data.id);
+      .update({
+        status: op.status,
+        metodo: op.metodo,
+        turma_id: op.turma_id,
+        horario: op.horario,
+        observacoes: op.observacoes,
+        executado_em: instante,
+      })
+      .eq("id", existente.data.id)
+      .lte("executado_em", instante);
     if (error) throw error;
   } else {
     const { error } = await supabase.from("presencas").insert({
@@ -174,31 +263,45 @@ async function executar(op: OperacaoFila) {
       metodo: op.metodo,
       observacoes: op.observacoes,
       horario: op.horario,
+      executado_em: instante,
     } as never);
     if (error) throw error;
   }
 }
 
-export type ResultadoSync = { enviados: number; falhas: number };
+/** Instante UTC (ISO) em que a ação foi feita no aparelho. */
+export function instanteUtc(op: Pick<OperacaoFila, "criado_em" | "criado_em_utc">) {
+  return op.criado_em_utc ?? new Date(op.criado_em).toISOString();
+}
+
+export type ResultadoSync = { enviados: number; falhas: number; bloqueada?: { id: string; erro: string } | undefined };
 
 export async function sincronizar(): Promise<ResultadoSync> {
   if (sincronizando || !estaOnline()) return { enviados: 0, falhas: 0 };
   sincronizando = true;
   let enviados = 0;
   let falhas = 0;
+  let bloqueada: ResultadoSync["bloqueada"];
   try {
+    // Envia uma ação por vez, na ordem em que foram feitas. Se uma falhar, as
+    // seguintes esperam: assim uma presença nunca chega antes da matrícula do aluno.
     const fila = await listarFila();
     for (const op of fila) {
+      if (!estaOnline()) break;
       try {
         await executar(op);
         await remover(op.id);
         enviados++;
-      } catch {
+      } catch (err) {
         falhas++;
+        const erro = mensagemErro(err);
+        bloqueada = { id: op.id, erro };
+        await marcarErro(op, erro).catch(() => undefined);
+        break;
       }
     }
   } finally {
     sincronizando = false;
   }
-  return { enviados, falhas };
+  return { enviados, falhas, bloqueada };
 }

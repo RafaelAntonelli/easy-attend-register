@@ -84,7 +84,7 @@ export async function executarBackupGlobal(): Promise<void> {
     const inicio = Date.now();
     let enviados = 0;
     const falhas: string[] = [];
-    const falhasArquivos: { caminho: string; nome: string; pasta: string; marcador: string; motivo: string }[] = [];
+    const falhasArquivos: { caminho: string; nome: string; pasta: string; marcador: string; base?: string | undefined; motivo: string }[] = [];
 
     atualizar({
       progresso: { etapa: "Enviando fotos e documentos…", enviados: 0, total, falhas: 0, restante: null },
@@ -111,7 +111,7 @@ export async function executarBackupGlobal(): Promise<void> {
     }
 
     atualizar({
-      progresso: { etapa: "Gerando a planilha com os links…", enviados: total, total, falhas: falhas.length, restante: null },
+      progresso: { etapa: "Gerando a planilha…", enviados: total, total, falhas: falhas.length, restante: null },
     });
     const { planilha, id: planilhaId, pasta } = await gerarPlanilhaBackupFn({ data: undefined });
 

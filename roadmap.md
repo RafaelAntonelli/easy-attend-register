@@ -1,5 +1,13 @@
 # Roadmap
 
+- [x] Fila offline em ordem exata (horário UTC + sequência), parando no primeiro erro; presença mais recente prevalece.
+- [x] Links de fotos/documentos nas exportações temporários com validade configurável (padrão 24 h), só para a equipe.
+- [x] Avisos garantidos na central da área do aluno mesmo sem notificação no celular.
+- [x] Fotos e documentos reduzidos no aparelho antes do envio e da leitura por IA.
+- [x] Backup: planilha sem links e arquivos nomeados CODIGO_TIPO.ext.
+- [x] Restaurar pelo Drive: prévia lida com dados reais (792 alunos ligados pelo código).
+- [ ] Renomear os arquivos já existentes no Drive para o padrão novo — acontece no próximo backup (manual ou automático); não executado agora para não mexer no Drive sem o usuário.
+
 - [x] Criar guia ilustrado dos professores com dados fictícios e instruções alinhadas às permissões.
 - [x] Adaptar guias de alunos e professores para WhatsApp: imagens numeradas, PDF e pacotes para download; revisar todas as páginas.
 

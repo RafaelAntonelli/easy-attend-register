@@ -23,6 +23,7 @@ import { useAuth } from "@/lib/auth";
 import { usePermissoesProfessor, permissaoAtiva } from "@/lib/permissoes";
 import { DOCUMENTOS_PLANILHA, montarPlanilhaAlunos, ExportacaoCancelada, type AlunoPlanilha } from "@/lib/planilha-alunos";
 import { linksArquivosFn } from "@/lib/links-arquivos.functions";
+import { otimizarImagem } from "@/lib/imagem";
 
 
 import { AppShell } from "@/components/AppShell";
@@ -920,7 +921,7 @@ function AlunosPage() {
       link.download = `alunos-${new Date().toISOString().slice(0, 10)}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success("Planilha exportada em ordem crescente de idade", { id: idToast });
+      toast.success("Planilha exportada em ordem crescente de idade. Os links dos arquivos são temporários (veja a aba \"Sobre os links\").", { id: idToast });
     } catch (err) {
       if (err instanceof ExportacaoCancelada) toast.info("Exportação cancelada", { id: idToast });
       else toast.error(err instanceof Error ? err.message : "Erro ao exportar planilha", { id: idToast });
@@ -1459,8 +1460,9 @@ function AlunosPage() {
                       className="hidden"
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0] ?? null;
+                      onChange={async (e) => {
+                        const original = e.target.files?.[0] ?? null;
+                        const f = original ? await otimizarImagem(original) : null;
                         setFoto(f);
                         setFotoPreview(f ? URL.createObjectURL(f) : null);
                       }}
@@ -1471,8 +1473,9 @@ function AlunosPage() {
                       type="file"
                       accept="image/*"
                       capture="environment"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0] ?? null;
+                      onChange={async (e) => {
+                        const original = e.target.files?.[0] ?? null;
+                        const f = original ? await otimizarImagem(original) : null;
                         setFoto(f);
                         setFotoPreview(f ? URL.createObjectURL(f) : null);
                       }}
@@ -1524,8 +1527,9 @@ function AlunosPage() {
                         aria-label={d.rotulo}
                         type="file"
                         accept="image/*,application/pdf"
-                        onChange={(e) => {
-                          const arquivo = e.target.files?.[0] ?? null;
+                        onChange={async (e) => {
+                          const original = e.target.files?.[0] ?? null;
+                          const arquivo = original ? await otimizarImagem(original) : null;
                           setDocs((s) => ({ ...s, [d.campo]: arquivo }));
                           if (d.campo === "doc_atestado_path" && arquivo) {
                              toast.warning('Preencha "Entregou atestado?" e a data antes de salvar.');

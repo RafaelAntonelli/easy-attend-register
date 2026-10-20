@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { baixarImagem } from "@/lib/fotos.functions";
 import { MapearColunasIA } from "@/components/MapearColunasIA";
 import { extrairImagensPlanilha } from "@/lib/planilha-imagens";
+import { otimizarBlobImagem } from "@/lib/imagem";
 import { capitalizarNome, formatarCelular, formatarCPF, apenasDigitos, cpfValido } from "@/lib/formatacao";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -545,6 +546,7 @@ export function ImportarAlunos({
             for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
             blob = new Blob([bytes], { type: img.contentType });
           }
+          blob = await otimizarBlobImagem(blob);
           const ext = (blob.type.split("/")[1] ?? "jpg").replace("jpeg", "jpg");
           const caminho = `${alunoId}/${Date.now()}.${ext}`;
           const up = await supabase.storage.from("fotos-alunos").upload(caminho, blob, {

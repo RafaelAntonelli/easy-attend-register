@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { idadePorNascimento, turnoDoHorario } from "@/lib/turnos";
 import { DOCUMENTOS_PLANILHA } from "@/lib/planilha-alunos";
+import { otimizarImagem } from "@/lib/imagem";
 
 import { Button } from "@/components/ui/button";
 import { ConversarWhatsApp } from "@/components/ConversarWhatsApp";
@@ -137,7 +138,8 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
     return;
   }
 
-  async function enviarFotoLicenca(alunoIdFoto: string, arquivo: File) {
+  async function enviarFotoLicenca(alunoIdFoto: string, original: File) {
+    const arquivo = await otimizarImagem(original);
     const ext = arquivo.name.split(".").pop() ?? "jpg";
     const caminho = `${alunoIdFoto}/licenca-atestado-${Date.now()}.${ext}`;
     const up = await supabase.storage.from("fotos-alunos").upload(caminho, arquivo, { upsert: true });

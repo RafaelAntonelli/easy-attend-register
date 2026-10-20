@@ -691,6 +691,7 @@ export type Database = {
           aluno_id: string
           created_at: string
           data: string
+          executado_em: string | null
           horario: string
           id: string
           metodo: string
@@ -704,6 +705,7 @@ export type Database = {
           aluno_id: string
           created_at?: string
           data?: string
+          executado_em?: string | null
           horario?: string
           id?: string
           metodo?: string
@@ -717,6 +719,7 @@ export type Database = {
           aluno_id?: string
           created_at?: string
           data?: string
+          executado_em?: string | null
           horario?: string
           id?: string
           metodo?: string

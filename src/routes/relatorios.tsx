@@ -120,7 +120,7 @@ function RelatoriosPage() {
       link.download = `alunos-${new Date().toISOString().slice(0, 10)}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success("Planilha exportada em ordem crescente de idade");
+      toast.success("Planilha exportada em ordem crescente de idade. Os links dos arquivos são temporários (veja a aba \"Sobre os links\").");
     } catch (err) {
       if (err instanceof ExportacaoCancelada) toast.info("Exportação cancelada");
       else toast.error(err instanceof Error ? err.message : "Erro ao exportar planilha");

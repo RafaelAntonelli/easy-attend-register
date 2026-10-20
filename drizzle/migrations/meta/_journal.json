@@ -120,6 +120,13 @@
       "when": 1792522111523,
       "tag": "0016_preferencia_lembretes_portal",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792525099402,
+      "tag": "0017_presenca_executado_em",
+      "breakpoints": true
     }
   ]
 }

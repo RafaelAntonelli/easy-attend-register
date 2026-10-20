@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp, X, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,8 @@ import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/li
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { atestadoVencido, diasParaVencer, notificarAtestadoVencido, notificarAtestadoVencendo } from "@/lib/atestado";
 import { PerfilAluno } from "@/components/PerfilAluno";
+import { SituacaoAluno, pontoSituacao, type TomSituacao } from "@/components/SituacaoAluno";
+import { hojeISO, licencaEmVigor, type Licenca } from "@/lib/licenca";
 import { AvisoLicencas } from "@/components/AvisoLicencas";
 import { PainelNotificacoes } from "@/components/painel/PainelNotificacoes";
 import { usePrazoAvisoAtestado } from "@/lib/configuracoes";
@@ -190,8 +192,19 @@ function AlunosPage() {
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [turnoForm, setTurnoForm] = useState("todos");
   const [filtroNotificacao, setFiltroNotificacao] = useState<
-    "todos" | "ativos" | "inativos" | "sem_atestado" | "atestado_vencido" | "atestado_vencer" | "excesso_faltas"
+    "todos" | "ativos" | "em_licenca" | "inativos" | "sem_atestado" | "atestado_vencido" | "atestado_vencer" | "excesso_faltas"
   >("todos");
+  const [emLicenca, setEmLicenca] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    void supabase
+      .from("licencas_medicas")
+      .select("id,aluno_id,data_inicio,data_retorno,motivo,encerrada_em")
+      .is("encerrada_em", null)
+      .then(({ data }) => {
+        const hoje = hojeISO();
+        setEmLicenca(new Set(((data ?? []) as Licenca[]).filter((l) => licencaEmVigor(l, hoje)).map((l) => l.aluno_id)));
+      });
+  }, []);
   const [listasNotificacoes, setListasNotificacoes] = useState<Record<string, boolean>>({
     inativos: false,
     sem_atestado: false,
@@ -955,6 +968,7 @@ function AlunosPage() {
       if (!correspondeBusca(a, busca)) return false;
       if (filtroNotificacao === "ativos" && !a.ativo) return false;
       if (filtroNotificacao === "inativos" && a.ativo) return false;
+      if (filtroNotificacao === "em_licenca" && (!a.ativo || !emLicenca.has(a.id))) return false;
       if (filtroNotificacao === "sem_atestado" && a.atestado_entregue) return false;
       if (filtroNotificacao === "atestado_vencido" && !notificarAtestadoVencido(a)) return false;
       if (filtroNotificacao === "atestado_vencer" && !notificarAtestadoVencendo(a, prazoAviso)) return false;
@@ -994,6 +1008,21 @@ function AlunosPage() {
   const proximosVencimento = alunos.filter((a) => notificarAtestadoVencendo(a, prazoAviso));
   const excessoFaltas = alunos.filter((a) => a.ativo && (faltasPorAluno[a.id] ?? 0) >= 5);
   const inativos = alunos.filter((a) => !a.ativo).sort((a, b) => a.nome.localeCompare(b.nome));
+  const situacao = (a: Aluno): { tom: TomSituacao; rotulo: string } => {
+    if (!a.ativo) return { tom: "inativo", rotulo: "Inativo" };
+    if (emLicenca.has(a.id)) return { tom: "licenca", rotulo: "Licença médica" };
+    if (notificarAtestadoVencido(a)) return { tom: "vencido", rotulo: "Atestado vencido" };
+    return { tom: "ativo", rotulo: "Ativo" };
+  };
+  const totalAtivos = alunos.filter((a) => a.ativo).length;
+  const totalLicenca = alunos.filter((a) => a.ativo && emLicenca.has(a.id)).length;
+  const resumoSituacoes: { filtro: typeof filtroNotificacao; rotulo: string; tom: TomSituacao; valor: number }[] = [
+    { filtro: "ativos", rotulo: "Ativos", tom: "ativo", valor: totalAtivos },
+    { filtro: "em_licenca", rotulo: "Em licença", tom: "licenca", valor: totalLicenca },
+    { filtro: "atestado_vencido", rotulo: "Atestado vencido", tom: "vencido", valor: vencidos.length },
+    { filtro: "inativos", rotulo: "Inativos", tom: "inativo", valor: inativos.length },
+  ];
+  const percentual = (v: number) => (alunos.length ? `${Math.round((v / alunos.length) * 100)}% do total` : "—");
 
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
   const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
@@ -1021,6 +1050,7 @@ function AlunosPage() {
           <span className="text-muted-foreground">Filtro ativo:</span>
           <Badge variant="secondary">
             {filtroNotificacao === "ativos" && "Ativos"}
+            {filtroNotificacao === "em_licenca" && "Em licença médica"}
             {filtroNotificacao === "inativos" && "Inativos"}
             {filtroNotificacao === "sem_atestado" && "Sem atestado médico"}
             {filtroNotificacao === "atestado_vencido" && "Atestado vencido"}
@@ -1032,12 +1062,55 @@ function AlunosPage() {
           </Button>
         </div>
       )}
+      <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden" role="group" aria-label="Situação dos alunos">
+        {[{ filtro: "todos" as const, rotulo: "Todos" }, ...resumoSituacoes].map((c) => (
+          <button
+            key={c.filtro}
+            type="button"
+            aria-pressed={filtroNotificacao === c.filtro}
+            onClick={() => setFiltroNotificacao(c.filtro)}
+            className={cn(
+              "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+              filtroNotificacao === c.filtro
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-card text-foreground hover:bg-accent",
+            )}
+          >
+            {c.rotulo}
+          </button>
+        ))}
+      </div>
+      <div className="mb-5 hidden gap-3 md:grid md:grid-cols-4">
+        {resumoSituacoes.map((c) => {
+          const ativo = filtroNotificacao === c.filtro;
+          return (
+            <button
+              key={c.filtro}
+              type="button"
+              aria-pressed={ativo}
+              onClick={() => setFiltroNotificacao(ativo ? "todos" : c.filtro)}
+              className={cn(
+                "rounded-2xl border bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                ativo ? "border-primary ring-2 ring-primary/30" : "border-border/70",
+              )}
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <span className={cn("size-2.5 rounded-full", pontoSituacao(c.tom))} aria-hidden />
+                {c.rotulo}
+              </span>
+              <span className="mt-2 block font-display text-3xl font-semibold text-foreground">{c.valor}</span>
+              <span className="text-xs text-muted-foreground">{percentual(c.valor)}</span>
+            </button>
+          );
+        })}
+      </div>
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Select value={filtroNotificacao} onValueChange={(v) => setFiltroNotificacao(v as typeof filtroNotificacao)}>
           <SelectTrigger><SelectValue placeholder="Situação" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todas as situações</SelectItem>
             <SelectItem value="ativos">Ativos</SelectItem>
+            <SelectItem value="em_licenca">Em licença médica</SelectItem>
             <SelectItem value="inativos">Inativos</SelectItem>
             <SelectItem value="sem_atestado">Sem atestado médico</SelectItem>
             <SelectItem value="atestado_vencido">Atestado vencido</SelectItem>
@@ -1153,7 +1226,7 @@ function AlunosPage() {
 
         <Dialog open={aberto} onOpenChange={setAberto}>
           <DialogTrigger asChild>
-            <Button disabled={!permitido("alunos_cadastrar")} onClick={abrirNovo}>
+            <Button variant="pool" disabled={!permitido("alunos_cadastrar")} onClick={abrirNovo}>
               <Plus className="size-4" /> Nova matrícula
             </Button>
           </DialogTrigger>

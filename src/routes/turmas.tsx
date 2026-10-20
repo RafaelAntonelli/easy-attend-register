@@ -329,7 +329,7 @@ function TurmasPage() {
     const alvos = pendentes.filter((a) => !deLicenca.has(a.id));
     const { error } = alvos.length
       ? await supabase.from("presencas").insert(
-          alvos.map((a) => ({ aluno_id: a.id, turma_id: turmaAberta?.id ?? null, data: hoje, metodo: "manual", status: "presente" })),
+          alvos.map((a) => ({ aluno_id: a.id, turma_id: turmaAberta?.id ?? null, data: hoje, metodo: "manual" as const, status: "presente" as const })),
         )
       : { error: null };
     setMarcandoTodos(false);
@@ -784,6 +784,28 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
           </div>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={confirmarTodos} onOpenChange={setConfirmarTodos}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Marcar todos como presentes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os alunos de {turmaAberta?.nome} que ainda não foram marcados hoje ficarão como presentes. Quem está
+              de licença médica ou já foi marcado não muda. Depois, é só tocar em Falta para quem não veio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmarTodos(false);
+                void marcarTodosPresentes();
+              }}
+            >
+              Marcar presentes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Dialog open={!!editandoObservacao} onOpenChange={(o) => !o && setEditandoObservacao(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

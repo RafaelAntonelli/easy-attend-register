@@ -31,3 +31,4 @@
 - Offline queue sends one action at a time by UTC timestamp + device sequence, stopping at the first failure; presencas.executado_em keeps stale offline actions from overwriting newer rows.
 - Export links are signed in links-arquivos.server.ts with the configured validity clamped by configuracoes-chaves.ts, staff-only; screens use short-lived links.
 - Images are optimized with imagem.ts at selection so previews, AI and uploads share the reduced file; PDFs unchanged.
+- Attendance buttons come only from BotoesChamada.tsx and student situation pills from SituacaoAluno.tsx, so Presença, Turmas and Alunos share colors; dark mode is a `dark` class set by tema.ts (pre-paint script in __root) and all colors stay semantic tokens.

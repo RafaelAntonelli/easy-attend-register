@@ -87,3 +87,6 @@
 - [x] Alunos: remover alunos inativados das notificações e do filtro de atestados vencidos; validar com teste.
 - [x] Presença/Lista manual: segundo clique no mesmo botão desmarca e apaga o registro (online e offline).
 - [x] Licença médica: vaga preservada, faltas justificadas, aviso na presença e lembrete de retorno.
+
+- [x] Novo visual (5 imagens aprovadas): Alunos com cartões de situação e cores; login com topo azul e ondas; menu do celular com "Mais"; chamada com botões grandes e "Marcar todos"; modo escuro. Cópia do visual anterior em design-backup/2026-10-20.
+- [ ] "Marcar todos como presentes" não foi executado com dados reais (evitar registros falsos de hoje) — conferir na próxima aula.

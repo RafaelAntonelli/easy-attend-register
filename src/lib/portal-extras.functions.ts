@@ -42,3 +42,12 @@ export const enviarAvisoEquipe=createServerFn({method:'POST'}).middleware([requi
  const key=process.env['FIREBASE_MESSAGING_API_KEY'],auth=process.env['LOVABLE_API_KEY'];if(!key||!auth)throw new Error('Avisos foram salvos, mas a conexão das notificações está indisponível.');
  const {enviarPush}=await import('./portal-extras.server');const entrega=await enviarPush(ids,data.titulo,data.mensagem,key,auth);return {destinatarios:ids.length,...entrega};
 });
+export const obterLembretesPortal=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>dispositivo.parse(d)).handler(async({data,context})=>{
+ const {validarPortal}=await import('./portal-extras.server');await validarPortal(context.supabase,context.userId,data.aparelho);
+ const {data:r,error}=await context.supabase.rpc('lembretes_portal');if(error||!r)throw new Error('Não foi possível carregar os lembretes.');
+ return z.object({ativo:z.boolean(),agendados:z.boolean()}).parse(r);
+});
+export const salvarLembretesPortal=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>dispositivo.extend({ativo:z.boolean()}).parse(d)).handler(async({data,context})=>{
+ const {validarPortal}=await import('./portal-extras.server');await validarPortal(context.supabase,context.userId,data.aparelho);
+ const {error}=await context.supabase.rpc('definir_lembretes_portal',{_ativo:data.ativo});if(error)throw new Error('Não foi possível salvar a preferência.');return {ok:true};
+});

@@ -9,33 +9,25 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- Os códigos de matrícula são gerados no banco como 7 caracteres alfanuméricos, com letra e número, e são únicos; a geração local replica o formato para cadastros offline.
-- A planilha do backup no servidor usa SheetJS; ExcelJS permanece apenas nas exportações do navegador porque não é compatível com o ambiente publicado.
-- Keep expired and soon-expiring certificate notification eligibility in src/lib/atestado.ts and reuse it for both notification lists and filters, so they cannot diverge.
-- Keep WhatsApp contact URL normalization in src/lib/whatsapp.ts and reuse ConversarWhatsApp across student forms and profiles to avoid divergent contact behavior.
-- Use escolas.ts for network-grouped school options and report totals; the focused searchable selector preserves stored and legacy names. Persist additions as individual network-scoped configuracoes rows via escolas-personalizadas.ts to avoid concurrent overwrites.
-- Keep report intersections and chart grouping in src/lib/relatorio-cruzado.ts; evaluate class filters on the same active enrollment and count students once, reusing its result for the chart, detailed lists, school totals and CSV/PDF.
-- Keep report chart presentation in GraficoAlunos, consuming the existing grouped result without refiltering; this preserves consistent totals and the SVG used by PDF export.
-- Reuse DOCUMENTOS_PLANILHA for enrollment and profile document lists so uploads, previews and spreadsheet links support the same document fields.
-- Keep professor action keys and defaults in src/lib/permissoes.ts aligned with public.pode and table policies; guard each button and mutation so the UI matches enforced access.
-- Validate student status transitions separately from other edits in a database trigger, and delete students through their cascading relations; this keeps inactivation, reactivation and deletion permissions independent.
-- Change professor permissions only through an authenticated admin server function after password confirmation; persist only a hashed, expiring confirmation bound to the admin, and revoke direct authenticated writes so the password gate cannot be bypassed.
-- Keep the build-time runtime guard in `src/lib/worker-runtime.ts` (not `build/`, which deploys drop); it guards the `_runtime.mjs` module URL because dynamic Worker modules may lack `import.meta.url` and crash `createRequire`.
-- Route AI assistance through authenticated `ai.functions.ts` with existing action permissions and request-local, server-only streaming Responses helpers; this prevents browser secrets and unauthorized AI calls.
-- AI enrollment and column mapping must remain reviewed proposals passed through existing form/import validation, never direct writes; this preserves enrollment rules and human confirmation.
-- The ficha reader consumes the enrollment document attachment state and resets when that attachment changes; this keeps the analyzed image identical to the file saved with enrollment.
-- Give the report AI only server-computed aggregates; WhatsApp drafts exclude student identifiers and medical details and are never sent automatically.
-- Complex AI reports translate questions to typed filters, reuse report intersections, then calculate unique-student age statistics locally from paginated authorized reads; only aggregate results reach the answering model so comparisons remain reproducible.
-- Persist terminal provider denial in the application configuration and check it before AI calls; clear it only after provider access is restored and an administrator explicitly resumes use.
-- Student accounts link separately to enrollments, exclude staff roles and use auth.uid-scoped minimal reads, never broad student-table policies. Keep overview, badge and notices in tabs on the student route without changing authorization.
-- Portal mutations and push registration validate the device server-side; delivery rechecks device/account authorization to exclude revoked access. Class reminders: SQL cron (pausable) generates rows for students whose access opts in, calling /api/public/lembretes-aulas (DB-only secret) only when pushable rows exist; delivery reserves rows once.
-- Student devices: admin-only physical approval, hashed tokens only, sessions after device+birth date+identifier checks. Token via partitioned HttpOnly cookie plus browser copy (aparelho-local.ts), since previews drop cookies. Rate-limit per IP, and per device when a token exists. Device requests require an exact active student match (else no code is issued) and feed the admin waiting list.
-- Device approval QR uses the versioned aparelho-qr.ts parser with only the public device code; reading fills the existing form without bypassing admin authorization or physical confirmation.
-- Profile camera and gallery share the validated photo mutation; native front-camera capture updates the enrollment photo through the existing storage path.
-- Student notice alerts read the shared avisos query at the student route level and silently re-register push when permission is already granted; this keeps unread badges across tabs and device tokens fresh.
-- Backup Drive file names come only from src/lib/backup-nomes.ts (`[CODIGO]_[TIPO].ext`) and Drive restoration parses names with the same module, matching students by enrollment code only; the backup spreadsheet carries no file links, so names are the single link between rows and files.
-- Drive restoration recreates only students missing by code and restores files in small client-driven batches through admin server functions using the caller's client, keeping Worker subrequests bounded and existing student data untouched.
-- The offline queue (src/lib/offline.ts) sends one action at a time ordered by UTC timestamp plus device sequence and stops at the first failure until resolved or discarded; presence rows carry `executado_em` so a stale offline action never overwrites a newer record.
-- Export file links are signed in links-arquivos.server.ts with the admin-configured validity clamped by configuracoes-chaves.ts and are staff-only; in-app views use short-lived links, so no long-lived document URLs are generated.
-- Captured images are optimized with src/lib/imagem.ts at selection time, so previews, AI reading and uploads all use the same reduced file; PDFs pass through unchanged.
-- Student notices are saved to the in-app notice center before any push attempt and push failures never fail the send, so devices without Web Push still receive every notice.
+- Enrollment codes: 7 unique alphanumerics (letter+digit) generated in the DB; local generation mirrors the format for offline sign-ups.
+- Server backup spreadsheet uses SheetJS; ExcelJS only in browser exports (incompatible with the published runtime).
+- Certificate notification eligibility lives in atestado.ts, reused by lists and filters so they cannot diverge.
+- WhatsApp URL normalization lives in whatsapp.ts; reuse ConversarWhatsApp everywhere for consistent contact.
+- School options/totals come from escolas.ts; additions persist as per-network configuracoes rows (escolas-personalizadas.ts) to avoid concurrent overwrites.
+- Report intersections live in relatorio-cruzado.ts (same active enrollment, students counted once), reused by chart, lists, totals and CSV/PDF; GraficoAlunos only presents that result.
+- DOCUMENTOS_PLANILHA drives enrollment/profile document lists so uploads, previews and exports match.
+- Professor action keys/defaults in permissoes.ts stay aligned with public.pode and policies; guard every button and mutation.
+- Student status transitions are validated in a DB trigger apart from other edits; deletion cascades, keeping permissions independent.
+- Professor permissions change only via an admin server function after password confirmation (hashed, expiring, admin-bound); direct writes revoked.
+- Runtime guard stays in src/lib/worker-runtime.ts (build/ is dropped on deploy); it guards the `_runtime.mjs` URL lacking `import.meta.url`.
+- AI goes through authenticated ai.functions.ts with existing permissions and server-only streaming; enrollment/column proposals stay reviewed, never direct writes; the ficha reader uses the attached enrollment file.
+- Report AI receives only server-computed aggregates (typed filters, unique-student stats from paginated reads); WhatsApp drafts exclude identifiers/medical data and are never auto-sent.
+- Terminal provider denial is persisted and checked before AI calls; cleared only after an admin resumes.
+- Student portal: accounts link separately to enrollments with auth.uid-scoped minimal reads; mutations and push validate the device server-side; reminders via pausable SQL cron calling /api/public/lembretes-aulas only for pushable rows, reserved once.
+- Student devices: admin physical approval, hashed tokens, partitioned HttpOnly cookie plus aparelho-local.ts copy, per-IP/device rate limits; requests need an exact active student match. Approval QR (aparelho-qr.ts) carries only the public code.
+- Profile camera/gallery share the validated photo mutation; notices query lives at the student route level and silently re-registers push.
+- Notices are saved to the in-app center before any push; push failures never fail the send.
+- Backup Drive names come only from backup-nomes.ts (`[CODIGO]_[TIPO].ext`) and restoration parses with it, matching by code; the backup spreadsheet has no links. Restoration recreates only missing students and restores files in small client-driven admin batches.
+- Offline queue sends one action at a time by UTC timestamp + device sequence, stopping at the first failure; presencas.executado_em keeps stale offline actions from overwriting newer rows.
+- Export links are signed in links-arquivos.server.ts with the configured validity clamped by configuracoes-chaves.ts, staff-only; screens use short-lived links.
+- Images are optimized with imagem.ts at selection so previews, AI and uploads share the reduced file; PDFs unchanged.

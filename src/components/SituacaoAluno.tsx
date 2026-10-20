@@ -5,7 +5,7 @@ export type TomSituacao = "ativo" | "licenca" | "vencido" | "inativo";
 const ESTILOS: Record<TomSituacao, { caixa: string; ponto: string }> = {
   ativo: { caixa: "bg-success/15 text-success-strong", ponto: "bg-success" },
   licenca: { caixa: "bg-warning/20 text-warning-strong", ponto: "bg-warning" },
-  vencido: { caixa: "bg-destructive/12 text-destructive-strong", ponto: "bg-destructive" },
+  vencido: { caixa: "bg-destructive/15 text-destructive-strong", ponto: "bg-destructive" },
   inativo: { caixa: "bg-muted text-muted-foreground", ponto: "bg-muted-foreground" },
 };
 

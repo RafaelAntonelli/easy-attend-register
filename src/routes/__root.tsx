@@ -16,6 +16,7 @@ import { TransicaoVideo } from "@/components/TransicaoVideo";
 import { ConsentimentoAparelho } from "@/components/ConsentimentoAparelho";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { SCRIPT_TEMA_INICIAL } from "../lib/tema";
 
 function NotFoundComponent() {
   return (
@@ -119,8 +120,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_INICIAL }} />
         <HeadContent />
       </head>
       <body>

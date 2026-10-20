@@ -15,7 +15,9 @@
 - [x] Adicionar perfil editável e foto sincronizados; salvar contato, enviar foto e ler de volta validados com Testealuno.
 - [x] Adicionar tela Avisos para a equipe, individuais e gerais, e recebimento no portal.
 - [ ] Validar envio de avisos pela equipe e entrega Firebase — precisa de sessão da equipe e permissão de notificações num aparelho real fora da prévia incorporada.
-- [ ] Ativar e validar lembretes 30/15 minutos — função SQL pronta; agendamento HTTP gerenciado indisponível neste projeto (sem helper nem ferramentas), falta serviço de agendamento compatível e entrega real.
+- [x] Ativar lembretes 30/15 minutos: agendamento a cada 5 min (4h–21h), dias abreviados corrigidos, licença médica excluída, entrega única no celular.
+- [ ] Confirmar lembrete chegando no Android — depende de publicar e de um aluno com notificações ativadas.
+- [x] Restaurar backup: usuário escolheu voltar o sistema inteiro (recurso do Lovable Cloud, feito pelo painel); orientação enviada.
 - [x] Conectar Firebase Cloud Messaging com notificações web.
 
 - [x] Validar consulta isolada de crachá, turma e atestado, autenticação e bloqueio com conta temporária; dados temporários removidos.

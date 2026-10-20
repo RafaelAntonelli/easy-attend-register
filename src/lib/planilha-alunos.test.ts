@@ -13,7 +13,11 @@ describe("exportação da ficha do aluno", () => {
       ],
       turmaDoAluno: () => undefined,
       modalidadeDoAluno: () => "Natação",
-      linksDrive: async () => ({ [chaveLinkDrive(id, "doc_ficha_path")]: url }),
+      linksDrive: async () => ({
+        links: { [chaveLinkDrive(id, "doc_ficha_path")]: url },
+        expiraEm: "2026-10-21T19:00:00.000Z",
+        horas: 24,
+      }),
     });
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buffer);
@@ -24,5 +28,24 @@ describe("exportação da ficha do aluno", () => {
     expect(column).toBeGreaterThan(0);
     expect(ws.getCell(2, column).value).toEqual({ text: "Ficha - Aluno com ficha", hyperlink: url });
     expect(ws.getCell(3, column).text).toBe("");
+  });
+
+  it("avisa na planilha quando os links temporários expiram", async () => {
+    const id = "12345678-0000-4000-8000-000000000001";
+    const buffer = await montarPlanilhaAlunos({
+      alunos: [{ id, nome: "Aluno", idade: 20, foto_path: `${id}/foto.jpg` }],
+      turmaDoAluno: () => undefined,
+      modalidadeDoAluno: () => "Natação",
+      linksDrive: async () => ({
+        links: { [chaveLinkDrive(id, "foto_path")]: "https://example.org/f.jpg" },
+        expiraEm: "2026-10-21T19:00:00.000Z",
+        horas: 24,
+      }),
+    });
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buffer);
+    const info = wb.getWorksheet("Sobre os links");
+    expect(info?.getCell(2, 1).text).toContain("21/10/2026");
+    expect(info?.getCell(2, 1).text).toContain("24 h");
   });
 });

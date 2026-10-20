@@ -19,18 +19,21 @@ export type Database = {
           aluno_id: string
           ativo: boolean
           created_at: string
+          lembretes_aula: boolean
           user_id: string
         }
         Insert: {
           aluno_id: string
           ativo?: boolean
           created_at?: string
+          lembretes_aula?: boolean
           user_id: string
         }
         Update: {
           aluno_id?: string
           ativo?: boolean
           created_at?: string
+          lembretes_aula?: boolean
           user_id?: string
         }
         Relationships: [
@@ -911,6 +914,10 @@ export type Database = {
         Args: { _chave: string; _max: number }
         Returns: boolean
       }
+      definir_lembretes_portal: {
+        Args: { _ativo: boolean }
+        Returns: undefined
+      }
       disparar_backup_semanal: { Args: never; Returns: undefined }
       disparar_lembretes_aulas: { Args: never; Returns: undefined }
       editar_contato_portal: {
@@ -940,6 +947,7 @@ export type Database = {
         Args: { _agora: string; _dias: string[]; _horario: string }
         Returns: number
       }
+      lembretes_portal: { Args: never; Returns: Json }
       marcar_aviso_lido: { Args: { _id: string }; Returns: undefined }
       perfil_portal_aluno: { Args: never; Returns: Json }
       pode: { Args: { _chave: string; _user_id: string }; Returns: boolean }

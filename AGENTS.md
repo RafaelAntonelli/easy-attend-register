@@ -24,7 +24,7 @@
 - Route AI assistance through authenticated `ai.functions.ts` with existing action permissions and request-local, server-only streaming Responses helpers; this prevents browser secrets and unauthorized AI calls.
 - AI enrollment and column mapping must remain reviewed proposals passed through existing form/import validation, never direct writes; this preserves enrollment rules and human confirmation.
 - The ficha reader consumes the enrollment document attachment state and resets when that attachment changes; this keeps the analyzed image identical to the file saved with enrollment.
-- Give the report AI only server-computed aggregates and generate WhatsApp drafts without student identifiers or medical details; this minimizes data disclosure and prevents automatic messaging.
+- Give the report AI only server-computed aggregates; WhatsApp drafts exclude student identifiers and medical details and are never sent automatically.
 - Complex AI reports translate questions to typed filters, reuse report intersections, then calculate unique-student age statistics locally from paginated authorized reads; only aggregate results reach the answering model so comparisons remain reproducible.
 - Persist terminal provider denial in the application configuration and check it before AI calls; clear it only after provider access is restored and an administrator explicitly resumes use.
 - Student accounts link separately to enrollments, exclude staff roles and use auth.uid-scoped minimal reads, never broad student-table policies. Keep overview, badge and notices in tabs on the student route without changing authorization.

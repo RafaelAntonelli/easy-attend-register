@@ -41,7 +41,7 @@ export function BotoesChamada({
   className?: string;
 }) {
   return (
-    <div className={cn("grid w-full grid-cols-3 gap-2 sm:w-auto sm:min-w-[22rem]", className)} role="group" aria-label={`Chamada de ${nome}`}>
+    <div className={cn("grid w-full grid-cols-[1fr_0.8fr_1.25fr] gap-2 sm:w-auto sm:min-w-[22rem]", className)} role="group" aria-label={`Chamada de ${nome}`}>
       {OPCOES.map((o) => {
         const selecionado = atual === o.status;
         const Icone = o.icone;
@@ -56,7 +56,7 @@ export function BotoesChamada({
               selecionado ? o.ativo : cn("bg-card", o.inativo),
             )}
           >
-            <Icone className="size-4 shrink-0" />
+            <Icone className="hidden size-4 shrink-0 min-[400px]:block" />
             <span className="truncate">{o.rotulo}</span>
           </button>
         );

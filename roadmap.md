@@ -16,7 +16,8 @@
 - [x] Adicionar tela Avisos para a equipe, individuais e gerais, e recebimento no portal.
 - [ ] Validar envio de avisos pela equipe e entrega Firebase — precisa de sessão da equipe e permissão de notificações num aparelho real fora da prévia incorporada.
 - [x] Ativar lembretes 30/15 minutos: agendamento a cada 5 min (4h–21h), dias abreviados corrigidos, licença médica excluída, entrega única no celular.
-- [ ] Confirmar lembrete chegando no Android — depende de publicar e de um aluno com notificações ativadas.
+- [x] Lembretes pausados a pedido do usuário (economia de créditos) e botão Ativar/Desativar na aba Avisos do aluno.
+- [ ] Reativar lembretes e confirmar chegada no Android — aguarda ordem do usuário, publicação e aluno com notificações ativadas.
 - [x] Restaurar backup: usuário escolheu voltar o sistema inteiro (recurso do Lovable Cloud, feito pelo painel); orientação enviada.
 - [x] Conectar Firebase Cloud Messaging com notificações web.
 

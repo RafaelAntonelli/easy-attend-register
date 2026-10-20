@@ -31,6 +31,7 @@ import {
 
 import { assinarBackup, estadoBackupAtual, executarBackupGlobal, notificar, type EstadoBackup } from "@/lib/backup-execucao";
 import { HistoricoBackup } from "@/components/HistoricoBackup";
+import { RestaurarDrive, ValidadeLinks } from "@/components/RestaurarDrive";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -397,6 +398,8 @@ function BackupPage() {
           <TabsTrigger value="backup">Backup e histórico</TabsTrigger>
           <TabsTrigger value="agendamento">Agendamento</TabsTrigger>
           <TabsTrigger value="destino">Destino no Drive</TabsTrigger>
+          <TabsTrigger value="restaurar">Restaurar</TabsTrigger>
+          <TabsTrigger value="privacidade">Links e privacidade</TabsTrigger>
         </TabsList>
         <TabsContent value="backup">
       <Card className="max-w-2xl">
@@ -632,6 +635,12 @@ function BackupPage() {
           ))}
         </CardContent>
       </Card>
+        </TabsContent>
+        <TabsContent value="restaurar">
+          <RestaurarDrive />
+        </TabsContent>
+        <TabsContent value="privacidade">
+          <ValidadeLinks />
         </TabsContent>
       </Tabs>
     </AppShell>

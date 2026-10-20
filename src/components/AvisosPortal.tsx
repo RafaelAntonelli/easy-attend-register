@@ -2,8 +2,9 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {useServerFn} from '@tanstack/react-start';
 import {queryOptions,useQuery,useQueryClient} from '@tanstack/react-query';
 import {toast} from 'sonner';
-import {Bell,BellOff,BellRing,Check} from 'lucide-react';
-import {listarAvisosPortal,lerAvisoPortal,registrarPushPortal} from '@/lib/portal-extras.functions';
+import {Bell,BellOff,BellRing,Check,Clock} from 'lucide-react';
+import {Switch} from '@/components/ui/switch';
+import {listarAvisosPortal,lerAvisoPortal,registrarPushPortal,obterLembretesPortal,salvarLembretesPortal} from '@/lib/portal-extras.functions';
 import {tokenAparelhoLocal} from '@/lib/aparelho-local';
 import {ativarPushPortal,aoReceberAviso,estadoPushInicial,type EstadoPush} from '@/lib/push-portal';
 import {Button} from '@/components/ui/button';
@@ -45,5 +46,19 @@ function StatusPush({push}:{push:PushAluno}){
  return <Button variant="outline" disabled={push.busy} onClick={push.ativar}><Bell className="mr-2 size-4"/>{push.busy?'Ativando…':'Ativar notificações'}</Button>;
 }
 
+
+const lembretesConsulta=queryOptions({queryKey:['lembretes-portal'],queryFn:()=>obterLembretesPortal({data:{aparelho:tokenAparelhoLocal()}})});
+
+/** Liga ou desliga, para este aluno, os lembretes 30 e 15 minutos antes da aula. */
+function LembretesAula(){
+ const {data,isError}=useQuery(lembretesConsulta);const qc=useQueryClient();const salvar=useServerFn(salvarLembretesPortal);const [busy,setBusy]=useState(false);
+ const alterar=async(ativo:boolean)=>{setBusy(true);try{await salvar({data:{aparelho:tokenAparelhoLocal(),ativo}});qc.setQueryData(lembretesConsulta.queryKey,d=>d?{...d,ativo}:d);toast.success(ativo?'Lembretes de aula ativados.':'Lembretes de aula desativados.');}catch(e){toast.error(e instanceof Error?e.message:'Falha ao salvar.');}finally{setBusy(false);}};
+ if(isError)return <p role="alert" className="text-sm text-destructive">Não foi possível carregar os lembretes de aula.</p>;
+ return <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-card p-4">
+  <div className="flex min-w-0 items-start gap-3"><Clock className="mt-0.5 size-5 shrink-0 text-primary"/><div><label htmlFor="lembretes-aula" className="text-sm font-semibold">Lembretes de aula</label><p className="text-xs text-muted-foreground">Aviso 30 e 15 minutos antes de cada aula.</p>{data&&!data.agendados&&<p className="mt-1 text-xs font-medium text-foreground">Os lembretes estão pausados pela administração no momento.</p>}</div></div>
+  <div className="flex items-center gap-2"><span className="text-sm text-muted-foreground">{data?.ativo?'Ativado':'Desativado'}</span><Switch id="lembretes-aula" checked={!!data?.ativo} disabled={!data||busy} onCheckedChange={v=>void alterar(v)} aria-label="Ativar ou desativar lembretes de aula"/></div>
+ </div>;
+}
+
 export function AvisosPortal({push}:{push:PushAluno}){const {data:avisos=[],isError}=useQuery(avisosPortalConsulta);const qc=useQueryClient();const ler=useServerFn(lerAvisoPortal);
-return <section className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="flex items-center gap-2 font-display text-xl font-semibold"><Bell className="size-5 text-primary"/>Avisos</h2><StatusPush push={push}/></div>{isError?<p role="alert" className="text-sm text-destructive">Não foi possível carregar avisos.</p>:!avisos.length?<p className="text-sm text-muted-foreground">Nenhum aviso recebido.</p>:<div className="divide-y divide-border">{avisos.map(a=><article className="py-4 space-y-2" key={a.id}><div className="flex items-center justify-between gap-3"><h3 className="flex items-center gap-2 font-semibold">{!a.lido_em&&<span className="size-2 shrink-0 rounded-full bg-primary" aria-label="Novo"/>}{a.titulo}</h3>{!a.lido_em&&<Button size="sm" variant="ghost" aria-label={`Marcar aviso ${a.titulo} como lido`} onClick={async()=>{try{await ler({data:{aparelho:tokenAparelhoLocal(),id:a.id}});await qc.invalidateQueries({queryKey:['avisos-portal']});}catch{toast.error('Não foi possível marcar como lido.');}}}><Check className="size-4"/></Button>}</div><p className="whitespace-pre-wrap break-words text-sm">{a.mensagem}</p><p className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleString('pt-BR')}{a.lido_em?' · Lido':''}</p></article>)}</div>}</section>;}
+return <section className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="flex items-center gap-2 font-display text-xl font-semibold"><Bell className="size-5 text-primary"/>Avisos</h2><StatusPush push={push}/></div><LembretesAula/>{isError?<p role="alert" className="text-sm text-destructive">Não foi possível carregar avisos.</p>:!avisos.length?<p className="text-sm text-muted-foreground">Nenhum aviso recebido.</p>:<div className="divide-y divide-border">{avisos.map(a=><article className="py-4 space-y-2" key={a.id}><div className="flex items-center justify-between gap-3"><h3 className="flex items-center gap-2 font-semibold">{!a.lido_em&&<span className="size-2 shrink-0 rounded-full bg-primary" aria-label="Novo"/>}{a.titulo}</h3>{!a.lido_em&&<Button size="sm" variant="ghost" aria-label={`Marcar aviso ${a.titulo} como lido`} onClick={async()=>{try{await ler({data:{aparelho:tokenAparelhoLocal(),id:a.id}});await qc.invalidateQueries({queryKey:['avisos-portal']});}catch{toast.error('Não foi possível marcar como lido.');}}}><Check className="size-4"/></Button>}</div><p className="whitespace-pre-wrap break-words text-sm">{a.mensagem}</p><p className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleString('pt-BR')}{a.lido_em?' · Lido':''}</p></article>)}</div>}</section>;}

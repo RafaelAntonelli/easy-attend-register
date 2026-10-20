@@ -804,7 +804,6 @@ function PresencaPage() {
                           atual={atual}
                           onEscolher={(st) => void (atual === st ? desfazerRegistro(a) : registrar(a, "manual", st))}
                         />
-                        </div>
                       </div>
                     );
                   })}

@@ -1782,7 +1782,7 @@ function AlunosPage() {
             <span className="w-[4.5rem]" />
           </div>
         ) : null}
-        <ul className="divide-y divide-border/70">
+        <ul className="max-h-[70vh] divide-y divide-border/70 overflow-y-auto overscroll-contain" aria-label="Lista de alunos">
         {filtrados.map((aluno) => {
           const turmasDoAluno = matriculas
             .filter((m) => m.aluno_id === aluno.id)

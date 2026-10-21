@@ -1091,30 +1091,6 @@ function AlunosPage() {
           </button>
         ))}
       </div>
-      <div className="mb-5 hidden gap-3 md:grid md:grid-cols-4">
-        {resumoSituacoes.map((c) => {
-          const ativo = filtroNotificacao === c.filtro;
-          return (
-            <button
-              key={c.filtro}
-              type="button"
-              aria-pressed={ativo}
-              onClick={() => setFiltroNotificacao(ativo ? "todos" : c.filtro)}
-              className={cn(
-                "rounded-2xl border bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
-                ativo ? "border-primary ring-2 ring-primary/30" : "border-border/70",
-              )}
-            >
-              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <span className={cn("size-2.5 rounded-full", pontoSituacao(c.tom))} aria-hidden />
-                {c.rotulo}
-              </span>
-              <span className="mt-2 block font-display text-3xl font-semibold text-foreground">{c.valor}</span>
-              <span className="text-xs text-muted-foreground">{percentual(c.valor)}</span>
-            </button>
-          );
-        })}
-      </div>
       <Button
         type="button"
         variant="outline"

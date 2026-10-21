@@ -16,7 +16,7 @@ import { TURNOS, turnoDoHorario, idadePorNascimento, faixaEtariaECA } from "@/li
 import { gerarCrachaPreviewImagem, gerarCrachasPdfFielAoPreview, type DadosCracha } from "@/lib/cracha";
 import { atestadoVencido, diasParaVencer, notificarAtestadoVencido, notificarAtestadoVencendo } from "@/lib/atestado";
 import { PerfilAluno } from "@/components/PerfilAluno";
-import { SituacaoAluno, pontoSituacao, type TomSituacao } from "@/components/SituacaoAluno";
+import { SituacaoAluno, type TomSituacao } from "@/components/SituacaoAluno";
 import { hojeISO, licencaEmVigor, type Licenca } from "@/lib/licenca";
 import { AvisoLicencas } from "@/components/AvisoLicencas";
 import { PainelNotificacoes } from "@/components/painel/PainelNotificacoes";
@@ -1033,7 +1033,6 @@ function AlunosPage() {
     Boolean(idadeMin || idadeMax),
     !["todos", "ativos", "em_licenca", "atestado_vencido", "inativos"].includes(filtroNotificacao),
   ].filter(Boolean).length;
-  const percentual = (v: number) => (alunos.length ? `${Math.round((v / alunos.length) * 100)}% do total` : "—");
 
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
   const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));

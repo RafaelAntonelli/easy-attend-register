@@ -997,6 +997,7 @@ function AlunosPage() {
       const selA = selecionados.includes(a.id) ? 1 : 0;
       const selB = selecionados.includes(b.id) ? 1 : 0;
       if (selA !== selB) return selB - selA;
+      if (a.ativo !== b.ativo) return a.ativo ? -1 : 1;
       return relevanciaBusca(a.nome, busca) - relevanciaBusca(b.nome, busca) || a.nome.localeCompare(b.nome);
     });
 

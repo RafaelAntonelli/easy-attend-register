@@ -247,8 +247,10 @@ function AuthPage() {
         <Card className="relative w-full overflow-hidden rounded-3xl border-border/60 bg-card shadow-2xl">
           <div aria-hidden className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-primary via-accent to-warning" />
             <CardHeader className="items-center gap-1 pb-4 pt-7 text-center">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-primary">Arena Aquática LF</p>
-              <CardTitle className="font-display text-2xl">
+              <h1 className="font-display text-[2rem] font-extrabold leading-tight tracking-tight text-primary">
+                Arena Aquática <span className="text-accent">LF</span>
+              </h1>
+              <CardTitle className="font-display text-lg font-semibold text-card-foreground">
                 {acesso === "aluno" ? "Área do aluno" : titulo}
               </CardTitle>
               <CardDescription>

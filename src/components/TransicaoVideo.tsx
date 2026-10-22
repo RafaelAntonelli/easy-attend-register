@@ -1,8 +1,8 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
-import aberturaSeculje from "@/assets/abertura-seculje-atual.png.asset.json";
-import aberturaEsporte360 from "@/assets/abertura-esporte-360.png.asset.json";
+import aberturaSeculje from "@/assets/abertura-seculje-uniforme.png.asset.json";
+import aberturaEsporte360 from "@/assets/abertura-esporte-360-uniforme.png.asset.json";
 
 /** Tempo de exibição da primeira imagem (ms). */
 const TEMPO_PRIMEIRA_IMAGEM = 2300;
@@ -21,7 +21,9 @@ type StatusImagem = "carregando" | "ok" | "erro";
  * Tela de carregamento com as duas imagens institucionais em sequência.
  * As imagens são pré-carregadas antes de a animação começar para evitar
  * atrasos no Android e no Windows; se alguma falhar, a outra assume a
- * tela inteira para nunca exibir fundo vazio.
+ * tela inteira para nunca exibir fundo vazio. As duas imagens têm o mesmo azul
+ * uniforme nas bordas (igual ao fundo bg-abertura), então são mostradas inteiras
+ * (object-contain) sem cortar logos e sem faixas de outra cor em telas altas (Android).
  */
 export function TransicaoVideo() {
   const carregando = useRouterState({ select: (s) => s.status === "pending" || s.isLoading });
@@ -101,14 +103,14 @@ export function TransicaoVideo() {
 
   // Fallback: só renderiza imagem que carregou (ou ainda está carregando);
   // se uma falhar, a outra cobre a tela. Se ambas falharem, o fundo
-  // institucional (bg-primary) permanece — nunca tela em branco.
+  // institucional (bg-abertura) permanece — nunca tela em branco.
   const exibirPrimeira = statusPrimeira !== "erro";
   const exibirSegunda = statusSegunda !== "erro";
 
   return (
     <div
       aria-hidden={!visivel}
-      className={`fixed inset-0 z-[90] overflow-hidden bg-primary transition-opacity duration-500 ease-out ${
+      className={`fixed inset-0 z-[90] overflow-hidden bg-abertura transition-opacity duration-500 ease-out ${
         visivel ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     >
@@ -118,7 +120,7 @@ export function TransicaoVideo() {
           alt="Programa Esporte 360"
           fetchPriority="high"
           draggable={false}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-contain"
         />
       ) : null}
       {exibirPrimeira ? (
@@ -127,7 +129,7 @@ export function TransicaoVideo() {
           alt="SECULJE — Secretaria de Esporte, Saber, Juventude e Esports de Lauro de Freitas"
           fetchPriority="high"
           draggable={false}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity ease-in-out ${
+          className={`absolute inset-0 h-full w-full object-contain transition-opacity ease-in-out ${
             mostrarSegundaImagem && exibirSegunda ? "opacity-0" : "opacity-100"
           }`}
           style={{ transitionDuration: `${DURACAO_FADE}ms` }}

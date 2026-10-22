@@ -209,7 +209,7 @@ function AuthPage() {
         <img
           src={loginImagem.url}
           alt="Programa Esporte 360 – SECULJE Lauro de Freitas"
-          className="absolute inset-0 h-full w-full object-cover object-center"
+          className="absolute inset-0 h-full w-full object-cover object-bottom"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-transparent to-primary/60" />
         <div className="relative z-10">

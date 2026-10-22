@@ -134,16 +134,12 @@ function TurmasPage() {
   const [confirmarExclusao, setConfirmarExclusao] = useState<Turma | null>(null);
   const [buscaAluno, setBuscaAluno] = useState("");
 
-  const [alunosAtivos, setAlunosAtivos] = useState(0);
-
   async function carregar() {
-    const [t, m, a] = await Promise.all([
+    const [t, m] = await Promise.all([
       supabase.from("turmas").select("*").order("nome"),
       supabase.from("matriculas").select("turma_id"),
-      supabase.from("alunos").select("id", { count: "exact", head: true }).eq("ativo", true),
     ]);
     if (t.data) setTurmas(t.data as Turma[]);
-    setAlunosAtivos(a.count ?? 0);
     if (m.data) {
       const c: Record<string, number> = {};
       for (const row of m.data as { turma_id: string }[]) {
@@ -476,10 +472,11 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
 
   const turmasAtivas = turmas.filter((t) => t.ativa);
   const cartoesResumo = [
-    { label: "Alunos ativos", value: alunosAtivos, icon: Users },
     { label: "Turmas abertas", value: turmasAtivas.length, icon: CalendarDays },
     // Soma das vagas (capacidade) de todas as turmas abertas.
     { label: "Total de vagas", value: turmasAtivas.reduce((soma, t) => soma + (t.capacidade ?? 0), 0), icon: Armchair },
+    // Mesma contagem usada em "X de Y vagas" de cada turma, somada nas turmas abertas.
+    { label: "Vagas ocupadas", value: turmasAtivas.reduce((soma, t) => soma + (contagem[t.id] ?? 0), 0), icon: Users },
   ];
 
   return (

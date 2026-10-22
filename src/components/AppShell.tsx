@@ -174,7 +174,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
           src={fundoSeculje.url}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 h-full w-full select-none object-cover object-right opacity-20 [mask-image:linear-gradient(to_right,transparent_0%,black_60%)] md:w-auto md:max-w-none md:opacity-30 md:[mask-image:linear-gradient(to_right,transparent_0%,black_22%)]"
+          className="pointer-events-none absolute inset-y-0 right-0 h-full w-full select-none object-cover object-right opacity-20 [mask-image:linear-gradient(to_right,transparent_0%,black_60%)] md:w-auto md:max-w-none md:opacity-30 md:[mask-image:linear-gradient(to_right,transparent_0%,black_30%)]"
         />
         <Link to="/meu-perfil" className="relative mb-4 flex w-fit items-center gap-2.5 md:hidden">
           <FotoUsuario url={perfil?.fotoUrl ?? null} nome={nomeUsuario} className="size-9" />

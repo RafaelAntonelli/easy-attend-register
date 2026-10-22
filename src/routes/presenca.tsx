@@ -9,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { BotoesChamada, ProgressoChamada } from "@/components/BotoesChamada";
 import { PerfilAluno } from "@/components/PerfilAluno";
-import { AnotacaoAula } from "@/components/AnotacaoAula";
 import { dataBR, licencaEmVigor, type Licenca } from "@/lib/licenca";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -816,10 +815,6 @@ function PresencaPage() {
         </Tabs>
 
         <div className="space-y-6">
-        <AnotacaoAula
-          turmas={turmasVisiveis.filter((t) => turmaIdsValidos.includes(t.id)).map((t) => ({ id: t.id, nome: rotuloTurma(t) }))}
-          data={hoje}
-        />
         <Card className="border-border/70">
           <CardHeader><CardTitle className="font-display text-lg">Registros do dia ({registros.length})</CardTitle></CardHeader>
           <CardContent>

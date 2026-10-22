@@ -110,12 +110,14 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-64">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar px-4 py-5 md:flex">
-        <img
-          src={fundoEsporte360.url}
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-auto w-full select-none opacity-35 [mask-image:linear-gradient(to_bottom,transparent_0%,black_30%,black_70%,transparent_100%)]"
-        />
+        {/* Imagem do Esporte 360 deitada na vertical, com o logo no centro do menu. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
+          <img
+            src={fundoEsporte360.url}
+            alt=""
+            className="h-auto w-[72vh] max-w-none shrink-0 -rotate-90 select-none opacity-20 [mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)]"
+          />
+        </div>
         <Link to="/meu-perfil" className="relative flex shrink-0 items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-sidebar-accent" title="Meu perfil">
           <FotoUsuario url={perfil?.fotoUrl ?? null} nome={nomeUsuario} className="size-11" />
           <div className="min-w-0 leading-tight">
@@ -169,12 +171,12 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
 
       <StatusOffline />
 
-      <header className="relative overflow-hidden bg-sidebar px-5 pb-6 pt-5 text-sidebar-foreground md:border-b md:border-border md:bg-card/60 md:px-10 md:py-6 md:text-foreground md:backdrop-blur">
+      <header className="relative overflow-hidden bg-faixa-celular px-5 pb-6 pt-5 text-sidebar-foreground md:border-b md:border-border md:bg-faixa md:px-10 md:py-6 md:text-foreground">
         <img
           src={fundoSeculje.url}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 h-full w-full select-none object-cover object-right opacity-20 [mask-image:linear-gradient(to_right,transparent_0%,black_60%)] md:w-auto md:max-w-none md:opacity-30 md:[mask-image:linear-gradient(to_right,transparent_0%,black_30%)]"
+          className="pointer-events-none absolute inset-y-0 right-0 h-full w-full select-none object-cover object-right opacity-40 [mask-image:linear-gradient(to_right,transparent_0%,black_60%)] md:w-auto md:max-w-none md:opacity-90 md:[mask-image:linear-gradient(to_right,transparent_0%,black_30%)]"
         />
         <Link to="/meu-perfil" className="relative mb-4 flex w-fit items-center gap-2.5 md:hidden">
           <FotoUsuario url={perfil?.fotoUrl ?? null} nome={nomeUsuario} className="size-9" />

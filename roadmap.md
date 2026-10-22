@@ -90,3 +90,16 @@
 
 - [x] Novo visual (5 imagens aprovadas): Alunos com cartões de situação e cores; login com topo azul e ondas; menu do celular com "Mais"; chamada com botões grandes e "Marcar todos"; modo escuro. Cópia do visual anterior em design-backup/2026-10-20.
 - [ ] "Marcar todos como presentes" não foi executado com dados reais (evitar registros falsos de hoje) — conferir na próxima aula.
+
+## Melhorias por tela (22/10)
+- [ ] Área do aluno: frequência do mês (presenças, faltas, justificadas).
+- [ ] Área do aluno: aviso de atestado vencendo 30 dias antes.
+- [ ] Guia dos alunos: incluir o passo "Ativar notificações".
+- [ ] Equipe: tela "Meu perfil" (foto, telefone, senha) para professores e administradores.
+- [ ] Equipe: último acesso e turmas de cada professor em destaque.
+- [ ] Avisos: ver quem já leu cada aviso.
+- [ ] Avisos: agendar aviso para outro dia e horário (com cancelamento).
+- [ ] Avisos: enviar para uma turma específica.
+- [ ] Presença: anotação da aula por turma e dia.
+- [ ] Login (aba Aluno): data de nascimento digitada dd/mm/aaaa com mensagens claras.
+- [ ] Alunos: histórico na ficha (quem alterou o quê e quando).

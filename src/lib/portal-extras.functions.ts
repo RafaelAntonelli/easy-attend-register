@@ -2,7 +2,7 @@ import {createServerFn} from '@tanstack/react-start';
 import {requireSupabaseAuth} from '@/integrations/supabase/auth-middleware';
 import {z} from 'zod';
 import {tokenAparelhoSchema} from './portal-aluno';
-import {contatoPortalSchema,fotoPortalSchema,avisoPortalSchema} from './portal-extras';
+import {contatoPortalSchema,fotoPortalSchema,avisoPortalSchema,erroAgendamento} from './portal-extras';
 const dispositivo=z.object({aparelho:tokenAparelhoSchema}).strict();
 export const obterPerfilPortal=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>dispositivo.parse(d)).handler(async({data,context})=>{
  const {validarPortal}=await import('./portal-extras.server'); await validarPortal(context.supabase,context.userId,data.aparelho);
@@ -20,7 +20,11 @@ export const salvarFotoPortal=createServerFn({method:'POST'}).middleware([requir
  if(bytes.length>5*1024*1024 || !(data.foto.tipo==='image/jpeg'?jpg:data.foto.tipo==='image/png'?png:webp)) throw new Error('Use uma foto JPG, PNG ou WebP de até 5 MB.');
  const {supabaseAdmin}=await import('@/integrations/supabase/client.server'); const path=`${alunoId}/perfil-${crypto.randomUUID()}.${jpg?'jpg':png?'png':'webp'}`;
  const {error:upload}=await supabaseAdmin.storage.from('fotos-alunos').upload(path,bytes,{contentType:data.foto.tipo}); if(upload) throw new Error('Não foi possível enviar a foto.');
- const {error}=await supabaseAdmin.from('alunos').update({foto_path:path}).eq('id',alunoId); if(error){await supabaseAdmin.storage.from('fotos-alunos').remove([path]);throw new Error('Não foi possível salvar a foto.');} return {ok:true};
+ const {error}=await supabaseAdmin.from('alunos').update({foto_path:path}).eq('id',alunoId); if(error){await supabaseAdmin.storage.from('fotos-alunos').remove([path]);throw new Error('Não foi possível salvar a foto.');}
+ // A gravação é feita pelo sistema; registra no histórico que foi o próprio aluno.
+ const {data:ultimo}=await supabaseAdmin.from('historico_alunos').select('id').eq('aluno_id',alunoId).is('autor_id',null).order('created_at',{ascending:false}).limit(1).maybeSingle();
+ if(ultimo)await supabaseAdmin.from('historico_alunos').update({autor_id:context.userId,autor_nome:'O próprio aluno (área do aluno)'}).eq('id',ultimo.id);
+ return {ok:true};
 });
 export const listarAvisosPortal=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>dispositivo.parse(d)).handler(async({data,context})=>{
  const {validarPortal}=await import('./portal-extras.server'); const {alunoId}=await validarPortal(context.supabase,context.userId,data.aparelho);

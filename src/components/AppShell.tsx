@@ -115,7 +115,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
           <img
             src={fundoEsporte360.url}
             alt=""
-            className="h-auto w-[100vh] max-w-none shrink-0 -rotate-90 select-none opacity-45"
+            className="h-auto w-[86vh] max-w-none shrink-0 -rotate-90 select-none opacity-45"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-sidebar/90 via-sidebar/45 to-sidebar/90" />
         </div>

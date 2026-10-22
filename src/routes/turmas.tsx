@@ -496,8 +496,8 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
           </Card>
         ))}
       </div>
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Select value={filtroModalidade} onValueChange={setFiltroModalidade}>
             <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
             <SelectContent>

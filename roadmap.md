@@ -107,4 +107,4 @@
 - [x] Alunos: histórico na ficha (quem alterou o quê e quando) — registro conferido no banco.
 
 - [x] Login: imagem Esporte 360 + SECULJE preenchendo a tela inteira (celular e computador), com transparência.
-- [ ] Login: deixar em evidência o nome Arena Aquática.
+- [x] Login: deixar em evidência o nome Arena Aquática.

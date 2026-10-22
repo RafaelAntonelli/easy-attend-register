@@ -110,13 +110,14 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-64">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar px-4 py-5 md:flex">
-        {/* Imagem do Esporte 360 deitada na vertical, com o logo no centro do menu. */}
+        {/* Imagem do Esporte 360 na vertical preenchendo todo o menu, com degradê por cima para manter as letras legíveis. */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
           <img
             src={fundoEsporte360.url}
             alt=""
-            className="h-auto w-[72vh] max-w-none shrink-0 -rotate-90 select-none opacity-20 [mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)]"
+            className="h-auto w-[100vh] max-w-none shrink-0 -rotate-90 select-none opacity-45"
           />
+          <div className="absolute inset-0 bg-gradient-to-b from-sidebar/90 via-sidebar/45 to-sidebar/90" />
         </div>
         <Link to="/meu-perfil" className="relative flex shrink-0 items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-sidebar-accent" title="Meu perfil">
           <FotoUsuario url={perfil?.fotoUrl ?? null} nome={nomeUsuario} className="size-11" />
@@ -172,12 +173,15 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
       <StatusOffline />
 
       <header className="relative overflow-hidden bg-faixa-celular px-5 pb-6 pt-5 text-sidebar-foreground md:border-b md:border-border md:bg-faixa md:px-10 md:py-6 md:text-foreground">
-        <img
-          src={fundoSeculje.url}
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 h-full w-full select-none object-cover object-right opacity-40 [mask-image:linear-gradient(to_right,transparent_0%,black_60%)] md:w-auto md:max-w-none md:opacity-90 md:[mask-image:linear-gradient(to_right,transparent_0%,black_30%)]"
-        />
+        {/* No computador o degradê vai só até onde começa a faixa SECULJE, que fica inteira e nítida. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex">
+          <div className="hidden min-w-0 flex-1 bg-faixa md:block" />
+          <img
+            src={fundoSeculje.url}
+            alt=""
+            className="h-full w-full shrink-0 select-none object-cover object-right opacity-40 [mask-image:linear-gradient(to_right,transparent_0%,black_60%)] md:w-auto md:max-w-none md:object-contain md:opacity-100 md:[mask-image:none]"
+          />
+        </div>
         <Link to="/meu-perfil" className="relative mb-4 flex w-fit items-center gap-2.5 md:hidden">
           <FotoUsuario url={perfil?.fotoUrl ?? null} nome={nomeUsuario} className="size-9" />
           <span className="leading-tight">

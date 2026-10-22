@@ -230,17 +230,17 @@ function AuthPage() {
       />
       <main className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[28rem] flex-col items-center justify-center gap-5 px-4 py-6">
         {/* Logo Esporte 360 e selo SECULJE lado a lado, no topo da área de login. */}
-        <div className="flex items-center justify-center gap-3 tela-larga:gap-5">
+        <div className="flex shrink-0 items-center justify-center gap-2 tela-larga:gap-5">
           <img
             src={logoEsporte360.url}
             alt="Programa Esporte 360"
-            className="h-[min(clamp(38px,7vh,72px),11vw)] w-auto select-none drop-shadow-[0_6px_18px_color-mix(in_oklab,var(--sidebar)_70%,transparent)]"
+            className="h-[min(clamp(48px,10vh,104px),12.5vw)] w-auto select-none drop-shadow-[0_6px_18px_color-mix(in_oklab,var(--sidebar)_70%,transparent)]"
           />
-          <span aria-hidden className="h-[min(clamp(30px,6vh,60px),9vw)] w-px bg-sidebar-foreground/40" />
+          <span aria-hidden className="h-[min(clamp(36px,8vh,84px),10vw)] w-px bg-sidebar-foreground/40" />
           <img
             src={seculjeSelo.url}
             alt="SECULJE – Prefeitura de Lauro de Freitas"
-            className="h-[min(clamp(34px,6.2vh,64px),10vw)] w-auto select-none"
+            className="h-[min(clamp(43px,9vh,92px),11vw)] w-auto select-none"
           />
         </div>
 

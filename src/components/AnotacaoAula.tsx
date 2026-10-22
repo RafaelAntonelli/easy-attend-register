@@ -11,7 +11,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 type Nota = { turma_id: string; texto: string; autor_nome: string | null; updated_at: string };
 
 /** Anotação da aula (ex.: "piscina fria", "aula substituída"), uma por turma e dia. */
-export function AnotacaoAula({ turmas, data, offline }: { turmas: { id: string; nome: string }[]; data: string; offline: boolean }) {
+function useSemInternet() {
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    const atualizar = () => setOffline(!navigator.onLine);
+    atualizar();
+    window.addEventListener("online", atualizar);
+    window.addEventListener("offline", atualizar);
+    return () => { window.removeEventListener("online", atualizar); window.removeEventListener("offline", atualizar); };
+  }, []);
+  return offline;
+}
+
+export function AnotacaoAula({ turmas, data }: { turmas: { id: string; nome: string }[]; data: string }) {
+  const offline = useSemInternet();
   const { isAdmin } = useAuth();
   const { mapa } = usePermissoesProfessor();
   const podeEditar = isAdmin || permissaoAtiva(mapa, "presenca_registrar");

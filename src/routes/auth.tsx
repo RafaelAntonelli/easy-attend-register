@@ -204,34 +204,20 @@ function AuthPage() {
         : "Bem-vindo(a) à Arena Aquática LF";
 
   return (
-    <div className="grid min-h-screen bg-background lg:grid-cols-2">
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-12 text-primary-foreground lg:flex">
-        <img
-          src={loginImagem.url}
-          alt="Programa Esporte 360 – SECULJE Lauro de Freitas"
-          className="absolute inset-0 h-full w-full object-cover object-bottom"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-transparent to-primary/60" />
-        <div className="relative z-10">
-          <span className="font-display text-xl font-semibold">Arena Aquática LF</span>
-        </div>
-        <div className="relative z-10">
-          <p className="text-sm text-primary-foreground/80">Acesso da equipe e dos alunos</p>
-        </div>
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-sidebar">
+      {/* Imagem do Programa Esporte 360 + SECULJE preenchendo a tela inteira, com transparência */}
+      <img
+        src={loginImagem.url}
+        alt=""
+        aria-hidden
+        className="pointer-events-none fixed inset-0 h-full w-full select-none object-cover object-center opacity-75"
+      />
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-sidebar/40 via-sidebar/10 to-sidebar/50" />
 
-      <div className="flex flex-col">
-        {/* Topo azul-marinho com a imagem do Programa Esporte 360 em transparência (celular) */}
-        <div className="relative overflow-hidden bg-sidebar px-6 pb-20 pt-12 text-center text-sidebar-foreground lg:hidden">
-          <img
-            src={loginImagem.url}
-            alt=""
-            aria-hidden
-            className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover object-center opacity-35"
-          />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-sidebar/40 via-sidebar/20 to-sidebar/70" />
-          <p className="relative font-display text-2xl font-semibold">Arena Aquática LF</p>
-          <p className="relative mt-1 text-sm text-sidebar-foreground/75">Bem-vindo(a) de volta!</p>
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <div className="px-6 pb-16 pt-10 text-center text-sidebar-foreground lg:pb-6">
+          <p className="font-display text-2xl font-semibold drop-shadow">Arena Aquática LF</p>
+          <p className="mt-1 text-sm text-sidebar-foreground/80">Bem-vindo(a) de volta!</p>
         </div>
 
         <div className="relative -mt-10 flex flex-1 items-start justify-center px-4 pb-8 lg:mt-0 lg:items-center lg:p-10">

@@ -204,7 +204,7 @@ function AuthPage() {
       ? "Recuperar senha"
       : modo === "criar"
         ? "Cadastro da equipe"
-        : "Bem-vindo(a) à Arena Aquática LF";
+        : "Bem-vindo(a) de volta";
 
   return (
     <div className="relative min-h-dvh overflow-hidden bg-sidebar">

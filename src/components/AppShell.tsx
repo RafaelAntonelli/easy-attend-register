@@ -114,7 +114,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
           src={fundoEsporte360.url}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain opacity-25"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-auto w-full select-none opacity-35 [mask-image:linear-gradient(to_bottom,transparent_0%,black_30%,black_70%,transparent_100%)]"
         />
         <Link to="/meu-perfil" className="relative flex shrink-0 items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-sidebar-accent" title="Meu perfil">
           <FotoUsuario url={perfil?.fotoUrl ?? null} nome={nomeUsuario} className="size-11" />
@@ -174,7 +174,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
           src={fundoSeculje.url}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 h-full w-full select-none object-cover object-right opacity-30 [mask-image:linear-gradient(to_right,transparent_0%,black_55%)] md:w-3/5 md:opacity-25"
+          className="pointer-events-none absolute inset-y-0 right-0 h-full w-full select-none object-cover object-right opacity-20 [mask-image:linear-gradient(to_right,transparent_0%,black_60%)] md:w-1/2 md:object-contain md:opacity-30 md:[mask-image:linear-gradient(to_right,transparent_0%,black_35%)]"
         />
         <Link to="/meu-perfil" className="relative mb-4 flex w-fit items-center gap-2.5 md:hidden">
           <FotoUsuario url={perfil?.fotoUrl ?? null} nome={nomeUsuario} className="size-9" />

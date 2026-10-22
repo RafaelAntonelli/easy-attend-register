@@ -1,11 +1,13 @@
 import { createServerFn } from '@tanstack/react-start';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
 import { z } from 'zod';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/integrations/supabase/types';
 import { fotoPortalSchema } from './portal-extras';
 
 const BUCKET = 'fotos-equipe';
 
-async function exigirEquipe(supabase: { rpc: (fn: 'is_staff', args: { _user_id: string }) => PromiseLike<{ data: boolean | null }> }, userId: string) {
+async function exigirEquipe(supabase: SupabaseClient<Database>, userId: string) {
   const { data } = await supabase.rpc('is_staff', { _user_id: userId });
   if (!data) throw new Error('Apenas a equipe pode usar esta tela.');
 }

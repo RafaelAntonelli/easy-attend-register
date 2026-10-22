@@ -115,7 +115,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
           <img
             src={fundoEsporte360.url}
             alt=""
-            className="h-auto w-[85vh] max-w-none shrink-0 -rotate-90 select-none opacity-30 [mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)]"
+            className="h-auto w-[72vh] max-w-none shrink-0 -rotate-90 select-none opacity-20 [mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)]"
           />
         </div>
         <Link to="/meu-perfil" className="relative flex shrink-0 items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-sidebar-accent" title="Meu perfil">

@@ -10,6 +10,7 @@ import { otimizarImagem } from "@/lib/imagem";
 import { Button } from "@/components/ui/button";
 import { ConversarWhatsApp } from "@/components/ConversarWhatsApp";
 import { MensagemWhatsAppIA } from "@/components/MensagemWhatsAppIA";
+import { HistoricoAluno } from "@/components/HistoricoAluno";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -597,6 +598,8 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                 <p className="text-sm text-muted-foreground">Nenhuma anotação.</p>
               )}
             </div>
+
+            <HistoricoAluno alunoId={aluno.id} />
 
             <div className="space-y-2">
               <p className="text-sm font-medium">Histórico de frequência</p>

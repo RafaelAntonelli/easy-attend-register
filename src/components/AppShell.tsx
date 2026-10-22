@@ -110,11 +110,12 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-64">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar px-4 py-5 md:flex">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center">
+        {/* Imagem do Esporte 360 deitada na vertical, com o logo no centro do menu. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
           <img
             src={fundoEsporte360.url}
             alt=""
-            className="h-auto w-full select-none opacity-35 [mask-image:linear-gradient(to_bottom,transparent_0%,black_25%,black_75%,transparent_100%)]"
+            className="h-auto w-[85vh] max-w-none shrink-0 -rotate-90 select-none opacity-30 [mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)]"
           />
         </div>
         <Link to="/meu-perfil" className="relative flex shrink-0 items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-sidebar-accent" title="Meu perfil">

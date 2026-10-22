@@ -134,12 +134,16 @@ function TurmasPage() {
   const [confirmarExclusao, setConfirmarExclusao] = useState<Turma | null>(null);
   const [buscaAluno, setBuscaAluno] = useState("");
 
+  const [alunosAtivos, setAlunosAtivos] = useState(0);
+
   async function carregar() {
-    const [t, m] = await Promise.all([
+    const [t, m, a] = await Promise.all([
       supabase.from("turmas").select("*").order("nome"),
       supabase.from("matriculas").select("turma_id"),
+      supabase.from("alunos").select("id", { count: "exact", head: true }).eq("ativo", true),
     ]);
     if (t.data) setTurmas(t.data as Turma[]);
+    setAlunosAtivos(a.count ?? 0);
     if (m.data) {
       const c: Record<string, number> = {};
       for (const row of m.data as { turma_id: string }[]) {
@@ -470,10 +474,30 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
   }
 
 
+  const cartoesResumo = [
+    { label: "Alunos ativos", value: alunosAtivos, icon: Users },
+    { label: "Turmas abertas", value: turmas.filter((t) => t.ativa).length, icon: CalendarDays },
+  ];
+
   return (
     <AppShell title="Turmas" subtitle="Modalidades, horários e professores">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        {cartoesResumo.map((c) => (
+          <Card key={c.label} className="overflow-hidden border-none bg-navy text-primary-foreground shadow-pool">
+            <CardContent className="flex items-center gap-4 py-6">
+              <span className="grid size-12 place-items-center rounded-xl bg-primary-foreground/10 text-accent">
+                <c.icon className="size-5" />
+              </span>
+              <div>
+                <p className="font-display text-3xl font-semibold">{c.value}</p>
+                <p className="text-sm text-primary-foreground/70">{c.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Select value={filtroModalidade} onValueChange={setFiltroModalidade}>
             <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
             <SelectContent>

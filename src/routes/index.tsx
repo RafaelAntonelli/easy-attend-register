@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Users, CalendarDays, Plus, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CONDICOES_PCD } from "@/lib/pcd";
@@ -8,11 +8,9 @@ import { useHorarios } from "@/lib/horarios";
 import { capitalizarNome, formatarCelular } from "@/lib/formatacao";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/lib/auth";
-import { permissaoAtiva, usePermissoesProfessor } from "@/lib/permissoes";
 import { PerfilAluno } from "@/components/PerfilAluno";
 import { AulasDoDia } from "@/components/painel/AulasDoDia";
 import { PainelLicencas } from "@/components/painel/PainelLicencas";
-import { BuscaRapida } from "@/components/painel/BuscaRapida";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,11 +54,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Painel() {
-  const { isAdmin, isStaff, loading: authLoading } = useAuth();
-  const { mapa, carregando: permissoesLoading } = usePermissoesProfessor();
-  const podeMatricular = !authLoading && (isAdmin || (isStaff && !permissoesLoading && permissaoAtiva(mapa, "alunos_cadastrar")));
+  const { isAdmin } = useAuth();
   const { lista: listaHorarios } = useHorarios();
-  const [stats, setStats] = useState({ alunos: 0, turmas: 0 });
   const [fila, setFila] = useState<Fila[]>([]);
   const [mostrarFila, setMostrarFila] = useState(false);
   const [perfilId, setPerfilId] = useState<string | null>(null);
@@ -123,40 +118,9 @@ function Painel() {
     return;
   }
 
-  useEffect(() => {
-    void (async () => {
-      const [alunos, turmas] = await Promise.all([
-        supabase.from("alunos").select("id", { count: "exact", head: true }).eq("ativo", true),
-        supabase.from("turmas").select("id", { count: "exact", head: true }).eq("ativa", true),
-      ]);
-      setStats({ alunos: alunos.count ?? 0, turmas: turmas.count ?? 0 });
-    })();
-  }, []);
-
-  const cards = [
-    { label: "Alunos ativos", value: stats.alunos, icon: Users },
-    { label: "Turmas abertas", value: stats.turmas, icon: CalendarDays },
-  ];
 
   return (
     <AppShell title="Painel" subtitle={new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}>
-      <BuscaRapida onAbrirPerfil={setPerfilId} />
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
-        {cards.map((c) => (
-          <Card key={c.label} className="overflow-hidden border-none bg-navy text-primary-foreground shadow-pool">
-            <CardContent className="flex items-center gap-4 py-6">
-              <span className="grid size-12 place-items-center rounded-xl bg-primary-foreground/10 text-accent">
-                <c.icon className="size-5" />
-              </span>
-              <div>
-                <p className="font-display text-3xl font-semibold">{c.value}</p>
-                <p className="text-sm text-primary-foreground/70">{c.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
       <Card className="overflow-hidden border-none bg-pool text-primary-foreground shadow-pool">
         <CardContent className="space-y-4 py-8">
           <h2 className="font-display text-2xl font-semibold">Comece a aula</h2>
@@ -167,16 +131,16 @@ function Painel() {
             <Button asChild variant="secondary">
               <Link to="/presenca">Registrar presença</Link>
             </Button>
-            {podeMatricular ? (
+            {/* Professores não veem o atalho de matrícula no Painel. */}
+            {isAdmin ? (
               <Button asChild variant="outline" className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10">
                 <Link to="/alunos" search={{ nova: true }}>Nova matrícula</Link>
               </Button>
-            ) : (
-              <Button disabled variant="outline" className="border-primary-foreground/40 bg-transparent text-primary-foreground">Nova matrícula</Button>
-            )}
+            ) : null}
           </div>
         </CardContent>
       </Card>
+
 
       <div className="mt-6 grid min-w-0 gap-6 [&>*]:min-w-0">
         <AulasDoDia />

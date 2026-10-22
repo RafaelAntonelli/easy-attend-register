@@ -21,6 +21,7 @@ import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as TurmasRouteImport } from './routes/turmas'
 import { Route as AuthenticatedAreaAlunoRouteImport } from './routes/_authenticated/area-aluno'
 import { Route as AuthenticatedPerfilAlunoRouteImport } from './routes/_authenticated/perfil-aluno'
+import { Route as ApiPublicAvisosAgendadosRouteImport } from './routes/api/public/avisos-agendados'
 import { Route as ApiPublicBackupSemanalRouteImport } from './routes/api/public/backup-semanal'
 import { Route as ApiPublicLembretesAulasRouteImport } from './routes/api/public/lembretes-aulas'
 
@@ -84,6 +85,12 @@ const AuthenticatedPerfilAlunoRoute =
     path: '/perfil-aluno',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicAvisosAgendadosRoute =
+  ApiPublicAvisosAgendadosRouteImport.update({
+    id: '/api/public/avisos-agendados',
+    path: '/api/public/avisos-agendados',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBackupSemanalRoute = ApiPublicBackupSemanalRouteImport.update({
   id: '/api/public/backup-semanal',
   path: '/api/public/backup-semanal',
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/turmas': typeof TurmasRoute
   '/area-aluno': typeof AuthenticatedAreaAlunoRoute
   '/perfil-aluno': typeof AuthenticatedPerfilAlunoRoute
+  '/api/public/avisos-agendados': typeof ApiPublicAvisosAgendadosRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
   '/api/public/lembretes-aulas': typeof ApiPublicLembretesAulasRoute
 }
@@ -122,6 +130,7 @@ export interface FileRoutesByTo {
   '/turmas': typeof TurmasRoute
   '/area-aluno': typeof AuthenticatedAreaAlunoRoute
   '/perfil-aluno': typeof AuthenticatedPerfilAlunoRoute
+  '/api/public/avisos-agendados': typeof ApiPublicAvisosAgendadosRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
   '/api/public/lembretes-aulas': typeof ApiPublicLembretesAulasRoute
 }
@@ -139,6 +148,7 @@ export interface FileRoutesById {
   '/turmas': typeof TurmasRoute
   '/_authenticated/area-aluno': typeof AuthenticatedAreaAlunoRoute
   '/_authenticated/perfil-aluno': typeof AuthenticatedPerfilAlunoRoute
+  '/api/public/avisos-agendados': typeof ApiPublicAvisosAgendadosRoute
   '/api/public/backup-semanal': typeof ApiPublicBackupSemanalRoute
   '/api/public/lembretes-aulas': typeof ApiPublicLembretesAulasRoute
 }
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/turmas'
     | '/area-aluno'
     | '/perfil-aluno'
+    | '/api/public/avisos-agendados'
     | '/api/public/backup-semanal'
     | '/api/public/lembretes-aulas'
   fileRoutesByTo: FileRoutesByTo
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/turmas'
     | '/area-aluno'
     | '/perfil-aluno'
+    | '/api/public/avisos-agendados'
     | '/api/public/backup-semanal'
     | '/api/public/lembretes-aulas'
   id:
@@ -187,6 +199,7 @@ export interface FileRouteTypes {
     | '/turmas'
     | '/_authenticated/area-aluno'
     | '/_authenticated/perfil-aluno'
+    | '/api/public/avisos-agendados'
     | '/api/public/backup-semanal'
     | '/api/public/lembretes-aulas'
   fileRoutesById: FileRoutesById
@@ -202,6 +215,7 @@ export interface RootRouteChildren {
   PresencaRoute: typeof PresencaRoute
   RelatoriosRoute: typeof RelatoriosRoute
   TurmasRoute: typeof TurmasRoute
+  ApiPublicAvisosAgendadosRoute: typeof ApiPublicAvisosAgendadosRoute
   ApiPublicBackupSemanalRoute: typeof ApiPublicBackupSemanalRoute
   ApiPublicLembretesAulasRoute: typeof ApiPublicLembretesAulasRoute
 }
@@ -292,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPerfilAlunoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/avisos-agendados': {
+      id: '/api/public/avisos-agendados'
+      path: '/api/public/avisos-agendados'
+      fullPath: '/api/public/avisos-agendados'
+      preLoaderRoute: typeof ApiPublicAvisosAgendadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/backup-semanal': {
       id: '/api/public/backup-semanal'
       path: '/api/public/backup-semanal'
@@ -333,6 +354,7 @@ const rootRouteChildren: RootRouteChildren = {
   PresencaRoute: PresencaRoute,
   RelatoriosRoute: RelatoriosRoute,
   TurmasRoute: TurmasRoute,
+  ApiPublicAvisosAgendadosRoute: ApiPublicAvisosAgendadosRoute,
   ApiPublicBackupSemanalRoute: ApiPublicBackupSemanalRoute,
   ApiPublicLembretesAulasRoute: ApiPublicLembretesAulasRoute,
 }

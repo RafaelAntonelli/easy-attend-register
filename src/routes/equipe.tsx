@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Search, ShieldCheck, UserCheck, UserX, LockKeyhole, Eye, EyeOff } from "lucide-react";
+import { CalendarDays, Search, ShieldCheck, UserCheck, UserX, LockKeyhole, Eye, EyeOff, Phone, Clock, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -8,6 +8,8 @@ import type { AppRole } from "@/lib/auth";
 import { PERMISSOES_PROFESSOR, permissaoAtiva, usePermissoesProfessor } from "@/lib/permissoes";
 import { normalizarTexto } from "@/lib/formatacao";
 import { removerContaPendente, confirmarSenhaPermissoes, alterarPermissaoProfessor } from "@/lib/equipe.functions";
+import { fotosEquipe } from "@/lib/meu-perfil.functions";
+import { descreverUltimoAcesso } from "@/lib/ultimo-acesso";
 import { AppShell } from "@/components/AppShell";
 import { AcessosAlunos } from "@/components/AcessosAlunos";
 import { Button } from "@/components/ui/button";
@@ -47,6 +49,7 @@ type Membro = {
   id: string;
   nome: string | null;
   email: string | null;
+  telefone: string | null;
   roles: AppRole[];
   criado: string | null;
   ultimoAcesso: string | null;
@@ -64,6 +67,7 @@ function EquipePage() {
   const [turmas, setTurmas] = useState<TurmaResumo[]>([]);
   const [vinculos, setVinculos] = useState<{ user_id: string; turma_id: string }[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const [fotos, setFotos] = useState<Record<string, string>>({});
   const [busca, setBusca] = useState("");
   const [acao, setAcao] = useState<Acao | null>(null);
   const [editandoTurmas, setEditandoTurmas] = useState<Membro | null>(null);
@@ -110,7 +114,7 @@ function EquipePage() {
   async function carregar() {
     setCarregando(true);
     const [{ data: perfis }, { data: papeis }, { data: acessos }, { data: ts }, { data: vs }] = await Promise.all([
-      supabase.from("profiles").select("id, nome, email, created_at"),
+      supabase.from("profiles").select("id, nome, email, telefone, created_at"),
       supabase.from("user_roles").select("user_id, role"),
       supabase.rpc("equipe_acessos"),
       supabase.from("turmas").select("id, nome").eq("ativa", true).order("nome"),
@@ -126,6 +130,7 @@ function EquipePage() {
         id: p.id,
         nome: p.nome,
         email: p.email,
+        telefone: p.telefone,
         criado: p.created_at,
         roles: mapaRoles.get(p.id) ?? [],
         ultimoAcesso: mapaAcesso.get(p.id) ?? null,
@@ -134,6 +139,7 @@ function EquipePage() {
     setTurmas(ts ?? []);
     setVinculos(vs ?? []);
     setCarregando(false);
+    fotosEquipe().then(setFotos).catch(() => setFotos({}));
   }
 
   useEffect(() => {
@@ -212,17 +218,32 @@ function EquipePage() {
     return (
       <Card key={m.id}>
         <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="font-medium text-foreground">{m.nome || m.email || "Sem nome"}</p>
-            <p className="text-xs text-muted-foreground">{m.email}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Cadastro: {dataHora(m.criado)} · Último acesso: {dataHora(m.ultimoAcesso)}
-            </p>
-            {m.roles.includes("professor") ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Turmas: {turmasDele.length ? turmasDele.join(", ") : "nenhuma"}
-              </p>
-            ) : null}
+          <div className="flex min-w-0 items-start gap-3">
+            {fotos[m.id]
+              ? <img src={fotos[m.id]} alt={`Foto de ${m.nome || m.email || "membro"}`} className="size-12 shrink-0 rounded-full object-cover" />
+              : <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary"><UserRound className="size-5 text-secondary-foreground" /></span>}
+            <div className="min-w-0">
+              <p className="font-medium text-foreground">{m.nome || m.email || "Sem nome"}</p>
+              <p className="break-all text-xs text-muted-foreground">{m.email}</p>
+              {m.telefone ? <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground"><Phone className="size-3" />{m.telefone}</p> : null}
+              {(() => {
+                const acesso = descreverUltimoAcesso(m.ultimoAcesso);
+                return (
+                  <p className={`mt-1 flex items-center gap-1 text-xs ${acesso.alerta ? "font-medium text-warning-strong" : "text-muted-foreground"}`} title={m.ultimoAcesso ? dataHora(m.ultimoAcesso) : undefined}>
+                    <Clock className="size-3" />Último acesso: {acesso.texto}
+                  </p>
+                );
+              })()}
+              <p className="text-xs text-muted-foreground">Cadastro: {dataHora(m.criado)}</p>
+              {m.roles.includes("professor") ? (
+                <div className="mt-2 flex flex-wrap items-center gap-1">
+                  <span className="text-xs text-muted-foreground">Turmas:</span>
+                  {turmasDele.length
+                    ? turmasDele.map((t) => <Badge key={t} variant="secondary" className="font-normal">{t}</Badge>)
+                    : <span className="text-xs font-medium text-warning-strong">nenhuma ligada</span>}
+                </div>
+              ) : null}
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {pendente ? (

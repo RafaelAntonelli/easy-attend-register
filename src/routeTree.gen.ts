@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AvisosRouteImport } from './routes/avisos'
 import { Route as BackupRouteImport } from './routes/backup'
 import { Route as EquipeRouteImport } from './routes/equipe'
+import { Route as MeuPerfilRouteImport } from './routes/meu-perfil'
 import { Route as PresencaRouteImport } from './routes/presenca'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as TurmasRouteImport } from './routes/turmas'
@@ -57,6 +58,11 @@ const BackupRoute = BackupRouteImport.update({
 const EquipeRoute = EquipeRouteImport.update({
   id: '/equipe',
   path: '/equipe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeuPerfilRoute = MeuPerfilRouteImport.update({
+  id: '/meu-perfil',
+  path: '/meu-perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PresencaRoute = PresencaRouteImport.update({
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/avisos': typeof AvisosRoute
   '/backup': typeof BackupRoute
   '/equipe': typeof EquipeRoute
+  '/meu-perfil': typeof MeuPerfilRoute
   '/presenca': typeof PresencaRoute
   '/relatorios': typeof RelatoriosRoute
   '/turmas': typeof TurmasRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/avisos': typeof AvisosRoute
   '/backup': typeof BackupRoute
   '/equipe': typeof EquipeRoute
+  '/meu-perfil': typeof MeuPerfilRoute
   '/presenca': typeof PresencaRoute
   '/relatorios': typeof RelatoriosRoute
   '/turmas': typeof TurmasRoute
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/avisos': typeof AvisosRoute
   '/backup': typeof BackupRoute
   '/equipe': typeof EquipeRoute
+  '/meu-perfil': typeof MeuPerfilRoute
   '/presenca': typeof PresencaRoute
   '/relatorios': typeof RelatoriosRoute
   '/turmas': typeof TurmasRoute
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/avisos'
     | '/backup'
     | '/equipe'
+    | '/meu-perfil'
     | '/presenca'
     | '/relatorios'
     | '/turmas'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/avisos'
     | '/backup'
     | '/equipe'
+    | '/meu-perfil'
     | '/presenca'
     | '/relatorios'
     | '/turmas'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/avisos'
     | '/backup'
     | '/equipe'
+    | '/meu-perfil'
     | '/presenca'
     | '/relatorios'
     | '/turmas'
@@ -212,6 +224,7 @@ export interface RootRouteChildren {
   AvisosRoute: typeof AvisosRoute
   BackupRoute: typeof BackupRoute
   EquipeRoute: typeof EquipeRoute
+  MeuPerfilRoute: typeof MeuPerfilRoute
   PresencaRoute: typeof PresencaRoute
   RelatoriosRoute: typeof RelatoriosRoute
   TurmasRoute: typeof TurmasRoute
@@ -269,6 +282,13 @@ declare module '@tanstack/react-router' {
       path: '/equipe'
       fullPath: '/equipe'
       preLoaderRoute: typeof EquipeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meu-perfil': {
+      id: '/meu-perfil'
+      path: '/meu-perfil'
+      fullPath: '/meu-perfil'
+      preLoaderRoute: typeof MeuPerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/presenca': {
@@ -351,6 +371,7 @@ const rootRouteChildren: RootRouteChildren = {
   AvisosRoute: AvisosRoute,
   BackupRoute: BackupRoute,
   EquipeRoute: EquipeRoute,
+  MeuPerfilRoute: MeuPerfilRoute,
   PresencaRoute: PresencaRoute,
   RelatoriosRoute: RelatoriosRoute,
   TurmasRoute: TurmasRoute,

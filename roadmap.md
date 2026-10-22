@@ -105,3 +105,5 @@
 - [x] Presença: anotação da aula por turma e dia (salvar e apagar testados).
 - [x] Login (aba Aluno): data de nascimento digitada dd/mm/aaaa com mensagens claras.
 - [x] Alunos: histórico na ficha (quem alterou o quê e quando) — registro conferido no banco.
+
+- [ ] Login: imagem Esporte 360 + SECULJE preenchendo a tela inteira (celular e computador), com transparência.

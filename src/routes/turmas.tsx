@@ -2,7 +2,7 @@ import { useAuth } from "@/lib/auth";
 import { useMinhasTurmas, usePermissoesProfessor, permissaoAtiva } from "@/lib/permissoes";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays, Search, Printer } from "lucide-react";
+import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays, Search, Printer, Armchair } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useHorarios } from "@/lib/horarios";
@@ -474,23 +474,26 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
   }
 
 
+  const turmasAtivas = turmas.filter((t) => t.ativa);
   const cartoesResumo = [
     { label: "Alunos ativos", value: alunosAtivos, icon: Users },
-    { label: "Turmas abertas", value: turmas.filter((t) => t.ativa).length, icon: CalendarDays },
+    { label: "Turmas abertas", value: turmasAtivas.length, icon: CalendarDays },
+    // Soma das vagas (capacidade) de todas as turmas abertas.
+    { label: "Total de vagas", value: turmasAtivas.reduce((soma, t) => soma + (t.capacidade ?? 0), 0), icon: Armchair },
   ];
 
   return (
     <AppShell title="Turmas" subtitle="Modalidades, horários e professores">
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
         {cartoesResumo.map((c) => (
-          <Card key={c.label} className="overflow-hidden border-none bg-navy text-primary-foreground shadow-pool">
-            <CardContent className="flex items-center gap-4 py-6">
-              <span className="grid size-12 place-items-center rounded-xl bg-primary-foreground/10 text-accent">
-                <c.icon className="size-5" />
+          <Card key={c.label} className="overflow-hidden border-none bg-navy py-0 text-primary-foreground shadow-pool">
+            <CardContent className="flex items-center gap-3 px-4 py-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-foreground/10 text-accent">
+                <c.icon className="size-4" />
               </span>
-              <div>
-                <p className="font-display text-3xl font-semibold">{c.value}</p>
-                <p className="text-sm text-primary-foreground/70">{c.label}</p>
+              <div className="min-w-0 leading-tight">
+                <p className="font-display text-xl font-semibold">{c.value.toLocaleString("pt-BR")}</p>
+                <p className="truncate text-xs text-primary-foreground/70">{c.label}</p>
               </div>
             </CardContent>
           </Card>

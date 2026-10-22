@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   LayoutDashboard,
@@ -25,6 +25,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { StatusOffline } from "@/components/StatusOffline";
+import { obterMeuPerfil } from "@/lib/meu-perfil.functions";
+import fundoEsporte360 from "@/assets/programa-esporte-360.png.asset.json";
+import fundoSeculje from "@/assets/barra-seculje.jpg.asset.json";
 
 const baseNav = [
   { to: "/", label: "Painel", icon: LayoutDashboard },
@@ -49,6 +52,12 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { escuro, alternar } = useTema();
   const [maisAberto, setMaisAberto] = useState(false);
+  const { data: perfil } = useQuery({
+    queryKey: ["meu-perfil"],
+    queryFn: () => obterMeuPerfil(),
+    enabled: !!session && isStaff,
+    staleTime: 5 * 60_000,
+  });
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/auth", replace: true });
@@ -89,6 +98,8 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     );
   }
 
+  const nomeUsuario = perfil?.nome?.trim() || session.user.email || "Equipe";
+  const papel = isAdmin ? "Administrador" : "Professor";
   const nav = isAdmin
     ? [...baseNav, ...adminNav]
     : baseNav.filter((n) => n.to !== "/relatorios" || permissaoAtiva(permissoes, "relatorios_ver"));
@@ -99,14 +110,20 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-64">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar px-4 py-5 md:flex">
-        <div className="flex shrink-0 items-center gap-3 px-2">
-          <img src="/icons/icon-192x192.png" alt="Arena Aquática LF" className="size-10 rounded-xl object-cover" />
-          <div className="leading-tight">
-            <p className="font-display text-base font-semibold text-sidebar-foreground">Arena Aquática LF</p>
-            <p className="text-xs text-sidebar-foreground/60">Gestão de alunos</p>
+        <img
+          src={fundoEsporte360.url}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-auto w-full select-none opacity-35 [mask-image:linear-gradient(to_bottom,transparent_0%,black_30%,black_70%,transparent_100%)]"
+        />
+        <Link to="/meu-perfil" className="relative flex shrink-0 items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-sidebar-accent" title="Meu perfil">
+          <FotoUsuario url={perfil?.fotoUrl ?? null} nome={nomeUsuario} className="size-11" />
+          <div className="min-w-0 leading-tight">
+            <p className="truncate font-display text-base font-semibold text-sidebar-foreground">{nomeUsuario}</p>
+            <p className="text-xs text-sidebar-foreground/70">{papel}</p>
           </div>
-        </div>
-        <nav aria-label="Menu principal" className="my-5 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain">
+        </Link>
+        <nav aria-label="Menu principal" className="relative my-5 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain">
           {nav.map((item) => (
             <Link
               key={item.to}
@@ -121,7 +138,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
             </Link>
           ))}
         </nav>
-        <div className="shrink-0 space-y-1 border-t border-sidebar-border pt-3">
+        <div className="relative shrink-0 space-y-1 border-t border-sidebar-border pt-3">
           <Link
             to="/meu-perfil"
             className={cn(
@@ -152,13 +169,22 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
 
       <StatusOffline />
 
-      <header className="bg-sidebar px-5 pb-6 pt-5 text-sidebar-foreground md:border-b md:border-border md:bg-card/60 md:px-10 md:py-6 md:text-foreground md:backdrop-blur">
-        <div className="mb-4 flex items-center gap-2.5 md:hidden">
-          <img src="/icons/icon-192x192.png" alt="" className="size-8 rounded-lg object-cover" />
-          <span className="font-display text-sm font-semibold">Arena Aquática LF</span>
-        </div>
-        <h1 className="min-w-0 break-words font-display text-2xl font-semibold md:text-3xl">{title}</h1>
-        {subtitle ? <p className="mt-1 text-sm text-sidebar-foreground/70 md:text-muted-foreground">{subtitle}</p> : null}
+      <header className="relative overflow-hidden bg-sidebar px-5 pb-6 pt-5 text-sidebar-foreground md:border-b md:border-border md:bg-card/60 md:px-10 md:py-6 md:text-foreground md:backdrop-blur">
+        <img
+          src={fundoSeculje.url}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 right-0 h-full w-full select-none object-cover object-right opacity-20 [mask-image:linear-gradient(to_right,transparent_0%,black_60%)] md:w-auto md:max-w-none md:opacity-30 md:[mask-image:linear-gradient(to_right,transparent_0%,black_30%)]"
+        />
+        <Link to="/meu-perfil" className="relative mb-4 flex w-fit items-center gap-2.5 md:hidden">
+          <FotoUsuario url={perfil?.fotoUrl ?? null} nome={nomeUsuario} className="size-9" />
+          <span className="leading-tight">
+            <span className="block font-display text-sm font-semibold">{nomeUsuario}</span>
+            <span className="block text-xs text-sidebar-foreground/70">{papel}</span>
+          </span>
+        </Link>
+        <h1 className="relative min-w-0 break-words font-display text-2xl font-semibold md:text-3xl">{title}</h1>
+        {subtitle ? <p className="relative mt-1 text-sm text-sidebar-foreground/70 md:text-muted-foreground">{subtitle}</p> : null}
       </header>
 
       <main className="px-4 py-6 sm:px-5 md:px-10">{children}</main>
@@ -245,5 +271,17 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+/** Foto do usuário logado; sem foto, mostra as iniciais. */
+function FotoUsuario({ url, nome, className }: { url: string | null; nome: string; className?: string }) {
+  const iniciais = nome.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "?";
+  return url ? (
+    <img src={url} alt={`Foto de ${nome}`} className={cn("shrink-0 rounded-full object-cover ring-2 ring-sidebar-primary/60", className)} />
+  ) : (
+    <span aria-hidden="true" className={cn("flex shrink-0 items-center justify-center rounded-full bg-sidebar-accent font-display text-sm font-semibold text-sidebar-accent-foreground ring-2 ring-sidebar-primary/60", className)}>
+      {iniciais}
+    </span>
   );
 }

@@ -207,59 +207,50 @@ function AuthPage() {
         : "Bem-vindo(a) à Arena Aquática LF";
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-sidebar">
-      {/* Celular: imagem vertical do Programa Esporte 360 (já com a SECULJE no canto).
-          Tela larga: fundo só com as ondas, logo Esporte 360 acima da área de login centralizada
-          e selo SECULJE fixo no canto inferior direito, para que nada fique cortado ou escondido. */}
+    <div className="relative min-h-dvh overflow-hidden bg-sidebar">
+      {/* Fundo com as ondas do Programa Esporte 360 (vertical no celular, horizontal na tela larga).
+          O logo Esporte 360 fica acima da área de login centralizada e o selo SECULJE no canto
+          inferior direito (no celular, abaixo da área de login), para nada ficar cortado. */}
       <img
-        src={loginImagem.url}
+        src={loginFundoVertical.url}
         alt=""
         aria-hidden
-        className="pointer-events-none fixed inset-0 h-full w-full select-none object-cover object-center opacity-75 tela-larga:hidden"
+        className="pointer-events-none fixed inset-0 h-full w-full select-none object-cover object-center tela-larga:hidden"
       />
       <img
         src={loginFundo.url}
         alt=""
         aria-hidden
-        className="pointer-events-none fixed inset-0 hidden h-full w-full select-none object-cover object-center opacity-80 tela-larga:block"
+        className="pointer-events-none fixed inset-0 hidden h-full w-full select-none object-cover object-center tela-larga:block"
       />
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-sidebar/40 via-sidebar/10 to-sidebar/50 tela-larga:from-sidebar/20 tela-larga:via-transparent tela-larga:to-sidebar/40" />
+      <div aria-hidden className="pointer-events-none fixed inset-0 bg-gradient-to-b from-sidebar/30 via-sidebar/5 to-sidebar/60" />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed left-1/2 top-1/2 size-[min(44rem,120vw)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/20 blur-3xl"
+      />
       <img
         src={seculjeSelo.url}
         alt="SECULJE – Prefeitura de Lauro de Freitas"
         className="pointer-events-none fixed bottom-4 right-4 z-0 hidden w-[clamp(140px,15vw,260px)] select-none opacity-90 tela-larga:block"
       />
 
-      <div className="relative z-10 flex min-h-screen flex-col tela-larga:mx-auto tela-larga:w-full tela-larga:max-w-[30rem] tela-larga:justify-center tela-larga:py-6">
-        <div className="px-6 pb-16 pt-10 text-center text-sidebar-foreground tela-larga:hidden">
-          <p className="font-display text-2xl font-semibold drop-shadow">Arena Aquática LF</p>
-          <p className="mt-1 text-sm text-sidebar-foreground/80">Bem-vindo(a) de volta!</p>
-        </div>
-
+      <main className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[28rem] flex-col items-center justify-center gap-5 px-4 py-6">
         <img
           src={logoEsporte360.url}
           alt="Programa Esporte 360"
-          className="mx-auto mb-4 hidden h-[clamp(44px,9vh,96px)] w-auto select-none drop-shadow-lg tela-larga:block"
+          className="h-[clamp(44px,9vh,92px)] w-auto select-none drop-shadow-[0_6px_18px_color-mix(in_oklab,var(--sidebar)_70%,transparent)]"
         />
 
-        <div className="relative -mt-10 flex flex-1 items-start justify-center px-4 pb-8 tela-larga:mt-0 tela-larga:flex-none tela-larga:pb-0">
-          <Card className="w-full max-w-md rounded-3xl border-border/70 shadow-pool">
-            <CardHeader className="items-center pb-4 text-center">
+        <Card className="relative w-full overflow-hidden rounded-3xl border-border/60 bg-card/95 shadow-2xl backdrop-blur-xl">
+          <div aria-hidden className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-primary via-accent to-warning" />
+            <CardHeader className="items-center gap-1 pb-4 pt-7 text-center">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-primary">Arena Aquática LF</p>
               <CardTitle className="font-display text-2xl">
-                {acesso === "aluno" ? (
-                  "Área do aluno"
-                ) : !redefinindo && !recuperando && modo === "entrar" ? (
-                  <>
-                    <span className="lg:hidden">Acesse sua conta</span>
-                    <span className="hidden lg:inline">{titulo}</span>
-                  </>
-                ) : (
-                  titulo
-                )}
+                {acesso === "aluno" ? "Área do aluno" : titulo}
               </CardTitle>
               <CardDescription>
                 {acesso === "aluno"
-                  ? "Arena Aquática LF"
+                  ? "Consulte suas aulas, sua frequência e seu crachá."
                   : modo === "criar" && !recuperando && !redefinindo
                   ? "Crie sua conta. Um administrador precisará liberar seu acesso."
                   : "Entre para gerenciar alunos, turmas e presenças."}
@@ -267,18 +258,18 @@ function AuthPage() {
             </CardHeader>
             <CardContent>
               <Tabs value={acesso} onValueChange={setAcesso}>
-                <TabsList className="mb-5 grid h-12 w-full grid-cols-2 rounded-xl p-1" aria-label="Tipo de acesso">
+                <TabsList className="mb-5 grid h-12 w-full grid-cols-2 rounded-xl bg-muted p-1" aria-label="Tipo de acesso">
                   <TabsTrigger
                     value="equipe"
                     disabled={busy || redefinindo}
-                    className="h-full gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    className="h-full gap-2 rounded-lg text-muted-foreground data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md"
                   >
                     <Users className="size-4" /> Equipe
                   </TabsTrigger>
                   <TabsTrigger
                     value="aluno"
                     disabled={busy || redefinindo}
-                    className="h-full gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    className="h-full gap-2 rounded-lg text-muted-foreground data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-md"
                   >
                     <GraduationCap className="size-4" /> Aluno
                   </TabsTrigger>

@@ -35,16 +35,45 @@ export const registrarPushPortal=createServerFn({method:'POST'}).middleware([req
 });
 export const enviarAvisoEquipe=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>avisoPortalSchema.parse(d)).handler(async({data,context})=>{
  const {data:admin}=await context.supabase.rpc('has_role',{_user_id:context.userId,_role:'admin'});if(!admin)throw new Error('Apenas administradores podem enviar avisos.');
- let query=context.supabase.from('alunos').select('id').order('id');if(data.alunoId)query=query.eq('id',data.alunoId);
- const ids:string[]=[];for(let offset=0;;offset+=500){const {data:rows,error}=await query.range(offset,offset+499);if(error)throw new Error('Não foi possível buscar destinatários.');ids.push(...(rows??[]).map(r=>r.id));if((rows??[]).length<500)break;}
- if(!ids.length)throw new Error('Aluno não encontrado.');const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
- for(let i=0;i<ids.length;i+=500){const {error}=await supabaseAdmin.from('avisos_alunos').insert(ids.slice(i,i+500).map(aluno_id=>({aluno_id,titulo:data.titulo,mensagem:data.mensagem,autor_id:context.userId})));if(error)throw new Error('Não foi possível salvar avisos.');}
+ const erroData=erroAgendamento(data.agendadoPara);if(erroData)throw new Error(erroData);
+ const ids:string[]=[];
+ if(data.destino==='turma'){
+  for(let offset=0;;offset+=500){const {data:rows,error}=await context.supabase.from('matriculas').select('aluno_id,alunos!inner(ativo)').eq('turma_id',data.turmaId!).eq('status','ativa').eq('alunos.ativo',true).order('aluno_id').range(offset,offset+499);if(error)throw new Error('Não foi possível buscar os alunos da turma.');ids.push(...(rows??[]).map(r=>r.aluno_id));if((rows??[]).length<500)break;}
+  if(!ids.length)throw new Error('Essa turma não tem alunos ativos.');
+ }else{
+  let query=context.supabase.from('alunos').select('id').order('id');if(data.destino==='aluno')query=query.eq('id',data.alunoId!);
+  for(let offset=0;;offset+=500){const {data:rows,error}=await query.range(offset,offset+499);if(error)throw new Error('Não foi possível buscar destinatários.');ids.push(...(rows??[]).map(r=>r.id));if((rows??[]).length<500)break;}
+  if(!ids.length)throw new Error('Aluno não encontrado.');
+ }
+ const unicos=[...new Set(ids)];const envioId=crypto.randomUUID();const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
+ const agendadoPara=data.agendadoPara?new Date(data.agendadoPara).toISOString():null;
+ for(let i=0;i<unicos.length;i+=500){const {error}=await supabaseAdmin.from('avisos_alunos').insert(unicos.slice(i,i+500).map(aluno_id=>({aluno_id,titulo:data.titulo,mensagem:data.mensagem,autor_id:context.userId,envio_id:envioId,destino:data.destino,turma_id:data.destino==='turma'?data.turmaId:null,agendado_para:agendadoPara})));if(error){await supabaseAdmin.from('avisos_alunos').delete().eq('envio_id',envioId);throw new Error('Não foi possível salvar avisos.');}}
+ if(agendadoPara){
+  // Aparece na central do aluno no horário marcado; o celular é avisado por um disparo único nesse minuto.
+  const {error}=await supabaseAdmin.rpc('agendar_disparo_aviso',{_envio:envioId,_quando:agendadoPara});
+  if(error)console.error('[avisos] falha ao agendar notificação no celular',error.message);
+  return {destinatarios:unicos.length,enviados:0,falhas:0,pushIndisponivel:!!error,agendado:true};
+ }
  // O aviso já está salvo na central da área do aluno; o celular é um canal extra.
  // Se a notificação no aparelho falhar ou não estiver disponível, o aviso continua garantido no app.
  const key=process.env['FIREBASE_MESSAGING_API_KEY'],auth=process.env['LOVABLE_API_KEY'];
- if(!key||!auth){console.error('[avisos] notificações no celular indisponíveis: conexão não configurada');return {destinatarios:ids.length,enviados:0,falhas:0,pushIndisponivel:true};}
- try{const {enviarPush}=await import('./portal-extras.server');const entrega=await enviarPush(ids,data.titulo,data.mensagem,key,auth);return {destinatarios:ids.length,...entrega,pushIndisponivel:false};}
- catch(err){console.error('[avisos] falha ao enviar notificações no celular',err);return {destinatarios:ids.length,enviados:0,falhas:0,pushIndisponivel:true};}
+ if(!key||!auth){console.error('[avisos] notificações no celular indisponíveis: conexão não configurada');return {destinatarios:unicos.length,enviados:0,falhas:0,pushIndisponivel:true,agendado:false};}
+ try{const {enviarPush}=await import('./portal-extras.server');const entrega=await enviarPush(unicos,data.titulo,data.mensagem,key,auth);return {destinatarios:unicos.length,...entrega,pushIndisponivel:false,agendado:false};}
+ catch(err){console.error('[avisos] falha ao enviar notificações no celular',err);return {destinatarios:unicos.length,enviados:0,falhas:0,pushIndisponivel:true,agendado:false};}
+});
+/** Cancela um aviso agendado que ainda não chegou aos alunos. */
+export const cancelarAvisoAgendado=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>z.object({envioId:z.string().uuid()}).strict().parse(d)).handler(async({data,context})=>{
+ const {data:admin}=await context.supabase.rpc('has_role',{_user_id:context.userId,_role:'admin'});if(!admin)throw new Error('Apenas administradores podem cancelar avisos.');
+ const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
+ const {data:apagados,error}=await supabaseAdmin.from('avisos_alunos').delete().eq('envio_id',data.envioId).gt('agendado_para',new Date().toISOString()).select('id');
+ if(error)throw new Error('Não foi possível cancelar o aviso.');if(!apagados?.length)throw new Error('Esse aviso já foi entregue e não pode mais ser cancelado.');
+ await supabaseAdmin.rpc('cancelar_disparo_aviso',{_envio:data.envioId});return {cancelados:apagados.length};
+});
+/** Frequência do próprio aluno no mês atual. */
+export const obterFrequenciaPortal=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>dispositivo.parse(d)).handler(async({data,context})=>{
+ const {validarPortal}=await import('./portal-extras.server');await validarPortal(context.supabase,context.userId,data.aparelho);
+ const {data:r,error}=await context.supabase.rpc('frequencia_portal_aluno');if(error||!r)throw new Error('Não foi possível carregar a frequência.');
+ return z.object({inicio:z.string(),presencas:z.number(),faltas:z.number(),justificadas:z.number(),registros:z.array(z.object({data:z.string(),status:z.enum(['presente','falta','falta_justificada'])}))}).parse(r);
 });
 export const obterLembretesPortal=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>dispositivo.parse(d)).handler(async({data,context})=>{
  const {validarPortal}=await import('./portal-extras.server');await validarPortal(context.supabase,context.userId,data.aparelho);

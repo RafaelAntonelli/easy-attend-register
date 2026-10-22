@@ -236,7 +236,7 @@ function AuthPage() {
           <p className="mt-1 text-sm text-sidebar-foreground/80">Bem-vindo(a) de volta!</p>
         </div>
 
-        <div className="relative -mt-10 flex flex-1 items-start justify-center px-4 pb-8 lg:mt-0 lg:items-center lg:p-10">
+        <div className="relative -mt-10 flex flex-1 items-start justify-center px-4 pb-8 tela-larga:mt-0 tela-larga:items-center lg:p-10">
           <Card className="w-full max-w-md rounded-3xl border-border/70 shadow-pool">
             <CardHeader className="items-center pb-4 text-center">
               <CardTitle className="font-display text-2xl">

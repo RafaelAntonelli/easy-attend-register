@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowRight, Eye, EyeOff, GraduationCap, Lock, Mail, Users, WifiOff } from "lucide-react";
 import { toast } from "sonner";
-import loginImagem from "@/assets/login-esporte-360.png.asset.json";
+import loginImagem from "@/assets/login-esporte360-seculje.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 
 import { useAuth } from "@/lib/auth";
@@ -205,15 +205,14 @@ function AuthPage() {
 
   return (
     <div className="grid min-h-screen bg-background lg:grid-cols-2">
-      <div className="relative hidden flex-col justify-between overflow-hidden p-12 text-primary-foreground lg:flex">
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-12 text-primary-foreground lg:flex">
         <img
           src={loginImagem.url}
-          alt="Programa Esporte 360"
-          className="absolute inset-0 h-full w-full object-cover object-center"
+          alt="Programa Esporte 360 – SECULJE Lauro de Freitas"
+          className="absolute inset-0 h-full w-full object-cover object-bottom"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-transparent to-primary/60" />
-        <div className="relative z-10 flex items-center gap-3">
-          <img src="/icons/icon-192x192.png" alt="Logo Arena Aquática LF" className="size-10 rounded-xl" />
+        <div className="relative z-10">
           <span className="font-display text-xl font-semibold">Arena Aquática LF</span>
         </div>
         <div className="relative z-10">
@@ -222,26 +221,22 @@ function AuthPage() {
       </div>
 
       <div className="flex flex-col">
-        {/* Topo azul-marinho com ondas (celular) */}
-        <div className="relative overflow-hidden bg-sidebar px-6 pb-20 pt-10 text-center text-sidebar-foreground lg:hidden">
-          <Ondas />
+        {/* Topo azul-marinho com a imagem do Programa Esporte 360 em transparência (celular) */}
+        <div className="relative overflow-hidden bg-sidebar px-6 pb-20 pt-12 text-center text-sidebar-foreground lg:hidden">
           <img
-            src="/icons/icon-192x192.png"
-            alt="Logo Arena Aquática LF"
-            className="relative mx-auto size-24 rounded-full shadow-pool ring-4 ring-sidebar-primary/30"
+            src={loginImagem.url}
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover object-center opacity-35"
           />
-          <p className="relative mt-4 font-display text-2xl font-semibold">Arena Aquática LF</p>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-sidebar/40 via-sidebar/20 to-sidebar/70" />
+          <p className="relative font-display text-2xl font-semibold">Arena Aquática LF</p>
           <p className="relative mt-1 text-sm text-sidebar-foreground/75">Bem-vindo(a) de volta!</p>
         </div>
 
         <div className="relative -mt-10 flex flex-1 items-start justify-center px-4 pb-8 lg:mt-0 lg:items-center lg:p-10">
           <Card className="w-full max-w-md rounded-3xl border-border/70 shadow-pool">
             <CardHeader className="items-center pb-4 text-center">
-              <img
-                src="/icons/icon-192x192.png"
-                alt="Logo Arena Aquática LF"
-                className="mb-2 hidden size-16 rounded-2xl shadow-md lg:block"
-              />
               <CardTitle className="font-display text-2xl">
                 {acesso === "aluno" ? (
                   "Área do aluno"
@@ -442,19 +437,3 @@ function CampoComIcone({ icone: Icone, children }: { icone: typeof Mail; childre
   );
 }
 
-/** Linhas de onda decorativas do topo da tela de login. */
-function Ondas() {
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 400 220"
-      preserveAspectRatio="none"
-      className="pointer-events-none absolute inset-0 h-full w-full text-sidebar-primary"
-    >
-      <path d="M0 120 C 80 80, 160 160, 240 120 S 360 80, 400 110" fill="none" stroke="currentColor" strokeOpacity="0.35" strokeWidth="1.5" />
-      <path d="M0 150 C 90 110, 170 190, 260 145 S 370 110, 400 140" fill="none" stroke="currentColor" strokeOpacity="0.22" strokeWidth="1.5" />
-      <path d="M0 180 C 100 140, 180 215, 280 170 S 380 140, 400 170" fill="none" stroke="currentColor" strokeOpacity="0.15" strokeWidth="1.5" />
-      <path d="M0 60 C 70 30, 150 90, 230 60 S 350 30, 400 55" fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="1" />
-    </svg>
-  );
-}

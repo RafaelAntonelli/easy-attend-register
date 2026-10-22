@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Eye, EyeOff, GraduationCap, Lock, Mail, Users, WifiOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, GraduationCap, Loader2, Lock, Mail, Users, WifiOff } from "lucide-react";
 import { toast } from "sonner";
-import loginImagem from "@/assets/login-esporte360-seculje.png.asset.json";
+import loginFundoVertical from "@/assets/login-fundo-ondas-vertical.jpg.asset.json";
 import loginFundo from "@/assets/login-fundo-ondas.jpg.asset.json";
 import logoEsporte360 from "@/assets/logo-esporte360.png.asset.json";
 import seculjeSelo from "@/assets/seculje-selo.png.asset.json";
@@ -384,28 +384,34 @@ function AuthPage() {
                     <Label htmlFor="senha">Senha</Label>
                     <CampoSenha id="senha" value={senha} onChange={setSenha} />
                   </div>
-                  <label className="flex items-center gap-2 text-sm text-foreground">
-                    <Checkbox checked={lembrarEmail} onCheckedChange={(v) => setLembrarEmail(v === true)} />
-                    Lembrar meu e-mail
-                  </label>
-                  <Button type="submit" variant="pool" className="h-12 w-full rounded-xl text-base" disabled={busy || offline}>
-                    {busy ? "Entrando..." : "Entrar"} <ArrowRight className="size-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="w-full"
-                    onClick={() => {
-                      setEmailRecuperacao(email);
-                      setRecuperando(true);
-                    }}
-                  >
-                    Esqueci minha senha
-                  </Button>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="flex items-center gap-2 text-sm text-foreground">
+                      <Checkbox checked={lembrarEmail} onCheckedChange={(v) => setLembrarEmail(v === true)} />
+                      Lembrar meu e-mail
+                    </label>
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-primary hover:underline"
+                      onClick={() => {
+                        setEmailRecuperacao(email);
+                        setRecuperando(true);
+                      }}
+                    >
+                      Esqueci minha senha
+                    </button>
                   </div>
-                  <p className="text-center text-sm text-muted-foreground">
+                  <Button type="submit" variant="pool" className="h-12 w-full rounded-xl text-base" disabled={busy || offline}>
+                    {busy ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" /> Entrando...
+                      </>
+                    ) : (
+                      <>
+                        Entrar <ArrowRight className="size-4" />
+                      </>
+                    )}
+                  </Button>
+                  <p className="border-t border-border/70 pt-4 text-center text-sm text-muted-foreground">
                     Sou novo na equipe?{" "}
                     <button
                       type="button"
@@ -420,9 +426,14 @@ function AuthPage() {
                 </TabsContent>
               </Tabs>
             </CardContent>
-          </Card>
-        </div>
-      </div>
+        </Card>
+
+        <img
+          src={seculjeSelo.url}
+          alt="SECULJE – Prefeitura de Lauro de Freitas"
+          className="w-44 select-none opacity-90 tela-larga:hidden"
+        />
+      </main>
     </div>
   );
 }

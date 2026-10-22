@@ -241,7 +241,7 @@ function AuthPage() {
           className="h-[clamp(44px,9vh,92px)] w-auto select-none drop-shadow-[0_6px_18px_color-mix(in_oklab,var(--sidebar)_70%,transparent)]"
         />
 
-        <Card className="relative w-full overflow-hidden rounded-3xl border-border/60 bg-card/95 shadow-2xl backdrop-blur-xl">
+        <Card className="relative w-full overflow-hidden rounded-3xl border-border/60 bg-card shadow-2xl">
           <div aria-hidden className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-primary via-accent to-warning" />
             <CardHeader className="items-center gap-1 pb-4 pt-7 text-center">
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-primary">Arena Aquática LF</p>

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Eye, EyeOff, GraduationCap, Lock, Mail, Users, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import loginImagem from "@/assets/login-esporte360-seculje.png.asset.json";
+import loginPaisagem from "@/assets/login-esporte360-paisagem.jpg.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 
 import { useAuth } from "@/lib/auth";
@@ -205,17 +206,24 @@ function AuthPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-sidebar">
-      {/* Imagem do Programa Esporte 360 + SECULJE preenchendo a tela inteira, com transparência */}
+      {/* Imagem do Programa Esporte 360 + SECULJE preenchendo a tela inteira, com transparência.
+          Telas em pé usam a versão vertical; telas deitadas, a versão horizontal (logo à esquerda). */}
       <img
         src={loginImagem.url}
         alt=""
         aria-hidden
-        className="pointer-events-none fixed inset-0 h-full w-full select-none object-cover object-center opacity-75"
+        className="pointer-events-none fixed inset-0 h-full w-full select-none object-cover object-center opacity-75 landscape:hidden"
       />
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-sidebar/40 via-sidebar/10 to-sidebar/50" />
+      <img
+        src={loginPaisagem.url}
+        alt=""
+        aria-hidden
+        className="pointer-events-none fixed inset-0 hidden h-full w-full select-none object-cover object-left opacity-80 landscape:block"
+      />
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-sidebar/40 via-sidebar/10 to-sidebar/50 landscape:bg-gradient-to-r landscape:from-transparent landscape:via-sidebar/10 landscape:to-sidebar/40" />
 
-      <div className="relative z-10 flex min-h-screen flex-col">
-        <div className="px-6 pb-16 pt-10 text-center text-sidebar-foreground lg:pb-6">
+      <div className="relative z-10 flex min-h-screen flex-col md:landscape:ml-auto md:landscape:mr-[4vw] md:landscape:w-[30rem] md:landscape:justify-center">
+        <div className="px-6 pb-16 pt-10 text-center text-sidebar-foreground lg:pb-6 md:landscape:pt-6">
           <p className="font-display text-2xl font-semibold drop-shadow">Arena Aquática LF</p>
           <p className="mt-1 text-sm text-sidebar-foreground/80">Bem-vindo(a) de volta!</p>
         </div>

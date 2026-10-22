@@ -80,7 +80,7 @@ export function AnotacaoAula({ turmas, data }: { turmas: { id: string; nome: str
             return (
               <div key={t.id} className="space-y-2">
                 {turmas.length > 1 && <p className="text-sm font-medium">{t.nome}</p>}
-                <Textarea rows={2} maxLength={1000} aria-label={`Anotação da aula da turma ${t.nome}`} placeholder="Ex.: piscina fria, aula substituída pelo professor João" value={valor} disabled={!podeEditar} onChange={(e) => setRascunhos((r) => ({ ...r, [t.id]: e.target.value }))} />
+                <Textarea rows={2} maxLength={1000} aria-label={`Anotação da aula da turma ${t.nome}`} placeholder="Ex.: piscina fria, aula substituída" value={valor} disabled={!podeEditar} onChange={(e) => setRascunhos((r) => ({ ...r, [t.id]: e.target.value }))} />
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs text-muted-foreground">{nota ? `Salva por ${nota.autor_nome ?? "usuário"} às ${new Date(nota.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : podeEditar ? "Nenhuma anotação nesta aula." : "Você não tem permissão para anotar."}</p>
                   {podeEditar && <Button size="sm" disabled={!alterado || salvando === t.id} onClick={() => void salvar(t.id)}>{salvando === t.id ? "Salvando…" : "Salvar anotação"}</Button>}

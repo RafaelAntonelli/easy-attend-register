@@ -116,6 +116,8 @@
   --success-strong: oklch(0.48 0.12 160);
   --destructive-strong: oklch(0.5 0.19 25);
   --shadow-pool: 0 18px 40px -24px oklch(0.45 0.12 240 / 0.55);
+  /* Azul da faixa SECULJE / Lauro de Freitas (barra superior). */
+  --seculje: rgb(1 30 122);
 }
 
 
@@ -195,4 +197,13 @@
 
 @utility bg-navy {
   background-image: var(--gradient-navy);
+}
+
+/* Barra superior: degradê que termina no azul da faixa SECULJE. */
+@utility bg-faixa {
+  background-image: linear-gradient(to right, var(--card) 0%, var(--card) 30%, var(--seculje) 100%);
+}
+
+@utility bg-faixa-celular {
+  background-image: linear-gradient(to right, var(--sidebar) 0%, var(--seculje) 100%);
 }

@@ -10,6 +10,7 @@ import { AppShell } from "@/components/AppShell";
 import { BotoesChamada, ProgressoChamada } from "@/components/BotoesChamada";
 import { PerfilAluno } from "@/components/PerfilAluno";
 import { AnotacaoAula } from "@/components/AnotacaoAula";
+import { useOffline } from "@/hooks/useOffline";
 import { dataBR, licencaEmVigor, type Licenca } from "@/lib/licenca";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,6 +164,7 @@ function PresencaPage() {
 
 
 
+  const { online } = useOffline();
   const [data, setData] = useState<Date>(new Date());
   const hoje = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
 
@@ -819,7 +821,7 @@ function PresencaPage() {
         <AnotacaoAula
           turmas={turmasVisiveis.filter((t) => turmaIdsValidos.includes(t.id)).map((t) => ({ id: t.id, nome: rotuloTurma(t) }))}
           data={hoje}
-          offline={!estaOnline()}
+          offline={!online}
         />
         <Card className="border-border/70">
           <CardHeader><CardTitle className="font-display text-lg">Registros do dia ({registros.length})</CardTitle></CardHeader>
@@ -838,6 +840,7 @@ function PresencaPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
 
       <PerfilAluno alunoId={perfilAlunoId} onFechar={() => setPerfilAlunoId(null)} />

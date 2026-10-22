@@ -127,6 +127,13 @@
       "when": 1792525099402,
       "tag": "0017_presenca_executado_em",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792699738186,
+      "tag": "0018_melhorias_por_tela",
+      "breakpoints": true
     }
   ]
 }

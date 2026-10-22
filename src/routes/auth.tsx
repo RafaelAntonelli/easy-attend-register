@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Eye, EyeOff, GraduationCap, Lock, Mail, Users, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import loginImagem from "@/assets/login-esporte360-seculje.png.asset.json";
-import loginPaisagem from "@/assets/login-esporte360-paisagem-v2.jpg.asset.json";
+import loginFundo from "@/assets/login-fundo-ondas.jpg.asset.json";
+import logoEsporte360 from "@/assets/logo-esporte360.png.asset.json";
 import seculjeSelo from "@/assets/seculje-selo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -207,10 +208,9 @@ function AuthPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-sidebar">
-      {/* Imagem do Programa Esporte 360 preenchendo a tela inteira, com transparência.
-          Celular/telas estreitas: versão vertical (já com a SECULJE no canto).
-          Computador (tela larga): versão horizontal com o logo à esquerda e o selo SECULJE
-          fixo no canto inferior direito, para nunca ser cortado pelo enquadramento. */}
+      {/* Celular: imagem vertical do Programa Esporte 360 (já com a SECULJE no canto).
+          Tela larga: fundo só com as ondas, logo Esporte 360 acima da área de login centralizada
+          e selo SECULJE fixo no canto inferior direito, para que nada fique cortado ou escondido. */}
       <img
         src={loginImagem.url}
         alt=""
@@ -218,25 +218,31 @@ function AuthPage() {
         className="pointer-events-none fixed inset-0 h-full w-full select-none object-cover object-center opacity-75 tela-larga:hidden"
       />
       <img
-        src={loginPaisagem.url}
+        src={loginFundo.url}
         alt=""
         aria-hidden
-        className="pointer-events-none fixed inset-0 hidden h-full w-full select-none object-cover object-left opacity-80 tela-larga:block"
+        className="pointer-events-none fixed inset-0 hidden h-full w-full select-none object-cover object-center opacity-80 tela-larga:block"
       />
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-sidebar/40 via-sidebar/10 to-sidebar/50 tela-larga:bg-gradient-to-r tela-larga:from-transparent tela-larga:via-sidebar/10 tela-larga:to-sidebar/40" />
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-sidebar/40 via-sidebar/10 to-sidebar/50 tela-larga:from-sidebar/20 tela-larga:via-transparent tela-larga:to-sidebar/40" />
       <img
         src={seculjeSelo.url}
         alt="SECULJE – Prefeitura de Lauro de Freitas"
-        className="pointer-events-none fixed bottom-5 right-[4vw] z-0 hidden w-[clamp(180px,17vw,300px)] select-none opacity-90 tela-larga:block"
+        className="pointer-events-none fixed bottom-4 right-4 z-0 hidden w-[clamp(140px,15vw,260px)] select-none opacity-90 tela-larga:block"
       />
 
-      <div className="relative z-10 flex min-h-screen flex-col tela-larga:ml-auto tela-larga:mr-[4vw] tela-larga:w-[30rem] tela-larga:justify-center tela-larga:pb-20">
+      <div className="relative z-10 flex min-h-screen flex-col tela-larga:mx-auto tela-larga:w-full tela-larga:max-w-[30rem] tela-larga:justify-center tela-larga:py-6">
         <div className="px-6 pb-16 pt-10 text-center text-sidebar-foreground tela-larga:hidden">
           <p className="font-display text-2xl font-semibold drop-shadow">Arena Aquática LF</p>
           <p className="mt-1 text-sm text-sidebar-foreground/80">Bem-vindo(a) de volta!</p>
         </div>
 
-        <div className="relative -mt-10 flex flex-1 items-start justify-center px-4 pb-8 tela-larga:mt-0 tela-larga:items-center tela-larga:pt-6 lg:p-10">
+        <img
+          src={logoEsporte360.url}
+          alt="Programa Esporte 360"
+          className="mx-auto mb-4 hidden h-[clamp(44px,9vh,96px)] w-auto select-none drop-shadow-lg tela-larga:block"
+        />
+
+        <div className="relative -mt-10 flex flex-1 items-start justify-center px-4 pb-8 tela-larga:mt-0 tela-larga:flex-none tela-larga:pb-0">
           <Card className="w-full max-w-md rounded-3xl border-border/70 shadow-pool">
             <CardHeader className="items-center pb-4 text-center">
               <CardTitle className="font-display text-2xl">

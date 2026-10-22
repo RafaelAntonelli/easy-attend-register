@@ -32,3 +32,7 @@
 - Export links are signed in links-arquivos.server.ts with the configured validity clamped by configuracoes-chaves.ts, staff-only; screens use short-lived links.
 - Images are optimized with imagem.ts at selection so previews, AI and uploads share the reduced file; PDFs unchanged.
 - Attendance buttons come only from BotoesChamada.tsx and student situation pills from SituacaoAluno.tsx, so Presença, Turmas and Alunos share colors; dark mode is a `dark` class set by tema.ts (pre-paint script in __root) and all colors stay semantic tokens.
+- Student record history (historico_alunos) is written only by DB triggers on alunos and matriculas, so every edit path is captured; app code only reads it (portal photo fix-up is the single exception, to credit the student).
+- Scheduled notices: student visibility derives from agendado_para in RLS; phone push uses one pg_cron job per send scheduled for that minute that unschedules itself (agendar_disparo_aviso/disparar_aviso_agendado) — never a polling job.
+- Staff profile photos live in the private fotos-equipe bucket and are read/written only through meu-perfil.functions.ts with signed URLs.
+- Student-login birth dates are typed as dd/mm/aaaa and parsed by data-nascimento.ts, which owns the user-facing error messages.

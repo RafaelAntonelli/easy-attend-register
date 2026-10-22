@@ -199,6 +199,47 @@ export type Database = {
           },
         ]
       }
+      anotacoes_aula: {
+        Row: {
+          autor_id: string | null
+          autor_nome: string | null
+          created_at: string
+          data: string
+          id: string
+          texto: string
+          turma_id: string
+          updated_at: string
+        }
+        Insert: {
+          autor_id?: string | null
+          autor_nome?: string | null
+          created_at?: string
+          data: string
+          id?: string
+          texto: string
+          turma_id: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          autor_nome?: string | null
+          created_at?: string
+          data?: string
+          id?: string
+          texto?: string
+          turma_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anotacoes_aula_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aparelhos_alunos: {
         Row: {
           aluno_id: string | null
@@ -255,40 +296,52 @@ export type Database = {
       }
       avisos_alunos: {
         Row: {
+          agendado_para: string | null
           aluno_id: string
           autor_id: string | null
           chave: string | null
           created_at: string
+          destino: string | null
+          envio_id: string | null
           id: string
           lido_em: string | null
           mensagem: string
           push_enviado_em: string | null
           tipo: string
           titulo: string
+          turma_id: string | null
         }
         Insert: {
+          agendado_para?: string | null
           aluno_id: string
           autor_id?: string | null
           chave?: string | null
           created_at?: string
+          destino?: string | null
+          envio_id?: string | null
           id?: string
           lido_em?: string | null
           mensagem: string
           push_enviado_em?: string | null
           tipo?: string
           titulo: string
+          turma_id?: string | null
         }
         Update: {
+          agendado_para?: string | null
           aluno_id?: string
           autor_id?: string | null
           chave?: string | null
           created_at?: string
+          destino?: string | null
+          envio_id?: string | null
           id?: string
           lido_em?: string | null
           mensagem?: string
           push_enviado_em?: string | null
           tipo?: string
           titulo?: string
+          turma_id?: string | null
         }
         Relationships: [
           {
@@ -296,6 +349,13 @@ export type Database = {
             columns: ["aluno_id"]
             isOneToOne: false
             referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avisos_alunos_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
             referencedColumns: ["id"]
           },
         ]
@@ -503,6 +563,44 @@ export type Database = {
           ordem?: number
         }
         Relationships: []
+      }
+      historico_alunos: {
+        Row: {
+          acao: string
+          alteracoes: Json
+          aluno_id: string
+          autor_id: string | null
+          autor_nome: string | null
+          created_at: string
+          id: string
+        }
+        Insert: {
+          acao: string
+          alteracoes?: Json
+          aluno_id: string
+          autor_id?: string | null
+          autor_nome?: string | null
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          acao?: string
+          alteracoes?: Json
+          aluno_id?: string
+          autor_id?: string | null
+          autor_nome?: string | null
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_alunos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       horarios: {
         Row: {
@@ -779,20 +877,26 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
+          foto_path: string | null
           id: string
           nome: string | null
+          telefone: string | null
         }
         Insert: {
           created_at?: string
           email?: string | null
+          foto_path?: string | null
           id: string
           nome?: string | null
+          telefone?: string | null
         }
         Update: {
           created_at?: string
           email?: string | null
+          foto_path?: string | null
           id?: string
           nome?: string | null
+          telefone?: string | null
         }
         Relationships: []
       }
@@ -907,11 +1011,16 @@ export type Database = {
         Args: { _ativo: boolean; _dia: number; _hora: number; _minuto: number }
         Returns: undefined
       }
+      agendar_disparo_aviso: {
+        Args: { _envio: string; _quando: string }
+        Returns: undefined
+      }
       calc_faixa_etaria: {
         Args: { _idade: number; _nascimento: string }
         Returns: string
       }
       calc_turno: { Args: { _horario: string }; Returns: string }
+      cancelar_disparo_aviso: { Args: { _envio: string }; Returns: undefined }
       consultar_portal_aluno: { Args: never; Returns: Json }
       consumir_limite_portal: {
         Args: { _chave: string; _max: number }
@@ -921,11 +1030,27 @@ export type Database = {
         Args: { _ativo: boolean }
         Returns: undefined
       }
+      disparar_aviso_agendado: { Args: { _envio: string }; Returns: undefined }
       disparar_backup_semanal: { Args: never; Returns: undefined }
       disparar_lembretes_aulas: { Args: never; Returns: undefined }
       editar_contato_portal: {
         Args: { _email: string; _telefone: string; _telefone2: string }
         Returns: undefined
+      }
+      envios_avisos: {
+        Args: { _limite?: number }
+        Returns: {
+          agendado_para: string
+          autor: string
+          criado_em: string
+          destino: string
+          envio_id: string
+          lidos: number
+          mensagem: string
+          titulo: string
+          total: number
+          turma: string
+        }[]
       }
       equipe_acessos: {
         Args: never
@@ -936,6 +1061,7 @@ export type Database = {
         }[]
       }
       foto_do_proprio_aluno: { Args: { _path: string }; Returns: boolean }
+      frequencia_portal_aluno: { Args: never; Returns: Json }
       gerar_codigo_matricula: { Args: never; Returns: string }
       gerar_lembretes_aulas: { Args: never; Returns: undefined }
       has_role: {
@@ -952,8 +1078,17 @@ export type Database = {
       }
       lembretes_portal: { Args: never; Returns: Json }
       marcar_aviso_lido: { Args: { _id: string }; Returns: undefined }
+      nome_autor_atual: { Args: never; Returns: string }
       perfil_portal_aluno: { Args: never; Returns: Json }
       pode: { Args: { _chave: string; _user_id: string }; Returns: boolean }
+      reservar_push_aviso_agendado: {
+        Args: { _envio: string }
+        Returns: {
+          aluno_id: string
+          mensagem: string
+          titulo: string
+        }[]
+      }
       reservar_push_lembretes: {
         Args: never
         Returns: {

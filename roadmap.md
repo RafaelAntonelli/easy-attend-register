@@ -90,3 +90,18 @@
 
 - [x] Novo visual (5 imagens aprovadas): Alunos com cartões de situação e cores; login com topo azul e ondas; menu do celular com "Mais"; chamada com botões grandes e "Marcar todos"; modo escuro. Cópia do visual anterior em design-backup/2026-10-20.
 - [ ] "Marcar todos como presentes" não foi executado com dados reais (evitar registros falsos de hoje) — conferir na próxima aula.
+
+## Melhorias por tela (22/10)
+- [x] Área do aluno: frequência do mês (presenças, faltas, justificadas) — consulta conferida no banco; tela não vista com aluno real (sem aparelho autorizado na prévia).
+- [x] Área do aluno: aviso de atestado vencendo 30 dias antes.
+- [x] Guia dos alunos: nova página 6 "Ative as notificações" (v2 com 7 imagens + PDF).
+- [x] Equipe: tela "Meu perfil" (foto, telefone, senha) para professores e administradores.
+- [ ] Meu perfil: troca de foto e de senha não testadas de verdade (evitar mexer na conta real) — conferir no primeiro uso.
+- [x] Equipe: último acesso (destaque após 30 dias) e turmas de cada professor.
+- [x] Avisos: ver quem já leu cada aviso.
+- [x] Avisos: agendar aviso para outro dia e horário, com cancelamento (testado agendar e cancelar).
+- [ ] Avisos agendados: confirmar notificação no celular no horário — depende do app publicado e de aluno com notificações ativadas.
+- [x] Avisos: enviar para uma turma específica.
+- [x] Presença: anotação da aula por turma e dia (salvar e apagar testados).
+- [x] Login (aba Aluno): data de nascimento digitada dd/mm/aaaa com mensagens claras.
+- [x] Alunos: histórico na ficha (quem alterou o quê e quando) — registro conferido no banco.

@@ -15,6 +15,7 @@ import {
   MoreHorizontal,
   Moon,
   Sun,
+  UserRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -93,7 +94,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     : baseNav.filter((n) => n.to !== "/relatorios" || permissaoAtiva(permissoes, "relatorios_ver"));
   const navCelular = nav.filter((n) => PRINCIPAIS_CELULAR.includes(n.to));
   const navMais = nav.filter((n) => !PRINCIPAIS_CELULAR.includes(n.to));
-  const maisAtivo = navMais.some((n) => n.to === pathname);
+  const maisAtivo = navMais.some((n) => n.to === pathname) || pathname === "/meu-perfil";
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-64">
@@ -121,6 +122,15 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
           ))}
         </nav>
         <div className="shrink-0 space-y-1 border-t border-sidebar-border pt-3">
+          <Link
+            to="/meu-perfil"
+            className={cn(
+              "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
+              pathname === "/meu-perfil" && "bg-sidebar-accent text-sidebar-accent-foreground",
+            )}
+          >
+            <UserRound className={cn("size-4", pathname === "/meu-perfil" && "text-sidebar-primary")} /> Meu perfil
+          </Link>
           <Button
             variant="ghost"
             className="min-h-11 w-full justify-start gap-3 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -204,6 +214,17 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
                 {item.label}
               </Link>
             ))}
+            <Link
+              to="/meu-perfil"
+              onClick={() => setMaisAberto(false)}
+              className={cn(
+                "flex min-h-12 items-center gap-3 rounded-xl border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent",
+                pathname === "/meu-perfil" && "border-primary bg-secondary text-secondary-foreground",
+              )}
+            >
+              <UserRound className="size-5 text-primary" />
+              Meu perfil
+            </Link>
             <button
               type="button"
               onClick={alternar}

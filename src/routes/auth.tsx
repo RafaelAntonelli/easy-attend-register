@@ -230,13 +230,13 @@ function AuthPage() {
         className="pointer-events-none fixed bottom-5 right-[4vw] z-0 hidden w-[clamp(180px,17vw,300px)] select-none opacity-90 tela-larga:block"
       />
 
-      <div className="relative z-10 flex min-h-screen flex-col tela-larga:ml-auto tela-larga:mr-[4vw] tela-larga:w-[30rem] tela-larga:justify-center tela-larga:pb-24">
+      <div className="relative z-10 flex min-h-screen flex-col tela-larga:ml-auto tela-larga:mr-[4vw] tela-larga:w-[30rem] tela-larga:justify-center tela-larga:pb-20">
         <div className="px-6 pb-16 pt-10 text-center text-sidebar-foreground tela-larga:hidden">
           <p className="font-display text-2xl font-semibold drop-shadow">Arena Aquática LF</p>
           <p className="mt-1 text-sm text-sidebar-foreground/80">Bem-vindo(a) de volta!</p>
         </div>
 
-        <div className="relative -mt-10 flex flex-1 items-start justify-center px-4 pb-8 tela-larga:mt-0 tela-larga:items-center lg:p-10">
+        <div className="relative -mt-10 flex flex-1 items-start justify-center px-4 pb-8 tela-larga:mt-0 tela-larga:items-center tela-larga:pt-6 lg:p-10">
           <Card className="w-full max-w-md rounded-3xl border-border/70 shadow-pool">
             <CardHeader className="items-center pb-4 text-center">
               <CardTitle className="font-display text-2xl">

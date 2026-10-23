@@ -123,6 +123,11 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_INICIAL }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(/Android/i.test(navigator.userAgent))document.documentElement.classList.add("android")}catch(e){}`,
+          }}
+        />
         <HeadContent />
       </head>
       <body>

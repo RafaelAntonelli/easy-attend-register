@@ -5,6 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 /* Tela com largura de tablet ou mais — usada no login. */
 @custom-variant tela-larga (@media (min-width: 768px));
+/* Aparelhos Android (classe colocada no <html> antes da página aparecer, em __root). */
+@custom-variant android (&:is(.android *));
+/* Tela mais "larga" que as imagens de abertura (916x1717): preencher cortando só em cima/embaixo. */
+@custom-variant abertura-cobre (@media (min-aspect-ratio: 916/1717));
 
 /*
  * Design system definition.

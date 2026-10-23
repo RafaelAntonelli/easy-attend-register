@@ -10,6 +10,7 @@ import { AppShell } from "@/components/AppShell";
 import { BotoesChamada, ProgressoChamada } from "@/components/BotoesChamada";
 import { PerfilAluno } from "@/components/PerfilAluno";
 import { dataBR, licencaEmVigor, type Licenca } from "@/lib/licenca";
+import { chaveDia, lembrarDataPresenca, lerDataPresenca } from "@/lib/data-presenca";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -163,12 +164,19 @@ function PresencaPage() {
 
 
   const [data, setData] = useState<Date>(new Date());
-  const hoje = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
+  const hoje = chaveDia(data);
+
+  function escolherData(d: Date) {
+    setData(d);
+    lembrarDataPresenca(chaveDia(d));
+  }
 
   useEffect(() => {
     const filtros = lerFiltrosPresenca();
-    if (filtros?.data) {
-      const dataSalva = new Date(`${filtros.data}T12:00:00`);
+    // A data não vem dos filtros salvos: ao abrir o aplicativo volta sempre para hoje.
+    const dataSessao = lerDataPresenca();
+    if (dataSessao !== chaveDia(new Date())) {
+      const dataSalva = new Date(`${dataSessao}T12:00:00`);
       if (!Number.isNaN(dataSalva.getTime())) setData(dataSalva);
     }
     if (filtros?.turno) setFiltroTurno(filtros.turno);
@@ -532,7 +540,7 @@ function PresencaPage() {
                 mode="single"
                 locale={ptBR}
                 selected={data}
-                onSelect={(d) => d && setData(d)}
+                onSelect={(d) => d && escolherData(d)}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
               />

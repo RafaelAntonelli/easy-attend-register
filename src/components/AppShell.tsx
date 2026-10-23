@@ -43,11 +43,11 @@ const adminNav = [
 ];
 /** Botões fixos na barra de baixo do celular; o resto fica em "Mais". */
 const PRINCIPAIS_CELULAR = ["/", "/alunos", "/turmas", "/presenca"];
-/** Botões do menu lateral: fundo próprio semitransparente e texto forte para se destacarem da imagem de fundo. */
+/** Botões do menu lateral: sem caixa própria, com texto forte para se destacar da imagem de fundo. */
 const BOTAO_MENU =
-  "flex shrink-0 items-center gap-3 rounded-lg border border-sidebar-foreground/15 bg-sidebar/70 px-3 py-2.5 text-left text-sm font-semibold text-sidebar-foreground shadow-sm backdrop-blur-sm transition-colors [text-shadow:0_1px_2px_rgb(0_0_0/0.35)] hover:border-sidebar-primary/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
+  "flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-sidebar-foreground transition-colors [text-shadow:0_1px_2px_rgb(0_0_0/0.35)] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 const BOTAO_MENU_ATIVO =
-  "border-sidebar-primary bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_4px_0_0_var(--sidebar-primary)]";
+  "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_var(--sidebar-primary)]";
 
 export function AppShell({ children, title, subtitle }: { children: ReactNode; title: string; subtitle?: string }) {
   const { session, loading, isStaff, isAdmin, isStudent } = useAuth();
@@ -131,7 +131,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
             <p className="text-xs text-sidebar-foreground/70">{papel}</p>
           </div>
         </Link>
-        <nav aria-label="Menu principal" className="relative my-5 flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain">
+        <nav aria-label="Menu principal" className="relative my-5 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain">
           {nav.map((item) => (
             <Link
               key={item.to}
@@ -146,7 +146,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
             </Link>
           ))}
         </nav>
-        <div className="relative shrink-0 space-y-1.5 border-t border-sidebar-border pt-3">
+        <div className="relative shrink-0 space-y-1 border-t border-sidebar-border pt-3">
           <Link
             to="/meu-perfil"
             className={cn(BOTAO_MENU, "min-h-11", pathname === "/meu-perfil" && BOTAO_MENU_ATIVO)}

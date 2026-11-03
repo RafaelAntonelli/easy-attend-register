@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { BotoesChamada, ProgressoChamada } from "@/components/BotoesChamada";
 import { PerfilAluno } from "@/components/PerfilAluno";
+import { FaltaAutomatica } from "@/components/FaltaAutomatica";
 import { dataBR, licencaEmVigor, type Licenca } from "@/lib/licenca";
 import { chaveDia, lembrarDataPresenca, lerDataPresenca } from "@/lib/data-presenca";
 import { Button } from "@/components/ui/button";
@@ -137,7 +138,7 @@ function lerFiltrosPresenca(): Partial<FiltrosPresencaSalvos> | null {
 function PresencaPage() {
   const { lista: listaGrupos } = useGruposDias();
   const [turmas, setTurmas] = useState<Turma[]>([]);
-  const { user: usuarioAtual } = useAuth();
+  const { user: usuarioAtual, isAdmin } = useAuth();
   const minhasTurmas = useMinhasTurmas(usuarioAtual?.id);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [fotos, setFotos] = useState<Record<string, string>>({});
@@ -823,6 +824,7 @@ function PresencaPage() {
         </Tabs>
 
         <div className="space-y-6">
+        <FaltaAutomatica podeAlterar={isAdmin} />
         <Card className="border-border/70">
           <CardHeader><CardTitle className="font-display text-lg">Registros do dia ({registros.length})</CardTitle></CardHeader>
           <CardContent>

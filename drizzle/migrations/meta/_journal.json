@@ -134,6 +134,13 @@
       "when": 1792699738186,
       "tag": "0018_melhorias_por_tela",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793740757379,
+      "tag": "0019_falta_automatica",
+      "breakpoints": true
     }
   ]
 }

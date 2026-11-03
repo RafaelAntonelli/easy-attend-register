@@ -456,6 +456,27 @@ export type Database = {
         }
         Relationships: []
       }
+      configuracao_falta_automatica: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          atualizado_por_nome: string | null
+          id: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por_nome?: string | null
+          id?: boolean
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por_nome?: string | null
+          id?: boolean
+        }
+        Relationships: []
+      }
       configuracoes: {
         Row: {
           chave: string
@@ -1026,6 +1047,10 @@ export type Database = {
         Args: { _chave: string; _max: number }
         Returns: boolean
       }
+      definir_falta_automatica: {
+        Args: { _ativo: boolean }
+        Returns: undefined
+      }
       definir_lembretes_portal: {
         Args: { _ativo: boolean }
         Returns: undefined
@@ -1060,6 +1085,10 @@ export type Database = {
           last_sign_in_at: string
         }[]
       }
+      falta_automatica_devida: {
+        Args: { _agora: string; _dias: string[]; _horario: string }
+        Returns: boolean
+      }
       foto_do_proprio_aluno: { Args: { _path: string }; Returns: boolean }
       frequencia_portal_aluno: { Args: never; Returns: Json }
       gerar_codigo_matricula: { Args: never; Returns: string }
@@ -1078,6 +1107,7 @@ export type Database = {
       }
       lembretes_portal: { Args: never; Returns: Json }
       marcar_aviso_lido: { Args: { _id: string }; Returns: undefined }
+      marcar_faltas_automaticas: { Args: never; Returns: number }
       nome_autor_atual: { Args: never; Returns: string }
       perfil_portal_aluno: { Args: never; Returns: Json }
       pode: { Args: { _chave: string; _user_id: string }; Returns: boolean }
@@ -1097,6 +1127,7 @@ export type Database = {
           titulo: string
         }[]
       }
+      sincronizar_falta_automatica: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "professor"

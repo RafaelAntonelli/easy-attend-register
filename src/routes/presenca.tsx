@@ -3,7 +3,7 @@ import { useMinhasTurmas } from "@/lib/permissoes";
 import { FotoAmpliavel } from "@/components/FotoAmpliavel";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Search, SearchX, X, CalendarIcon, CalendarOff, ChevronDown, Users } from "lucide-react";
+import { Camera, CameraOff, Search, SearchX, X, CalendarIcon, ChevronDown, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";

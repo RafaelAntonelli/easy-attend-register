@@ -2,7 +2,9 @@ import { useAuth } from "@/lib/auth";
 import { useMinhasTurmas, usePermissoesProfessor, permissaoAtiva } from "@/lib/permissoes";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays, Search, Printer, Armchair } from "lucide-react";
+import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays, Search, SearchX, Printer, Armchair } from "lucide-react";
+import { EstadoVazio } from "@/components/EstadoVazio";
+import { CarregandoCartoes, CarregandoLinhas } from "@/components/Carregando";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useHorarios } from "@/lib/horarios";
@@ -134,6 +136,8 @@ function TurmasPage() {
   const [confirmarExclusao, setConfirmarExclusao] = useState<Turma | null>(null);
   const [buscaAluno, setBuscaAluno] = useState("");
 
+  const [carregado, setCarregado] = useState(false);
+
   async function carregar() {
     const [t, m] = await Promise.all([
       supabase.from("turmas").select("*").order("nome"),
@@ -147,6 +151,7 @@ function TurmasPage() {
       }
       setContagem(c);
     }
+    setCarregado(true);
   }
 
   useEffect(() => {
@@ -489,7 +494,7 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
                 <c.icon className="size-4" />
               </span>
               <div className="min-w-0 leading-tight">
-                <p className="font-display text-xl font-semibold">{c.value.toLocaleString("pt-BR")}</p>
+                <p className="font-display text-xl font-semibold">{carregado ? c.value.toLocaleString("pt-BR") : "—"}</p>
                 <p className="truncate text-xs text-primary-foreground/70">{c.label}</p>
               </div>
             </CardContent>
@@ -692,11 +697,32 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
             </CardContent>
           </Card>
         ))}
-        {!visiveis.length && (
-          <p className="rounded-xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
-            Nenhuma turma para este filtro.
-          </p>
-        )}
+        {!carregado ? <CarregandoCartoes quantidade={6} /> : null}
+        {carregado && !visiveis.length ? (
+          <div className="rounded-xl border border-dashed border-border md:col-span-2 xl:col-span-3">
+            {turmas.length ? (
+              <EstadoVazio icone={SearchX} titulo="Nenhuma turma nesses filtros" descricao="Nenhuma turma combina com a modalidade, o horário, o turno e os dias escolhidos.">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setFiltroModalidade("todas");
+                    setFiltroHorario("todos");
+                    setFiltroTurno("todos");
+                    setFiltroDias("todos");
+                  }}
+                >
+                  <X className="size-4" /> Limpar filtros
+                </Button>
+              </EstadoVazio>
+            ) : (
+              <EstadoVazio icone={CalendarDays} titulo="Nenhuma turma cadastrada ainda" descricao="Crie a primeira turma com modalidade, dias, horário e número de vagas.">
+                {permitido("turmas_criar") ? (
+                  <Button onClick={abrirNova}><Plus className="size-4" /> Nova turma</Button>
+                ) : null}
+              </EstadoVazio>
+            )}
+          </div>
+        ) : null}
       </div>
 
       <PerfilAluno alunoId={perfilAlunoId} onFechar={() => setPerfilAlunoId(null)} />
@@ -720,7 +746,8 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
             />
           </div>
           {alunosTurma && alunosTurma.length ? (
-            <div className="space-y-3 rounded-xl border border-border/70 bg-muted/30 p-3">
+            // Contador fixo no topo enquanto a lista da turma rola.
+            <div className="sticky -top-6 z-10 -mx-2 space-y-3 rounded-xl border border-border/70 bg-card/95 p-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
               <ProgressoChamada
                 marcados={alunosTurma.filter((a) => statusPresenca[a.id]).length}
                 total={alunosTurma.length}
@@ -746,20 +773,22 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
           ) : null}
           <div className="space-y-2">
             {alunosTurma === null ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">Carregando alunos...</p>
+              <CarregandoLinhas linhas={3} comBotoes />
             ) : alunosTurma.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">Nenhum aluno matriculado nesta turma.</p>
+              <EstadoVazio icone={Users} titulo="Nenhum aluno matriculado nesta turma" descricao="Matricule alunos pela tela Alunos, escolhendo esta turma." className="py-6" />
             ) : alunosFiltrados.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">Nenhum aluno encontrado.</p>
+              <EstadoVazio icone={SearchX} titulo={`Nenhum aluno encontrado para "${buscaAluno.trim()}"`} className="py-6">
+                <Button variant="outline" onClick={() => setBuscaAluno("")}><X className="size-4" /> Limpar busca</Button>
+              </EstadoVazio>
             ) : (
               alunosFiltrados.map((a) => (
                 <div key={a.id} className="space-y-3 rounded-xl border border-border/70 bg-card px-3 py-3">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
                       {fotos[a.id] ? (
-                        <FotoAmpliavel src={fotos[a.id] as string} nome={a.nome} className="size-14 shrink-0 rounded-full object-cover ring-2 ring-border" />
+                        <FotoAmpliavel src={fotos[a.id] as string} nome={a.nome} className="size-[4.5rem] shrink-0 rounded-full object-cover ring-2 ring-border sm:size-14" />
                       ) : (
-                        <div className="grid size-14 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold">
+                        <div className="grid size-[4.5rem] shrink-0 place-items-center rounded-full bg-secondary text-sm font-semibold sm:size-14 sm:text-xs">
                           {a.nome.slice(0, 2).toUpperCase()}
                         </div>
                       )}

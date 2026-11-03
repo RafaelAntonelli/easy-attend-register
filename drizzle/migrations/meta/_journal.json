@@ -148,6 +148,13 @@
       "when": 1793740973399,
       "tag": "0020_falta_automatica_minutos",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793741647834,
+      "tag": "0021_dias_sem_aula",
+      "breakpoints": true
     }
   ]
 }

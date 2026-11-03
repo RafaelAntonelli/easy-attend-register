@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, Search, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp, X, MoreHorizontal, SlidersHorizontal } from "lucide-react";
+import { Plus, Search, SearchX, Users, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp, X, MoreHorizontal, SlidersHorizontal } from "lucide-react";
+import { EstadoVazio } from "@/components/EstadoVazio";
+import { CarregandoLinhas } from "@/components/Carregando";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -376,6 +378,17 @@ function AlunosPage() {
     void navigateAlunos({ search: {}, replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abrirNovaParam, notificacaoParam, authLoading, permissoesLoading]);
+
+  function limparFiltrosAlunos() {
+    setBusca("");
+    setFiltroPcd("todos");
+    setFiltroSexo("todos");
+    setFiltroModalidade("todas");
+    setFiltrosHorario([]);
+    setFiltroDias("todos");
+    setFiltroTurno("todos");
+    setFiltroNotificacao("todos");
+  }
 
   function abrirNovo() {
     if (!permitido("alunos_cadastrar")) return;
@@ -1874,11 +1887,30 @@ function AlunosPage() {
           );
         })}
         </ul>
-        {!filtrados.length && (
-          <p className="py-12 text-center text-sm text-muted-foreground">
-            {alunos.length ? "Nenhum aluno encontrado com esses filtros." : "Nenhum aluno cadastrado ainda."}
-          </p>
-        )}
+        {!filtrados.length && carregando && !alunos.length ? (
+          <CarregandoLinhas linhas={6} className="p-3" />
+        ) : !filtrados.length && erro && !alunos.length ? (
+          <EstadoVazio icone={AlertTriangle} titulo="Não foi possível carregar os alunos" descricao={erro}>
+            <Button variant="outline" onClick={() => void carregar()}>Tentar de novo</Button>
+          </EstadoVazio>
+        ) : !filtrados.length && !alunos.length ? (
+          <EstadoVazio icone={Users} titulo="Nenhum aluno cadastrado ainda" descricao="Comece pela primeira matrícula. Depois os alunos aparecem aqui.">
+            {permitido("alunos_cadastrar") ? (
+              <Button onClick={abrirNovo}><Plus className="size-4" /> Nova matrícula</Button>
+            ) : null}
+          </EstadoVazio>
+        ) : !filtrados.length ? (
+          <EstadoVazio
+            icone={SearchX}
+            titulo={busca.trim() ? `Nenhum aluno encontrado para "${busca.trim()}"` : "Nenhum aluno nesses filtros"}
+            descricao={busca.trim() ? "Confira a grafia ou busque pelo código, CPF ou telefone." : "Nenhum aluno combina com todos os filtros escolhidos ao mesmo tempo."}
+          >
+            {busca.trim() ? (
+              <Button variant="outline" onClick={() => setBusca("")}><X className="size-4" /> Limpar busca</Button>
+            ) : null}
+            <Button variant="outline" onClick={limparFiltrosAlunos}><X className="size-4" /> Limpar filtros</Button>
+          </EstadoVazio>
+        ) : null}
       </div>
 
       <Dialog open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>

@@ -3,13 +3,17 @@ import { useMinhasTurmas } from "@/lib/permissoes";
 import { FotoAmpliavel } from "@/components/FotoAmpliavel";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Search, X, CalendarIcon, ChevronDown, Users } from "lucide-react";
+import { Camera, CameraOff, Search, SearchX, X, CalendarIcon, CalendarOff, ChevronDown, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { BotoesChamada, ProgressoChamada } from "@/components/BotoesChamada";
 import { PerfilAluno } from "@/components/PerfilAluno";
 import { FaltaAutomatica } from "@/components/FaltaAutomatica";
+import { DiasSemAula } from "@/components/DiasSemAula";
+import { EstadoVazio } from "@/components/EstadoVazio";
+import { CarregandoLinhas } from "@/components/Carregando";
+import { diasSemAulaNaData, useDiasSemAula } from "@/lib/dias-sem-aula";
 import { dataBR, licencaEmVigor, type Licenca } from "@/lib/licenca";
 import { chaveDia, lembrarDataPresenca, lerDataPresenca } from "@/lib/data-presenca";
 import { Button } from "@/components/ui/button";
@@ -141,6 +145,8 @@ function PresencaPage() {
   const { user: usuarioAtual, isAdmin } = useAuth();
   const minhasTurmas = useMinhasTurmas(usuarioAtual?.id);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [carregandoAlunos, setCarregandoAlunos] = useState(true);
+  const { lista: diasSemAula, recarregar: recarregarDiasSemAula } = useDiasSemAula();
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [matriculas, setMatriculas] = useState<{ aluno_id: string; turma_id: string }[]>([]);
   const [turmaIds, setTurmaIds] = useState<string[]>([]);
@@ -214,6 +220,7 @@ function PresencaPage() {
           setAlunos(c.alunos ?? []);
           setMatriculas(c.matriculas ?? []);
         }
+        setCarregandoAlunos(false);
         return;
       }
       const [t, a, m] = await Promise.all([
@@ -225,6 +232,7 @@ function PresencaPage() {
       const listaAlunos = (a.data ?? []) as Aluno[];
       if (a.data) setAlunos(listaAlunos);
       if (m.data) setMatriculas(m.data as { aluno_id: string; turma_id: string }[]);
+      setCarregandoAlunos(false);
       void salvarCache("presenca", { turmas: t.data ?? [], alunos: a.data ?? [], matriculas: m.data ?? [] });
       const comFoto = listaAlunos.filter((x) => x.foto_path);
       if (comFoto.length) {
@@ -523,6 +531,15 @@ function PresencaPage() {
   const semRegistro = filtrados.filter(
     (a) => !statusPorAluno[a.id] && !licencas.some((l) => l.aluno_id === a.id && licencaEmVigor(l, hoje)),
   );
+  const semAulaHoje = diasSemAulaNaData(diasSemAula, hoje, turmaIdsValidos);
+
+  function limparFiltros() {
+    setFiltroTurno("todos");
+    setFiltroModalidade("todas");
+    setFiltroDias("todos");
+    setFiltrosFaixaEtaria([]);
+    setTurmaIds([]);
+  }
   return (
     <AppShell title="Presença" subtitle={`Registros de ${data.toLocaleDateString("pt-BR")}`}>
       <div className="mb-6 grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -712,6 +729,20 @@ function PresencaPage() {
         </div>
       </div>
 
+      {semAulaHoje.length ? (
+        <div className="mb-4 flex max-w-7xl items-start gap-3 rounded-xl border border-warning/50 bg-warning/10 px-4 py-3 text-sm" role="status">
+          <CalendarOff className="mt-0.5 size-5 shrink-0 text-warning-strong" />
+          <div>
+            <p className="font-semibold text-foreground">Dia sem aula em {data.toLocaleDateString("pt-BR")}</p>
+            {semAulaHoje.map((d) => (
+              <p key={d.id} className="text-muted-foreground">
+                {d.motivo} · {d.turma_id ? turmas.find((t) => t.id === d.turma_id)?.nome ?? "Turma" : "Todas as turmas"}
+              </p>
+            ))}
+            <p className="mt-0.5 text-xs text-muted-foreground">A falta automática não marca ninguém. A chamada manual continua liberada.</p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <Tabs defaultValue="qr">
@@ -759,8 +790,7 @@ function PresencaPage() {
                   />
                   <p className="text-xs text-muted-foreground">O texto é salvo no histórico do aluno junto com o registro.</p>
                 </div>
-                <div className="space-y-3 rounded-xl border border-border/70 bg-muted/30 p-3">
-                  <ProgressoChamada marcados={filtrados.filter((a) => statusPorAluno[a.id]).length} total={filtrados.length} />
+                <div className="rounded-xl border border-border/70 bg-muted/30 p-3">
                   {turmaIdsValidos.length > 0 ? (
                     <Button
                       type="button"
@@ -776,16 +806,24 @@ function PresencaPage() {
                     <p className="text-xs text-muted-foreground">Escolha a turma da aula para marcar todos como presentes de uma vez.</p>
                   )}
                 </div>
-                <div className="max-h-[36rem] space-y-3 overflow-y-auto pr-1">
+                <div className="max-h-[75vh] overflow-y-auto overscroll-contain pr-1 sm:max-h-[36rem]">
+                  {/* Contador fixo no topo enquanto a lista rola. */}
+                  <div className="sticky top-0 z-10 mb-3 rounded-xl border border-border/70 bg-card/95 px-3 py-2.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
+                    <ProgressoChamada marcados={filtrados.filter((a) => statusPorAluno[a.id]).length} total={filtrados.length} />
+                  </div>
+                  {carregandoAlunos ? (
+                    <CarregandoLinhas linhas={4} comBotoes fotoGrande />
+                  ) : (
+                  <div className="space-y-3">
                   {filtrados.map((a) => {
                     const atual = statusPorAluno[a.id];
                     return (
                       <div key={a.id} className="flex min-h-20 flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-4 py-3">
                         <div className="flex min-w-40 flex-1 items-center gap-3">
                           {fotos[a.id] ? (
-                            <FotoAmpliavel src={fotos[a.id]!} nome={a.nome} className="size-16 rounded-full border border-border object-cover" />
+                            <FotoAmpliavel src={fotos[a.id]!} nome={a.nome} className="size-20 shrink-0 rounded-full border border-border object-cover sm:size-16" />
                           ) : (
-                            <span className="flex size-16 shrink-0 items-center justify-center rounded-full border border-border bg-secondary text-sm font-semibold text-muted-foreground">
+                            <span className="flex size-20 shrink-0 items-center justify-center rounded-full border border-border bg-secondary text-base font-semibold text-muted-foreground sm:size-16 sm:text-sm">
                               {iniciais(a.nome)}
                             </span>
                           )}
@@ -793,11 +831,11 @@ function PresencaPage() {
                             <Button
                               type="button"
                               variant="link"
-                              className="h-auto max-w-full justify-start p-0 text-left font-medium"
+                              className="h-auto max-w-full justify-start whitespace-normal p-0 text-left text-base font-medium sm:text-sm"
                               onClick={() => setPerfilAlunoId(a.id)}
                               title={`Ver perfil de ${a.nome}`}
                             >
-                              <span className="truncate">{a.nome}</span>
+                              <span className="line-clamp-2">{a.nome}</span>
                             </Button>
                             {(() => {
                               const lic = licencas.find((l) => l.aluno_id === a.id && licencaEmVigor(l, hoje));
@@ -816,7 +854,29 @@ function PresencaPage() {
                       </div>
                     );
                   })}
-                  {!filtrados.length && <p className="py-6 text-center text-sm text-muted-foreground">Nenhum aluno encontrado.</p>}
+                  {!filtrados.length ? (
+                    !alunos.length ? (
+                      <EstadoVazio
+                        icone={Users}
+                        titulo="Nenhum aluno ativo para a chamada"
+                        descricao={estaOnline() ? "Cadastre alunos e matricule-os em uma turma para fazer a chamada." : "Sem internet e sem lista salva neste aparelho. Conecte-se uma vez para baixar a lista."}
+                      />
+                    ) : busca.trim() ? (
+                      <EstadoVazio icone={SearchX} titulo={`Nenhum aluno encontrado para "${busca.trim()}"`} descricao="Confira a grafia ou busque pelo CPF ou telefone.">
+                        <Button variant="outline" onClick={() => setBusca("")}>
+                          <X className="size-4" /> Limpar busca
+                        </Button>
+                      </EstadoVazio>
+                    ) : (
+                      <EstadoVazio icone={SearchX} titulo="Nenhum aluno nesses filtros" descricao="Nenhum aluno combina com o turno, a modalidade, os dias, a faixa etária e as turmas escolhidos.">
+                        <Button variant="outline" onClick={limparFiltros}>
+                          <X className="size-4" /> Limpar filtros
+                        </Button>
+                      </EstadoVazio>
+                    )
+                  ) : null}
+                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -825,6 +885,7 @@ function PresencaPage() {
 
         <div className="space-y-6">
         <FaltaAutomatica podeAlterar={isAdmin} />
+        <DiasSemAula lista={diasSemAula} turmas={turmas} podeAlterar={isAdmin} onMudou={() => void recarregarDiasSemAula()} />
         <Card className="border-border/70">
           <CardHeader><CardTitle className="font-display text-lg">Registros do dia ({registros.length})</CardTitle></CardHeader>
           <CardContent>

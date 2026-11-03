@@ -494,7 +494,7 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
                 <c.icon className="size-4" />
               </span>
               <div className="min-w-0 leading-tight">
-                <p className="font-display text-xl font-semibold">{c.value.toLocaleString("pt-BR")}</p>
+                <p className="font-display text-xl font-semibold">{carregado ? c.value.toLocaleString("pt-BR") : "—"}</p>
                 <p className="truncate text-xs text-primary-foreground/70">{c.label}</p>
               </div>
             </CardContent>

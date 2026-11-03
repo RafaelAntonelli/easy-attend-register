@@ -37,5 +37,5 @@
 - Staff profile photos live in the private fotos-equipe bucket and are read/written only through meu-perfil.functions.ts with signed URLs.
 - Student-login birth dates are typed as dd/mm/aaaa and parsed by data-nascimento.ts, which owns the user-facing error messages.
 - Automatic absences run in SQL (marcar_faltas_automaticas): admin-only toggle via definir_falta_automatica; pg_cron jobs exist only for the minutes classes reach the configured delay (admin-set via definir_minutos_falta_automatica) (resynced by a turmas trigger), never a polling job; rows use executado_em at start of day so any staff mark, even offline, replaces them.
-- Days without class (dias_sem_aula, admin-only writes): the turma/date matching rule lives in dias-sem-aula.ts and is mirrored in marcar_faltas_automaticas; inserting a day deletes that day's automatic absences via trigger, never manual ones.
+- Days without class: the UI was removed at the user's request; public.dias_sem_aula and its check in marcar_faltas_automaticas remain (empty table, harmless). Don't re-add the screen unless asked.
 - Empty lists use EstadoVazio (message + next action) and loading lists use Carregando.tsx skeletons, so screens share one pattern.

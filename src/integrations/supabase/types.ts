@@ -519,6 +519,44 @@ export type Database = {
         }
         Relationships: []
       }
+      dias_sem_aula: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          criado_por_nome: string | null
+          data: string
+          id: string
+          motivo: string
+          turma_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          criado_por_nome?: string | null
+          data: string
+          id?: string
+          motivo?: string
+          turma_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          criado_por_nome?: string | null
+          data?: string
+          id?: string
+          motivo?: string
+          turma_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dias_sem_aula_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fila_espera: {
         Row: {
           created_at: string

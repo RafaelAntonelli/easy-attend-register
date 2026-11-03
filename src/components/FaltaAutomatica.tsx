@@ -97,8 +97,8 @@ export function FaltaAutomatica({ podeAlterar }: { podeAlterar: boolean }) {
               ? `Ligada: ${minutos} minutos após o início de cada aula, quem ainda não tem registro recebe falta.`
               : `Desligada. Quando ligada, quem não tiver registro ${minutos} minutos após o início da aula recebe falta.`}
           </p>
-          <div className="mt-3 flex items-center gap-2">
-            <span className="text-sm">Marcar falta após</span>
+          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="whitespace-nowrap text-sm">Marcar falta após</span>
             <Select
               value={String(minutos)}
               onValueChange={(v) => void salvarMinutos(Number(v))}
@@ -115,7 +115,7 @@ export function FaltaAutomatica({ podeAlterar }: { podeAlterar: boolean }) {
                 ))}
               </SelectContent>
             </Select>
-            <span className="text-sm text-muted-foreground">do início</span>
+            <span className="whitespace-nowrap text-sm text-muted-foreground">do início da aula</span>
           </div>
           {!podeAlterar && (
             <p className="mt-2 text-xs text-muted-foreground">Só administradores podem mudar.</p>

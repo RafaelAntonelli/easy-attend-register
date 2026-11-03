@@ -50,8 +50,14 @@ export function DiasSemAula({
   }
 
   async function salvar() {
-    if (!data) return toast.error("Escolha a data.");
-    if (!motivo.trim()) return toast.error("Escreva o motivo (ex.: Feriado).");
+    if (!data) {
+      toast.error("Escolha a data.");
+      return;
+    }
+    if (!motivo.trim()) {
+      toast.error("Escreva o motivo (ex.: Feriado).");
+      return;
+    }
     setSalvando(true);
     const { error } = await supabase.from("dias_sem_aula").insert({
       data: chaveDia(data),
@@ -70,7 +76,10 @@ export function DiasSemAula({
 
   async function remover(d: DiaSemAula) {
     const { error } = await supabase.from("dias_sem_aula").delete().eq("id", d.id);
-    if (error) return toast.error("Não foi possível remover. Tente de novo.");
+    if (error) {
+      toast.error("Não foi possível remover. Tente de novo.");
+      return;
+    }
     toast.success("Dia sem aula removido");
     onMudou();
   }

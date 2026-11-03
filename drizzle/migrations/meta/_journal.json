@@ -141,6 +141,13 @@
       "when": 1793740757379,
       "tag": "0019_falta_automatica",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793740973399,
+      "tag": "0020_falta_automatica_minutos",
+      "breakpoints": true
     }
   ]
 }

@@ -462,18 +462,21 @@ export type Database = {
           atualizado_em: string
           atualizado_por_nome: string | null
           id: boolean
+          minutos: number
         }
         Insert: {
           ativo?: boolean
           atualizado_em?: string
           atualizado_por_nome?: string | null
           id?: boolean
+          minutos?: number
         }
         Update: {
           ativo?: boolean
           atualizado_em?: string
           atualizado_por_nome?: string | null
           id?: boolean
+          minutos?: number
         }
         Relationships: []
       }
@@ -1055,6 +1058,10 @@ export type Database = {
         Args: { _ativo: boolean }
         Returns: undefined
       }
+      definir_minutos_falta_automatica: {
+        Args: { _minutos: number }
+        Returns: undefined
+      }
       disparar_aviso_agendado: { Args: { _envio: string }; Returns: undefined }
       disparar_backup_semanal: { Args: never; Returns: undefined }
       disparar_lembretes_aulas: { Args: never; Returns: undefined }
@@ -1085,10 +1092,20 @@ export type Database = {
           last_sign_in_at: string
         }[]
       }
-      falta_automatica_devida: {
-        Args: { _agora: string; _dias: string[]; _horario: string }
-        Returns: boolean
-      }
+      falta_automatica_devida:
+        | {
+            Args: { _agora: string; _dias: string[]; _horario: string }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              _agora: string
+              _dias: string[]
+              _horario: string
+              _minutos: number
+            }
+            Returns: boolean
+          }
       foto_do_proprio_aluno: { Args: { _path: string }; Returns: boolean }
       frequencia_portal_aluno: { Args: never; Returns: Json }
       gerar_codigo_matricula: { Args: never; Returns: string }

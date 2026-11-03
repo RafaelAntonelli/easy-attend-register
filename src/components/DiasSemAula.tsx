@@ -36,6 +36,7 @@ export function DiasSemAula({
   const [motivo, setMotivo] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [verTodos, setVerTodos] = useState(false);
+  const [calendarioAberto, setCalendarioAberto] = useState(false);
 
   const hoje = chaveDia(new Date());
   const proximos = proximosDiasSemAula(lista, hoje);
@@ -138,7 +139,7 @@ export function DiasSemAula({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Data</Label>
-              <Popover>
+              <Popover open={calendarioAberto} onOpenChange={setCalendarioAberto}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">
                     <CalendarIcon className="size-4" />
@@ -146,7 +147,7 @@ export function DiasSemAula({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" locale={ptBR} selected={data} onSelect={setData} initialFocus className="pointer-events-auto p-3" />
+                  <Calendar mode="single" locale={ptBR} selected={data} onSelect={(d) => { setData(d); if (d) setCalendarioAberto(false); }} initialFocus className="pointer-events-auto p-3" />
                 </PopoverContent>
               </Popover>
             </div>

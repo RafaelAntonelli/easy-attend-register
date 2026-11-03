@@ -109,7 +109,7 @@
 - [x] Login: imagem Esporte 360 + SECULJE preenchendo a tela inteira (celular e computador), com transparência.
 - [x] Login: deixar em evidência o nome Arena Aquática.
 
-- [ ] Dias sem aula: calendário (todas as turmas ou uma), falta automática não marca nesses dias e apaga as automáticas já feitas.
-- [ ] Carregamento com blocos cinza (Alunos, Turmas, Presença).
-- [ ] Telas vazias com frase e botão do que fazer (Alunos, Turmas, Presença).
-- [ ] Chamada no celular: foto maior e contador fixo no topo da lista.
+- [x] Dias sem aula: calendário (todas as turmas ou uma), falta automática não marca nesses dias e apaga as automáticas já feitas.
+- [x] Carregamento com blocos cinza (Alunos, Turmas, Presença).
+- [x] Telas vazias com frase e botão do que fazer (Alunos, Turmas, Presença).
+- [x] Chamada no celular: foto maior e contador fixo no topo da lista.

@@ -10,10 +10,8 @@ import { AppShell } from "@/components/AppShell";
 import { BotoesChamada, ProgressoChamada } from "@/components/BotoesChamada";
 import { PerfilAluno } from "@/components/PerfilAluno";
 import { FaltaAutomatica } from "@/components/FaltaAutomatica";
-import { DiasSemAula } from "@/components/DiasSemAula";
 import { EstadoVazio } from "@/components/EstadoVazio";
 import { CarregandoLinhas } from "@/components/Carregando";
-import { diasSemAulaNaData, useDiasSemAula } from "@/lib/dias-sem-aula";
 import { dataBR, licencaEmVigor, type Licenca } from "@/lib/licenca";
 import { chaveDia, lembrarDataPresenca, lerDataPresenca } from "@/lib/data-presenca";
 import { Button } from "@/components/ui/button";
@@ -146,7 +144,6 @@ function PresencaPage() {
   const minhasTurmas = useMinhasTurmas(usuarioAtual?.id);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [carregandoAlunos, setCarregandoAlunos] = useState(true);
-  const { lista: diasSemAula, recarregar: recarregarDiasSemAula } = useDiasSemAula();
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [matriculas, setMatriculas] = useState<{ aluno_id: string; turma_id: string }[]>([]);
   const [turmaIds, setTurmaIds] = useState<string[]>([]);
@@ -531,7 +528,6 @@ function PresencaPage() {
   const semRegistro = filtrados.filter(
     (a) => !statusPorAluno[a.id] && !licencas.some((l) => l.aluno_id === a.id && licencaEmVigor(l, hoje)),
   );
-  const semAulaHoje = diasSemAulaNaData(diasSemAula, hoje, turmaIdsValidos);
 
   function limparFiltros() {
     setFiltroTurno("todos");
@@ -729,20 +725,6 @@ function PresencaPage() {
         </div>
       </div>
 
-      {semAulaHoje.length ? (
-        <div className="mb-4 flex max-w-7xl items-start gap-3 rounded-xl border border-warning/50 bg-warning/10 px-4 py-3 text-sm" role="status">
-          <CalendarOff className="mt-0.5 size-5 shrink-0 text-warning-strong" />
-          <div>
-            <p className="font-semibold text-foreground">Dia sem aula em {data.toLocaleDateString("pt-BR")}</p>
-            {semAulaHoje.map((d) => (
-              <p key={d.id} className="text-muted-foreground">
-                {d.motivo} · {d.turma_id ? turmas.find((t) => t.id === d.turma_id)?.nome ?? "Turma" : "Todas as turmas"}
-              </p>
-            ))}
-            <p className="mt-0.5 text-xs text-muted-foreground">A falta automática não marca ninguém. A chamada manual continua liberada.</p>
-          </div>
-        </div>
-      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <Tabs defaultValue="qr">
@@ -885,7 +867,6 @@ function PresencaPage() {
 
         <div className="space-y-6">
         <FaltaAutomatica podeAlterar={isAdmin} />
-        <DiasSemAula lista={diasSemAula} turmas={turmas} podeAlterar={isAdmin} onMudou={() => void recarregarDiasSemAula()} />
         <Card className="border-border/70">
           <CardHeader><CardTitle className="font-display text-lg">Registros do dia ({registros.length})</CardTitle></CardHeader>
           <CardContent>

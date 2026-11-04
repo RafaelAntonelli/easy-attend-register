@@ -16,7 +16,8 @@ export const perfilPortalConsulta = queryOptions({ queryKey: ["perfil-portal"], 
 const dataBr = (v: string | null | undefined) => (v ? v.slice(0, 10).split("-").reverse().join("/") : null);
 function idade(nascimento: string | null) {
   if (!nascimento) return null;
-  const [a, m, d] = nascimento.slice(0, 10).split("-").map(Number);
+  const [a = 0, m = 0, d = 0] = nascimento.slice(0, 10).split("-").map(Number);
+  if (!a) return null;
   const hoje = new Date();
   let anos = hoje.getFullYear() - a;
   if (hoje.getMonth() + 1 < m || (hoje.getMonth() + 1 === m && hoje.getDate() < d)) anos--;

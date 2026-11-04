@@ -1,5 +1,12 @@
 import { z } from 'zod';
-export const contatoPortalSchema = z.object({ telefone: z.string().trim().max(20), telefone2: z.string().trim().max(20), email: z.union([z.literal(''), z.string().trim().email().max(254)]) }).strict();
+/** Cadastro completo do próprio aluno, só para leitura na área do aluno. */
+export const perfilPortalSchema = z.object({
+  nome: z.string(), codigo: z.string(), data_nascimento: z.string().nullable(), telefone: z.string().nullable(), telefone2: z.string().nullable(), email: z.string().nullable(),
+  responsavel: z.string().nullable(), rg: z.string().nullable(), cpf: z.string().nullable(), pcd: z.boolean(), pcd_condicoes: z.array(z.string()).nullable().transform(v => v ?? []), pcd_descricao: z.string().nullable(),
+  sexo: z.string().nullable(), faixa_etaria: z.string().nullable(), escola: z.string().nullable(), rede_ensino: z.string().nullable(), ativo: z.boolean(), cadastrado_em: z.string().nullable(),
+  atestado_entregue: z.boolean(), atestado_data: z.string().nullable(),
+});
+export type PerfilPortal = z.infer<typeof perfilPortalSchema>;
 export const fotoPortalSchema = z.object({ tipo: z.enum(['image/jpeg','image/png','image/webp']), base64: z.string().max(7_000_000) }).strict();
 
 /** Antecedência mínima e máxima para agendar um aviso. */

@@ -1103,10 +1103,6 @@ export type Database = {
       disparar_aviso_agendado: { Args: { _envio: string }; Returns: undefined }
       disparar_backup_semanal: { Args: never; Returns: undefined }
       disparar_lembretes_aulas: { Args: never; Returns: undefined }
-      editar_contato_portal: {
-        Args: { _email: string; _telefone: string; _telefone2: string }
-        Returns: undefined
-      }
       envios_avisos: {
         Args: { _limite?: number }
         Returns: {

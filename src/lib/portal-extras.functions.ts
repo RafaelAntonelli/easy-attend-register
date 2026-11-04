@@ -2,16 +2,12 @@ import {createServerFn} from '@tanstack/react-start';
 import {requireSupabaseAuth} from '@/integrations/supabase/auth-middleware';
 import {z} from 'zod';
 import {tokenAparelhoSchema} from './portal-aluno';
-import {contatoPortalSchema,fotoPortalSchema,avisoPortalSchema,erroAgendamento} from './portal-extras';
+import {perfilPortalSchema,fotoPortalSchema,avisoPortalSchema,erroAgendamento} from './portal-extras';
 const dispositivo=z.object({aparelho:tokenAparelhoSchema}).strict();
 export const obterPerfilPortal=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>dispositivo.parse(d)).handler(async({data,context})=>{
  const {validarPortal}=await import('./portal-extras.server'); await validarPortal(context.supabase,context.userId,data.aparelho);
  const {data:perfil,error}=await context.supabase.rpc('perfil_portal_aluno'); if(error || !perfil) throw new Error('Não foi possível carregar o perfil.');
- return z.object({nome:z.string(),codigo:z.string(),data_nascimento:z.string().nullable(),telefone:z.string().nullable(),telefone2:z.string().nullable(),email:z.string().nullable(),responsavel:z.string().nullable(),rg:z.string().nullable(),cpf:z.string().nullable(),pcd:z.boolean()}).parse(perfil);
-});
-export const salvarContatoPortal=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>z.object({aparelho:tokenAparelhoSchema,contato:contatoPortalSchema}).strict().parse(d)).handler(async({data,context})=>{
- const {validarPortal}=await import('./portal-extras.server'); await validarPortal(context.supabase,context.userId,data.aparelho);
- const {error}=await context.supabase.rpc('editar_contato_portal',{_telefone:data.contato.telefone,_telefone2:data.contato.telefone2,_email:data.contato.email}); if(error) throw new Error('Não foi possível salvar o contato.'); return {ok:true};
+ return perfilPortalSchema.parse(perfil);
 });
 export const salvarFotoPortal=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((d:unknown)=>z.object({aparelho:tokenAparelhoSchema,foto:fotoPortalSchema}).strict().parse(d)).handler(async({data,context})=>{
  const {validarPortal}=await import('./portal-extras.server'); const {alunoId}=await validarPortal(context.supabase,context.userId,data.aparelho);

@@ -27,6 +27,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { StatusOffline } from "@/components/StatusOffline";
 import { useOffline } from "@/hooks/useOffline";
 import { definirContaOffline, listarFila } from "@/lib/offline";
+import { prepararDadosOffline } from "@/lib/preparar-dados-offline";
 import { obterMeuPerfil } from "@/lib/meu-perfil.functions";
 import fundoEsporte360 from "@/assets/programa-esporte-360.png.asset.json";
 import fundoSeculje from "@/assets/barra-seculje.jpg.asset.json";
@@ -66,6 +67,9 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     enabled: !!session && isStaff,
     staleTime: 5 * 60_000,
   });
+  useEffect(() => {
+    if (session?.user.id && isStaff && online) void prepararDadosOffline(session.user.id).catch(() => undefined);
+  }, [session?.user.id, isStaff, online]);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/auth", replace: true });

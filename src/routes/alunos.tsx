@@ -52,6 +52,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
+import { consultarPaginas } from "@/lib/paginas-offline";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -277,9 +278,9 @@ function AlunosPage() {
     }
     try {
       const [a, t, m] = await Promise.all([
-        supabase.from("alunos").select("*").order("nome"),
+        consultarPaginas((inicio, fim) => supabase.from("alunos").select("*").order("nome").order("id").range(inicio, fim)),
         supabase.from("turmas").select("id,nome,horario,dias_semana,modalidade,capacidade").order("nome"),
-        supabase.from("matriculas").select("*"),
+        consultarPaginas((inicio, fim) => supabase.from("matriculas").select("*").order("id").range(inicio, fim)),
       ]);
       if (a.error) throw a.error;
       if (t.error) throw t.error;

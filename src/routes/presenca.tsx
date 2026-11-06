@@ -51,6 +51,7 @@ import { assinarFila, listarFila } from "@/lib/offline";
 import { aplicarChamadaPendente, type MarcacaoSalva } from "@/lib/offline-policy";
 import { useOffline } from "@/hooks/useOffline";
 import { usePermissoesProfessor, permissaoAtiva } from "@/lib/permissoes";
+import { consultarPaginas } from "@/lib/paginas-offline";
 
 
 
@@ -228,8 +229,8 @@ function PresencaPage() {
       }
       const [t, a, m, l] = await Promise.all([
         supabase.from("turmas").select("id,nome,horario,modalidade,dias_semana").order("nome"),
-        supabase.from("alunos").select("id,nome,codigo,foto_path,data_nascimento,idade").eq("ativo", true).order("nome"),
-        supabase.from("matriculas").select("aluno_id,turma_id").eq("status", "ativa"),
+        consultarPaginas((inicio, fim) => supabase.from("alunos").select("id,nome,codigo,foto_path,data_nascimento,idade").eq("ativo", true).order("id").range(inicio, fim)),
+        consultarPaginas((inicio, fim) => supabase.from("matriculas").select("aluno_id,turma_id").eq("status", "ativa").order("id").range(inicio, fim)),
         supabase.from("licencas_medicas").select("id,aluno_id,data_inicio,data_retorno,motivo,encerrada_em").is("encerrada_em", null),
       ]);
       if (!ativo) return;
@@ -265,11 +266,11 @@ function PresencaPage() {
   async function carregarPresencasDoDia() {
     let base = await lerCache<MarcacaoSalva[]>(`chamada:${hoje}`) ?? [];
     if (estaOnline()) {
-    const { data, error } = await supabase
+    const { data, error } = await consultarPaginas((inicio, fim) => supabase
       .from("presencas")
       .select("aluno_id,horario,status,observacoes,alunos(nome)")
       .eq("data", hoje)
-      .order("horario", { ascending: false });
+      .order("id").range(inicio, fim));
     if (data && !error) {
       base = data.map((r) => ({ aluno_id: r.aluno_id, horario: r.horario, status: r.status, observacoes: r.observacoes, nome: (r.alunos as { nome: string } | null)?.nome ?? "Aluno" }));
       await salvarCache(`chamada:${hoje}`, base);
@@ -303,14 +304,6 @@ function PresencaPage() {
   }, [hoje, usuarioAtual?.id, alunos]);
 
   const [licencas, setLicencas] = useState<Licenca[]>([]);
-  useEffect(() => {
-    if (!online || !usuarioAtual?.id) return;
-    void supabase
-      .from("licencas_medicas")
-      .select("id,aluno_id,data_inicio,data_retorno,motivo,encerrada_em")
-      .is("encerrada_em", null)
-      .then(({ data }) => setLicencas((data ?? []) as Licenca[]));
-  }, [online, usuarioAtual?.id]);
 
   async function registrar(
     aluno: Aluno,

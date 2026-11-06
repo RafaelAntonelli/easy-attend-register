@@ -257,7 +257,8 @@ function PresencaPage() {
     };
     void carregarLista();
     window.addEventListener("online", carregarLista);
-    return () => { ativo = false; window.removeEventListener("online", carregarLista); };
+    window.addEventListener("arena:preparado-offline", carregarLista);
+    return () => { ativo = false; window.removeEventListener("online", carregarLista); window.removeEventListener("arena:preparado-offline", carregarLista); };
   }, [usuarioAtual?.id]);
 
 
@@ -859,6 +860,7 @@ function PresencaPage() {
                           </div>
                         </div>
                         <BotoesChamada
+                          disabled={!podeChamar}
                           nome={a.nome}
                           atual={atual}
                           onEscolher={(st) => void (atual === st ? desfazerRegistro(a) : registrar(a, "manual", st))}

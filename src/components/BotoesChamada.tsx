@@ -1,6 +1,7 @@
 import { Check, FileCheck, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 
 export type StatusChamada = "presente" | "falta" | "falta_justificada";
 
@@ -34,11 +35,13 @@ export function BotoesChamada({
   onEscolher,
   nome,
   className,
+  disabled = false,
 }: {
   atual: StatusChamada | null | undefined;
   onEscolher: (status: StatusChamada) => void;
   nome: string;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <div className={cn("grid w-full grid-cols-[1fr_0.8fr_1.25fr] gap-2 sm:w-auto sm:min-w-[22rem]", className)} role="group" aria-label={`Chamada de ${nome}`}>
@@ -46,7 +49,9 @@ export function BotoesChamada({
         const selecionado = atual === o.status;
         const Icone = o.icone;
         return (
-          <button
+          <Button
+            variant="outline"
+            disabled={disabled}
             key={o.status}
             type="button"
             aria-pressed={selecionado}
@@ -58,7 +63,7 @@ export function BotoesChamada({
           >
             <Icone className="hidden size-4 shrink-0 min-[400px]:block" />
             <span className="truncate">{o.rotulo}</span>
-          </button>
+          </Button>
         );
       })}
     </div>

@@ -64,7 +64,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   const { data: perfil } = useQuery({
     queryKey: ["meu-perfil"],
     queryFn: () => obterMeuPerfil(),
-    enabled: !!session && isStaff,
+    enabled: !!session && isStaff && online,
     staleTime: 5 * 60_000,
   });
   useEffect(() => {
@@ -113,7 +113,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   }
 
   const nomeUsuario = perfil?.nome?.trim() || session.user.email || "Equipe";
-  const papel = isAdmin ? "Administrador" : "Professor";
+  const papel = !online ? "Acesso offline" : isAdmin ? "Administrador" : "Professor";
   const nav = isAdmin
     ? [...baseNav, ...adminNav]
     : baseNav.filter((n) => n.to !== "/relatorios" || permissaoAtiva(permissoes, "relatorios_ver"));

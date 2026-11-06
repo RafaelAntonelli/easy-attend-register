@@ -223,7 +223,7 @@ function AlunosPage() {
   const [mostrarGuias, setMostrarGuias] = useState(false);
   const { user, isAdmin, isStaff, loading: authLoading } = useAuth();
   const { mapa: permissoes, carregando: permissoesLoading } = usePermissoesProfessor();
-  const permitido = (chave: string) => !authLoading && (isAdmin || (isStaff && !permissoesLoading && permissaoAtiva(permissoes, chave)));
+  const permitido = (chave: string) => estaOnline() && !authLoading && (isAdmin || (isStaff && !permissoesLoading && permissaoAtiva(permissoes, chave)));
   const [nomesUsuarios, setNomesUsuarios] = useState<Record<string, string>>({});
 
   const [idadeMin, setIdadeMin] = useState("");

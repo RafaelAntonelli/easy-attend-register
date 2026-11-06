@@ -24,7 +24,7 @@ export function useAuth() {
       definirContaOffline(data.session?.user.id ?? null);
       setSession(data.session);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -57,7 +57,7 @@ export function useAuth() {
       supabase.from("acessos_alunos").select("user_id").eq("user_id", userId).maybeSingle(),
       supabase.from("permissoes_professor").select("ativo").eq("chave", "presenca_registrar").maybeSingle(),
     ]);
-        if (!active) return;
+        if (!active || !estaOnline()) return;
         const papeis = ((data ?? []) as { role: AppRole }[]).map((r) => r.role);
         setRoles(papeis);
         setIsStudent(!!acesso);

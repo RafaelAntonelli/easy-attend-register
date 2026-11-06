@@ -25,6 +25,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { StatusOffline } from "@/components/StatusOffline";
+import { useOffline } from "@/hooks/useOffline";
+import { definirContaOffline, listarFila } from "@/lib/offline";
 import { obterMeuPerfil } from "@/lib/meu-perfil.functions";
 import fundoEsporte360 from "@/assets/programa-esporte-360.png.asset.json";
 import fundoSeculje from "@/assets/barra-seculje.jpg.asset.json";
@@ -50,7 +52,8 @@ const BOTAO_MENU_ATIVO =
   "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_var(--sidebar-primary)]";
 
 export function AppShell({ children, title, subtitle }: { children: ReactNode; title: string; subtitle?: string }) {
-  const { session, loading, isStaff, isAdmin, isStudent } = useAuth();
+  const { session, loading, isStaff, isAdmin, isStudent, acessoOffline } = useAuth();
+  const { online } = useOffline();
   const queryClient = useQueryClient();
   const { mapa: permissoes } = usePermissoesProfessor();
   const navigate = useNavigate();
@@ -70,10 +73,12 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   }, [loading, session, navigate, isStudent, isStaff]);
 
   async function sair() {
+    if ((await listarFila()).length && !confirm("Há alterações salvas neste aparelho aguardando envio. Elas só serão enviadas ao entrar novamente nesta mesma conta. Deseja sair?")) return;
     setMaisAberto(false);
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
+    definirContaOffline(null);
     navigate({ to: "/auth", replace: true });
   }
 
@@ -85,7 +90,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     );
   }
 
-  if (!isStaff) {
+  if (!isStaff && !acessoOffline) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
         <Waves className="size-8 text-primary" />
@@ -111,6 +116,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   const navCelular = nav.filter((n) => PRINCIPAIS_CELULAR.includes(n.to));
   const navMais = nav.filter((n) => !PRINCIPAIS_CELULAR.includes(n.to));
   const maisAtivo = navMais.some((n) => n.to === pathname) || pathname === "/meu-perfil";
+  const telaOffline = ["/", "/alunos", "/presenca"].includes(pathname);
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-64">

@@ -337,7 +337,7 @@ function EquipePage() {
                 </p>
               </CardHeader>
               <CardContent className="space-y-5">
-                {[...new Set(PERMISSOES_PROFESSOR.map((p) => p.area))].map((area) => (
+                {[...new Set(PERMISSOES_PROFESSOR.filter((p) => p.chave !== "fila_gerenciar").map((p) => p.area))].map((area) => (
                   <div key={area}>
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{area}</p>
                     <div className="space-y-2">

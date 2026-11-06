@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, FileText, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { limitesMes, resumirMes, type RegistroMensal } from "@/lib/relatorio-mensal";
@@ -42,7 +42,7 @@ export function RelatorioMensal({ turmas }: { turmas: Turma[] }) {
     return () => { ativo = false; };
   }, [mes, turma, atualizacao]);
   const total = useMemo(() => /^\d{4}-(0[1-9]|1[0-2])$/.test(mes) ? resumirMes(registros, mes, turma) : null, [registros, mes, turma]);
-  const linhas = useMemo(() => turmas.filter((t) => turma === "todas" || t.id === turma).map((t) => ({ ...t, ...resumirMes(registros, mes || "2000-01", t.id) })).filter((t) => t.total > 0), [turmas, turma, registros, mes]);
+  const linhas = useMemo(() => total ? turmas.filter((t) => turma === "todas" || t.id === turma).map((t) => ({ ...t, ...resumirMes(registros, mes, t.id) })).filter((t) => t.total > 0) : [], [turmas, turma, registros, mes, total]);
   const semTurma = total ? total.total - linhas.reduce((s, t) => s + t.total, 0) : 0;
   async function baixar() {
     if (!total || !total.total || carregando || erro) return;
@@ -58,7 +58,7 @@ export function RelatorioMensal({ turmas }: { turmas: Turma[] }) {
       };
       escrever("Arena Aquática — Relatório mensal", 16);
       escrever(`Mês: ${mes.split("-").reverse().join("/")} | Turma: ${turma === "todas" ? "Todas" : turmas.find((t) => t.id === turma)?.nome ?? turma}`);
-      escrever(`Gerado em ${new Date().toLocaleString("pt-BR")} (horário de Brasília)`);
+      escrever(`Gerado em ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} (horário de Brasília)`);
       y += 5;
       escrever(`Alunos com registro: ${total.alunos} | Marcações: ${total.total}`);
       escrever(`Presenças: ${total.presentes} | Faltas: ${total.faltas} | Justificadas: ${total.justificadas}`);
@@ -75,10 +75,10 @@ export function RelatorioMensal({ turmas }: { turmas: Turma[] }) {
   }
   return <section className="space-y-5" aria-label="Relatório mensal">
     <div className="flex flex-wrap items-end gap-3"><div className="space-y-2"><Label htmlFor="mes-relatorio">Mês</Label><Input id="mes-relatorio" type="month" value={mes} onChange={(e) => setMes(e.target.value)} /></div><div className="min-w-0 space-y-2 sm:w-72"><Label>Turma</Label><Select value={turma} onValueChange={setTurma}><SelectTrigger aria-label="Turma do relatório mensal"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as turmas</SelectItem>{turmas.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome} {t.horario?.slice(0, 5)}</SelectItem>)}</SelectContent></Select></div><Button variant="outline" size="icon" title="Atualizar relatório" aria-label="Atualizar relatório" disabled={carregando} onClick={() => setAtualizacao((v) => v + 1)}><RefreshCw className="size-4" /></Button><Button disabled={carregando || Boolean(erro) || !total?.total || exportando} onClick={() => void baixar()}><Download className="size-4" /> {exportando ? "Gerando…" : "Baixar relatório mensal PDF"}</Button></div>
-    {carregando ? <p className="text-sm text-muted-foreground" role="status">Consultando marcações do mês…</p> : erro ? <EstadoVazio titulo="Não foi possível consultar" descricao={erro} acao={{ texto: "Tentar novamente", onClick: () => setAtualizacao((v) => v + 1) }} /> : total?.total ? <>
+    {carregando ? <p className="text-sm text-muted-foreground" role="status">Consultando marcações do mês…</p> : erro ? <EstadoVazio icone={AlertTriangle} titulo="Não foi possível consultar" descricao={erro}><Button variant="outline" onClick={() => setAtualizacao((v) => v + 1)}>Tentar novamente</Button></EstadoVazio> : total?.total ? <>
       <dl className="grid grid-cols-2 gap-4 border-y border-border py-4 sm:grid-cols-5">{[["Alunos com registro", total.alunos], ["Presenças", total.presentes], ["Faltas", total.faltas], ["Justificadas", total.justificadas], ["Frequência", `${total.frequencia}%`]].map(([nome, valor]) => <div key={nome}><dt className="text-xs text-muted-foreground">{nome}</dt><dd className="text-2xl font-semibold tabular-nums">{valor}</dd></div>)}</dl>
       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b border-border">{["Turma", "Alunos", "Presenças", "Faltas", "Justificadas", "Frequência"].map((t) => <th className="px-3 py-3 font-semibold" key={t}>{t}</th>)}</tr></thead><tbody>{linhas.map((t) => <tr key={t.id} className="border-b border-border"><td className="px-3 py-3">{t.nome} {t.horario?.slice(0, 5)}</td>{[t.alunos, t.presentes, t.faltas, t.justificadas, `${t.frequencia}%`].map((v, i) => <td key={i} className="px-3 py-3 tabular-nums">{v}</td>)}</tr>)}</tbody></table></div>
       {semTurma > 0 && <p className="text-sm text-muted-foreground">{semTurma} marcações sem turma disponível, incluídas no total geral.</p>}
-    </> : <EstadoVazio titulo="Nenhuma marcação neste mês" descricao="Escolha outro mês ou outra turma." />}
+    </> : <EstadoVazio icone={FileText} titulo="Nenhuma marcação neste mês" descricao="Escolha outro mês ou outra turma." />}
   </section>;
 }

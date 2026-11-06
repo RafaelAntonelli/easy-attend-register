@@ -30,7 +30,7 @@ export function RevisaoCadastros<T extends AlunoPlanilha>({ alunos, podeEditar, 
           {documentos.length > 0 && <p className="text-xs text-muted-foreground">Sem anexo: {documentos.join(" · ")}</p>}
           {duplicado && <p className="text-xs text-destructive">Mesmo nome e nascimento de {duplicado.nome} ({duplicado.codigo}).</p>}
         </li>)}</ul>
-        {!lista.length && <EstadoVazio titulo="Nenhum cadastro nesta seleção" descricao="Não há itens para conferir com os filtros escolhidos." />}
+        {!lista.length && <EstadoVazio icone={ClipboardCheck} titulo="Nenhum cadastro nesta seleção" descricao="Não há itens para conferir com os filtros escolhidos." />}
       </DialogContent>
     </Dialog>
   </>;

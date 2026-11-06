@@ -91,7 +91,7 @@ function CampoSenha({
 }
 
 function AuthPage() {
-  const { session, loading, isStudent } = useAuth();
+  const { session, loading, isStudent, acessoOffline } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -139,8 +139,8 @@ function AuthPage() {
   }, []);
 
   useEffect(() => {
-    if (!loading && session && !redefinindo) navigate({ to: isStudent ? "/area-aluno" : "/" });
-  }, [loading, session, navigate, redefinindo, isStudent]);
+    if (!loading && (session || acessoOffline) && !redefinindo) navigate({ to: isStudent ? "/area-aluno" : "/" });
+  }, [loading, session, navigate, redefinindo, isStudent, acessoOffline]);
 
   async function enviarRecuperacao(e: React.FormEvent) {
     e.preventDefault();

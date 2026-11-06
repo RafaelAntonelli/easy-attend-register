@@ -189,6 +189,7 @@ async function marcarErro(op: OperacaoFila, erro: string) {
 
 /** Remove da fila uma ação que não pode ser enviada (decisão do usuário), liberando as seguintes. */
 export async function descartarDaFila(id: string) {
+  if (!(await listarFila()).some((op) => op.id === id)) return;
   await remover(id);
 }
 

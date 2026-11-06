@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { definirContaOffline, estaOnline, lerCache, salvarCache } from "./offline";
+import { contaOffline, definirContaOffline, estaOnline, lerCache, salvarCache } from "./offline";
 
 export type AppRole = "admin" | "professor";
 
@@ -13,15 +13,21 @@ export function useAuth() {
   const [isStudent, setIsStudent] = useState(false);
   const [acessoOffline, setAcessoOffline] = useState(false);
   const [chamadaOffline, setChamadaOffline] = useState(false);
+  const [usuarioLocalId, setUsuarioLocalId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!estaOnline()) { setUsuarioLocalId(contaOffline()); setLoading(false); }
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (!s && !estaOnline() && _event !== "SIGNED_OUT") { setLoading(false); return; }
       definirContaOffline(s?.user.id ?? null);
+      setUsuarioLocalId(s?.user.id ?? null);
       setSession(s);
       setLoading(false);
     });
     supabase.auth.getSession().then(({ data }) => {
+      if (!data.session && !estaOnline()) { setLoading(false); return; }
       definirContaOffline(data.session?.user.id ?? null);
+      setUsuarioLocalId(data.session?.user.id ?? null);
       setSession(data.session);
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -29,7 +35,7 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
-    const userId = session?.user?.id;
+    const userId = session?.user?.id ?? (!estaOnline() ? usuarioLocalId : null);
     if (!userId) {
       setRoles([]);
       setIsStudent(false);
@@ -74,7 +80,7 @@ export function useAuth() {
       window.removeEventListener("online", carregar);
       window.removeEventListener("offline", carregar);
     };
-  }, [session?.user?.id]);
+  }, [session?.user?.id, usuarioLocalId]);
 
   return {
     session,
@@ -86,5 +92,6 @@ export function useAuth() {
     isStudent,
     acessoOffline,
     chamadaOffline,
+    usuarioLocalId,
   };
 }

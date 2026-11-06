@@ -222,7 +222,7 @@ function AlunosPage() {
   const navigateAlunos = Route.useNavigate();
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
   const [mostrarGuias, setMostrarGuias] = useState(false);
-  const { user, isAdmin, isStaff, loading: authLoading } = useAuth();
+  const { user, usuarioLocalId, isAdmin, isStaff, loading: authLoading } = useAuth();
   const { mapa: permissoes, carregando: permissoesLoading } = usePermissoesProfessor();
   const permitido = (chave: string) => estaOnline() && !authLoading && (isAdmin || (isStaff && !permissoesLoading && permissaoAtiva(permissoes, chave)));
   const [nomesUsuarios, setNomesUsuarios] = useState<Record<string, string>>({});
@@ -326,13 +326,13 @@ function AlunosPage() {
   }
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id && !usuarioLocalId) return;
     void carregar();
     const atualizar = () => void carregar();
     window.addEventListener("online", atualizar);
     window.addEventListener("arena:sincronizado", atualizar);
     return () => { window.removeEventListener("online", atualizar); window.removeEventListener("arena:sincronizado", atualizar); };
-  }, [user?.id]);
+  }, [user?.id, usuarioLocalId]);
 
 
   function limparDocs() {

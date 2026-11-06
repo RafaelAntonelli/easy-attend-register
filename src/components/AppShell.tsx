@@ -72,9 +72,9 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   }, [session?.user.id, isStaff, online]);
 
   useEffect(() => {
-    if (!loading && !session) navigate({ to: "/auth", replace: true });
+    if (!loading && !session && !acessoOffline) navigate({ to: "/auth", replace: true });
     else if (!loading && isStudent && !isStaff) navigate({ to: "/area-aluno", replace: true });
-  }, [loading, session, navigate, isStudent, isStaff]);
+  }, [loading, session, navigate, isStudent, isStaff, acessoOffline]);
 
   async function sair() {
     if ((await listarFila()).length && !confirm("Há alterações salvas neste aparelho aguardando envio. Elas só serão enviadas ao entrar novamente nesta mesma conta. Deseja sair?")) return;
@@ -86,7 +86,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     navigate({ to: "/auth", replace: true });
   }
 
-  if (loading || !session || (isStudent && !isStaff)) {
+  if (loading || (!session && !acessoOffline) || (isStudent && !isStaff)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Waves className="size-8 animate-pulse text-primary" />
@@ -112,7 +112,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     );
   }
 
-  const nomeUsuario = perfil?.nome?.trim() || session.user.email || "Equipe";
+  const nomeUsuario = perfil?.nome?.trim() || session?.user.email || "Equipe";
   const papel = !online ? "Acesso offline" : isAdmin ? "Administrador" : "Professor";
   const nav = isAdmin
     ? [...baseNav, ...adminNav]

@@ -286,7 +286,7 @@ function AuthPage() {
               {offline && (
                 <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                   <WifiOff className="mt-0.5 size-4 shrink-0" />
-                  <span>Você está sem internet. É preciso estar conectado para entrar no sistema.</span>
+                  <span>Você está sem internet. Novos acessos precisam de conexão. A equipe pode continuar no aparelho já preparado, com os dados salvos.</span>
                 </div>
               )}
 

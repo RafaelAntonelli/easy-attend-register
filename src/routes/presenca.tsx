@@ -145,7 +145,8 @@ function lerFiltrosPresenca(): Partial<FiltrosPresencaSalvos> | null {
 function PresencaPage() {
   const { lista: listaGrupos } = useGruposDias();
   const [turmas, setTurmas] = useState<Turma[]>([]);
-  const { user: usuarioAtual, isAdmin, isStaff, loading: authLoading, chamadaOffline } = useAuth();
+  const { user: usuarioAtual, usuarioLocalId, isAdmin, isStaff, loading: authLoading, chamadaOffline } = useAuth();
+  const idConta = usuarioAtual?.id ?? usuarioLocalId;
   const { online } = useOffline();
   const { mapa: permissoes, carregando: permissoesCarregando } = usePermissoesProfessor();
   const podeChamar = !authLoading && (online ? isAdmin || (isStaff && !permissoesCarregando && permissaoAtiva(permissoes, "presenca_registrar")) : chamadaOffline);
@@ -217,7 +218,7 @@ function PresencaPage() {
   }, [filtroDias, filtroModalidade, filtrosFaixaEtaria, filtroTurno, hoje, turmaIds]);
 
   useEffect(() => {
-    if (!usuarioAtual?.id) return;
+    if (!idConta) return;
     let ativo = true;
     const carregarLista = async () => {
       const c = await lerCache<{ turmas: Turma[]; alunos: Aluno[]; matriculas: { aluno_id: string; turma_id: string }[]; licencas?: Licenca[] }>("presenca");
@@ -260,7 +261,7 @@ function PresencaPage() {
     window.addEventListener("online", carregarLista);
     window.addEventListener("arena:preparado-offline", carregarLista);
     return () => { ativo = false; window.removeEventListener("online", carregarLista); window.removeEventListener("arena:preparado-offline", carregarLista); };
-  }, [usuarioAtual?.id]);
+  }, [idConta]);
 
 
   async function carregarPresencasDoDia() {
@@ -293,7 +294,7 @@ function PresencaPage() {
   }
 
   useEffect(() => {
-    if (!usuarioAtual?.id) return;
+    if (!idConta) return;
     void carregarPresencasDoDia();
     const atualizar = () => void carregarPresencasDoDia();
     const desassinar = assinarFila(atualizar);
@@ -301,7 +302,7 @@ function PresencaPage() {
     window.addEventListener("online", atualizar);
     return () => { desassinar(); window.removeEventListener("arena:sincronizado", atualizar); window.removeEventListener("online", atualizar); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hoje, usuarioAtual?.id, alunos]);
+  }, [hoje, idConta, alunos]);
 
   const [licencas, setLicencas] = useState<Licenca[]>([]);
 

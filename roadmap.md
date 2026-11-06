@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Adicionar revisão de cadastros em Alunos.
+- [ ] Adicionar relatório mensal em PDF em Relatórios.
+- [ ] Remover fila de espera das telas, preservando registros existentes.
+
 - [x] Fila offline em ordem exata (horário UTC + sequência), parando no primeiro erro; presença mais recente prevalece.
 - [x] Links de fotos/documentos nas exportações temporários com validade configurável (padrão 24 h), só para a equipe.
 - [x] Avisos garantidos na central da área do aluno mesmo sem notificação no celular.

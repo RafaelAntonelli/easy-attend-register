@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Permitir reabrir o app sem internet em aparelho preparado, consultar dados salvos e fazer chamadas; separar dados por conta, preservar notificações e sincronizar ao reconectar.
+
 - [x] Adicionar revisão de cadastros em Alunos — critérios testados, busca e abertura da edição conferidas com administrador; nenhum cadastro alterado.
 - [x] Adicionar relatório mensal em PDF em Relatórios — totais testados, dois meses consultados com dados reais e PDF baixado.
 - [x] Remover fila de espera das telas, preservando registros existentes — Painel conferido e opção oculta na Equipe.

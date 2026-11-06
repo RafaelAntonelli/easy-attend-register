@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Gerar prompt das últimas alterações de abertura offline para o App Esporte 360.
+- [x] Gerar prompt das últimas alterações de abertura offline para o App Esporte 360.
 
 - [x] Implementar abertura offline, listas por conta, chamadas persistentes e envio ao reconectar — 28 testes passaram; avisos de conexão conferidos no computador/celular; nenhum cadastro real alterado.
 - [ ] Confirmar reabertura offline e chamada com envio no app publicado — depende de publicação e sessão da equipe; a prévia não registra o recurso offline por segurança. Verificar também notificações no Android após a separação dos serviços.

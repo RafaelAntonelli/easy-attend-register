@@ -10,7 +10,9 @@ export async function prepararAberturaOffline() {
     return;
   }
   const { registerSW } = await import("virtual:pwa-register");
-  registerSW({ immediate: true, onRegisteredSW: () => {
+  registerSW({ immediate: true, onNeedReload: () => {
+    // Activate updates without interrupting an unsaved form or an ongoing chamada.
+  }, onRegisteredSW: () => {
     const aquecer = async () => {
       if (!navigator.onLine || !navigator.serviceWorker.controller) return;
       await Promise.all(PAGINAS_OFFLINE.map((path) => fetch(path, { headers: { "X-Arena-Offline-Shell": "1" }, credentials: "omit" }).catch(() => undefined)));

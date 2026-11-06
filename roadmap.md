@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Permitir reabrir o app sem internet em aparelho preparado, consultar dados salvos e fazer chamadas; separar dados por conta, preservar notificações e sincronizar ao reconectar.
+- [x] Implementar abertura offline, listas por conta, chamadas persistentes e envio ao reconectar — 28 testes passaram; avisos de conexão conferidos no computador/celular; nenhum cadastro real alterado.
+- [ ] Confirmar reabertura offline e chamada com envio no app publicado — depende de publicação e sessão da equipe; a prévia não registra o recurso offline por segurança. Verificar também notificações no Android após a separação dos serviços.
 
 - [x] Adicionar revisão de cadastros em Alunos — critérios testados, busca e abertura da edição conferidas com administrador; nenhum cadastro alterado.
 - [x] Adicionar relatório mensal em PDF em Relatórios — totais testados, dois meses consultados com dados reais e PDF baixado.

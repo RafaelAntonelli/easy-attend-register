@@ -8,8 +8,8 @@ export async function prepararDadosOffline(usuarioId: string) {
   if (preparando || !navigator.onLine) return;
   preparando = usuarioId;
   try {
-    const alunos = [];
-    const matriculas = [];
+    const alunos: import("@/integrations/supabase/types").Tables<"alunos">[] = [];
+    const matriculas: import("@/integrations/supabase/types").Tables<"matriculas">[] = [];
     for (let inicio = 0; ; inicio += 500) {
       const { data, error } = await supabase.from("alunos").select("*").order("id").range(inicio, inicio + 499);
       if (error) throw error;

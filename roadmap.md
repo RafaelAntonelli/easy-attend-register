@@ -1,8 +1,8 @@
 # Roadmap
 
-- [ ] Adicionar revisão de cadastros em Alunos.
-- [ ] Adicionar relatório mensal em PDF em Relatórios.
-- [ ] Remover fila de espera das telas, preservando registros existentes.
+- [x] Adicionar revisão de cadastros em Alunos — critérios testados, busca e abertura da edição conferidas com administrador; nenhum cadastro alterado.
+- [x] Adicionar relatório mensal em PDF em Relatórios — totais testados, dois meses consultados com dados reais e PDF baixado.
+- [x] Remover fila de espera das telas, preservando registros existentes — Painel conferido e opção oculta na Equipe.
 
 - [x] Fila offline em ordem exata (horário UTC + sequência), parando no primeiro erro; presença mais recente prevalece.
 - [x] Links de fotos/documentos nas exportações temporários com validade configurável (padrão 24 h), só para a equipe.

@@ -10,6 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EstadoVazio } from "@/components/EstadoVazio";
 
 type Turma = { id: string; nome: string; horario: string | null };
+function nomeTurma(turma: Turma) {
+  return /\d{2}:\d{2}/.test(turma.nome) || !turma.horario ? turma.nome : `${turma.nome} · ${turma.horario.slice(0, 5)}`;
+}
 export function RelatorioMensal({ turmas }: { turmas: Turma[] }) {
   const [mes, setMes] = useState(() => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).format(new Date()));
   const [turma, setTurma] = useState("todas");
@@ -65,7 +68,7 @@ export function RelatorioMensal({ turmas }: { turmas: Turma[] }) {
       escrever(`Frequência: ${total.frequencia}% (presenças / todas as marcações)`);
       y += 6;
       escrever("Resumo por turma", 14);
-      for (const linha of linhas) { escrever(`${linha.nome} ${linha.horario?.slice(0, 5) ?? ""}`, 12); escrever(`${linha.alunos} alunos | ${linha.presentes} presenças | ${linha.faltas} faltas | ${linha.justificadas} justificadas | ${linha.frequencia}%`); y += 3; }
+      for (const linha of linhas) { escrever(nomeTurma(linha), 12); escrever(`${linha.alunos} alunos | ${linha.presentes} presenças | ${linha.faltas} faltas | ${linha.justificadas} justificadas | ${linha.frequencia}%`); y += 3; }
       if (semTurma) escrever(`Registros sem turma disponível: ${semTurma}`);
       escrever("Cada aluno é contado uma vez no total geral. Cada marcação é contada na turma correspondente. Dias sem registro não são considerados faltas.");
       pdf.save(`relatorio-mensal-${mes}.pdf`);
@@ -77,7 +80,7 @@ export function RelatorioMensal({ turmas }: { turmas: Turma[] }) {
     <div className="flex flex-wrap items-end gap-3"><div className="space-y-2"><Label htmlFor="mes-relatorio">Mês</Label><Input id="mes-relatorio" type="month" value={mes} onChange={(e) => setMes(e.target.value)} /></div><div className="min-w-0 space-y-2 sm:w-72"><Label>Turma</Label><Select value={turma} onValueChange={setTurma}><SelectTrigger aria-label="Turma do relatório mensal"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as turmas</SelectItem>{turmas.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome} {t.horario?.slice(0, 5)}</SelectItem>)}</SelectContent></Select></div><Button variant="outline" size="icon" title="Atualizar relatório" aria-label="Atualizar relatório" disabled={carregando} onClick={() => setAtualizacao((v) => v + 1)}><RefreshCw className="size-4" /></Button><Button disabled={carregando || Boolean(erro) || !total?.total || exportando} onClick={() => void baixar()}><Download className="size-4" /> {exportando ? "Gerando…" : "Baixar relatório mensal PDF"}</Button></div>
     {carregando ? <p className="text-sm text-muted-foreground" role="status">Consultando marcações do mês…</p> : erro ? <EstadoVazio icone={AlertTriangle} titulo="Não foi possível consultar" descricao={erro}><Button variant="outline" onClick={() => setAtualizacao((v) => v + 1)}>Tentar novamente</Button></EstadoVazio> : total?.total ? <>
       <dl className="grid grid-cols-2 gap-4 border-y border-border py-4 sm:grid-cols-5">{[["Alunos com registro", total.alunos], ["Presenças", total.presentes], ["Faltas", total.faltas], ["Justificadas", total.justificadas], ["Frequência", `${total.frequencia}%`]].map(([nome, valor]) => <div key={nome}><dt className="text-xs text-muted-foreground">{nome}</dt><dd className="text-2xl font-semibold tabular-nums">{valor}</dd></div>)}</dl>
-      <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b border-border">{["Turma", "Alunos", "Presenças", "Faltas", "Justificadas", "Frequência"].map((t) => <th className="px-3 py-3 font-semibold" key={t}>{t}</th>)}</tr></thead><tbody>{linhas.map((t) => <tr key={t.id} className="border-b border-border"><td className="px-3 py-3">{t.nome} {t.horario?.slice(0, 5)}</td>{[t.alunos, t.presentes, t.faltas, t.justificadas, `${t.frequencia}%`].map((v, i) => <td key={i} className="px-3 py-3 tabular-nums">{v}</td>)}</tr>)}</tbody></table></div>
+      <div className="overflow-x-auto"><table className="w-full min-w-2xl text-left text-sm"><thead><tr className="border-b border-border">{["Turma", "Alunos", "Presenças", "Faltas", "Justificadas", "Frequência"].map((t) => <th className="px-3 py-3 font-semibold" key={t}>{t}</th>)}</tr></thead><tbody>{linhas.map((t) => <tr key={t.id} className="border-b border-border"><td className="px-3 py-3">{nomeTurma(t)}</td>{[t.alunos, t.presentes, t.faltas, t.justificadas, `${t.frequencia}%`].map((v, i) => <td key={i} className="px-3 py-3 tabular-nums">{v}</td>)}</tr>)}</tbody></table></div>
       {semTurma > 0 && <p className="text-sm text-muted-foreground">{semTurma} marcações sem turma disponível, incluídas no total geral.</p>}
     </> : <EstadoVazio icone={FileText} titulo="Nenhuma marcação neste mês" descricao="Escolha outro mês ou outra turma." />}
   </section>;

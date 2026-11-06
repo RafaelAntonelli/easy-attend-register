@@ -6,6 +6,9 @@ import { GraficoAlunos } from "@/components/GraficoAlunos";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TabelaCapacidade } from "@/components/TabelaCapacidade";
 import { AssistenteRelatorio } from "@/components/AssistenteRelatorio";
+import { RelatorioMensal } from "@/components/RelatorioMensal";
+import { useAuth } from "@/lib/auth";
+import { usePermissoesProfessor, permissaoAtiva } from "@/lib/permissoes";
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -73,6 +76,9 @@ type Matricula = { id: string; aluno_id: string; turma_id: string; modalidade: s
 const PRAZOS = [15, 30, 45, 60, 90];
 
 function RelatoriosPage() {
+  const { isAdmin, isStaff, loading: authLoading } = useAuth();
+  const { mapa: permissoes, carregando: permissoesLoading } = usePermissoesProfessor();
+  const podeVerMensal = !authLoading && (isAdmin || (isStaff && !permissoesLoading && permissaoAtiva(permissoes, "relatorios_ver")));
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [redeEnsino, setRedeEnsino] = useState<FiltroRedeEnsino>("todas");
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -474,8 +480,10 @@ function RelatoriosPage() {
           <TabsTrigger value="turmas">Status das turmas</TabsTrigger>
           <TabsTrigger value="atestados">Atestados médicos</TabsTrigger>
           <TabsTrigger value="exportacoes">Exportações</TabsTrigger>
+          {podeVerMensal && <TabsTrigger value="mensal">Relatório mensal</TabsTrigger>}
         </TabsList>
 
+      {podeVerMensal && <TabsContent value="mensal"><RelatorioMensal turmas={turmas} /></TabsContent>}
       <TabsContent value="atestados">
       <Card className="mb-6">
         <CardHeader className="pb-3">

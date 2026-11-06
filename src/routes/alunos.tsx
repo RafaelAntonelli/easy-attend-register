@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Search, SearchX, Users, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp, X, MoreHorizontal, SlidersHorizontal } from "lucide-react";
 import { EstadoVazio } from "@/components/EstadoVazio";
+import { RevisaoCadastros } from "@/components/RevisaoCadastros";
 import { CarregandoLinhas } from "@/components/Carregando";
 import { toast } from "sonner";
 
@@ -1231,6 +1232,7 @@ function AlunosPage() {
         </div>
 
 
+        {!carregando && !erro && <RevisaoCadastros alunos={alunos} podeEditar={permitido("alunos_editar")} onEditar={abrirEdicao} onPerfil={setPerfilLicencaId} />}
         <ImportarAlunos
           podeCriar={permitido("alunos_cadastrar")}
           podeEditar={permitido("alunos_editar")}

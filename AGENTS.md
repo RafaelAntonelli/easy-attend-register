@@ -39,3 +39,5 @@
 - Automatic absences run in SQL (marcar_faltas_automaticas): admin-only toggle via definir_falta_automatica; pg_cron jobs exist only for the minutes classes reach the configured delay (admin-set via definir_minutos_falta_automatica) (resynced by a turmas trigger), never a polling job; rows use executado_em at start of day so any staff mark, even offline, replaces them.
 - Days without class: the UI was removed at the user's request; public.dias_sem_aula and its check in marcar_faltas_automaticas remain (empty table, harmless). Don't re-add the screen unless asked.
 - Empty lists use EstadoVazio (message + next action) and loading lists use Carregando.tsx skeletons, so screens share one pattern.
+- Registration review uses revisao-cadastros.ts and the shared duplicate/document definitions; findings never mutate records automatically.
+- Monthly attendance totals use relatorio-mensal.ts for both screen and PDF, counting each attendance record and unique students separately; reads are paginated over explicit month boundaries.

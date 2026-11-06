@@ -17,6 +17,7 @@ import { ConsentimentoAparelho } from "@/components/ConsentimentoAparelho";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SCRIPT_TEMA_INICIAL } from "../lib/tema";
+import { prepararAberturaOffline } from "../lib/pwa";
 
 function NotFoundComponent() {
   return (
@@ -140,6 +141,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => { void prepararAberturaOffline().catch(() => undefined); }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

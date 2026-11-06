@@ -52,6 +52,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
+import { consultarPaginas } from "@/lib/paginas-offline";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -221,9 +222,9 @@ function AlunosPage() {
   const navigateAlunos = Route.useNavigate();
   const [gerandoCrachas, setGerandoCrachas] = useState(false);
   const [mostrarGuias, setMostrarGuias] = useState(false);
-  const { user, isAdmin, isStaff, loading: authLoading } = useAuth();
+  const { user, usuarioLocalId, isAdmin, isStaff, loading: authLoading } = useAuth();
   const { mapa: permissoes, carregando: permissoesLoading } = usePermissoesProfessor();
-  const permitido = (chave: string) => !authLoading && (isAdmin || (isStaff && !permissoesLoading && permissaoAtiva(permissoes, chave)));
+  const permitido = (chave: string) => estaOnline() && !authLoading && (isAdmin || (isStaff && !permissoesLoading && permissaoAtiva(permissoes, chave)));
   const [nomesUsuarios, setNomesUsuarios] = useState<Record<string, string>>({});
 
   const [idadeMin, setIdadeMin] = useState("");
@@ -277,9 +278,9 @@ function AlunosPage() {
     }
     try {
       const [a, t, m] = await Promise.all([
-        supabase.from("alunos").select("*").order("nome"),
+        consultarPaginas((inicio, fim) => supabase.from("alunos").select("*").order("nome").order("id").range(inicio, fim)),
         supabase.from("turmas").select("id,nome,horario,dias_semana,modalidade,capacidade").order("nome"),
-        supabase.from("matriculas").select("*"),
+        consultarPaginas((inicio, fim) => supabase.from("matriculas").select("*").order("id").range(inicio, fim)),
       ]);
       if (a.error) throw a.error;
       if (t.error) throw t.error;
@@ -325,8 +326,13 @@ function AlunosPage() {
   }
 
   useEffect(() => {
+    if (!user?.id && !usuarioLocalId) return;
     void carregar();
-  }, []);
+    const atualizar = () => void carregar();
+    window.addEventListener("online", atualizar);
+    window.addEventListener("arena:sincronizado", atualizar);
+    return () => { window.removeEventListener("online", atualizar); window.removeEventListener("arena:sincronizado", atualizar); };
+  }, [user?.id, usuarioLocalId]);
 
 
   function limparDocs() {

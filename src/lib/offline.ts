@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { pertenceConta } from "./offline-policy";
 
 // ---------------------------------------------------------------------------
 // Armazenamento local (IndexedDB) para funcionamento sem internet
@@ -14,6 +15,7 @@ const STORE_CACHE = "cache";
  * sequência no aparelho. A fila é enviada estritamente nessa ordem.
  */
 type MetaFila = {
+  usuario_id?: string;
   id: string;
   /** Milissegundos desde 1970 (UTC). */
   criado_em: number;
@@ -73,19 +75,29 @@ async function comStore<T>(store: string, modo: IDBTransactionMode, fn: (s: IDBO
 
 // ------------------------------- Cache de dados ----------------------------
 
+export function contaOffline(): string | null {
+  try { return localStorage.getItem("arena:conta-offline"); } catch { return null; }
+}
+
+export function definirContaOffline(id: string | null) {
+  try { if (id) localStorage.setItem("arena:conta-offline", id); else localStorage.removeItem("arena:conta-offline"); } catch { /* unavailable storage */ }
+}
+
 export async function salvarCache(chave: string, valor: unknown) {
-  if (!suportado()) return;
+  const conta = contaOffline();
+  if (!suportado() || !conta) return;
   try {
-    await comStore(STORE_CACHE, "readwrite", (s) => s.put(valor, chave));
+    await comStore(STORE_CACHE, "readwrite", (s) => s.put(valor, `${conta}:${chave}`));
   } catch {
     /* ignora */
   }
 }
 
 export async function lerCache<T>(chave: string): Promise<T | null> {
-  if (!suportado()) return null;
+  const conta = contaOffline();
+  if (!suportado() || !conta) return null;
   try {
-    const v = await comStore<T>(STORE_CACHE, "readonly", (s) => s.get(chave));
+    const v = await comStore<T>(STORE_CACHE, "readonly", (s) => s.get(`${conta}:${chave}`));
     return (v as T) ?? null;
   } catch {
     return null;
@@ -109,7 +121,7 @@ export async function listarFila(): Promise<OperacaoFila[]> {
   if (!suportado()) return [];
   try {
     const itens = await comStore<OperacaoFila[]>(STORE_FILA, "readonly", (s) => s.getAll());
-    return ordenarFila(itens ?? []);
+    return ordenarFila((itens ?? []).filter((op) => pertenceConta(op, contaOffline())));
   } catch {
     return [];
   }
@@ -143,12 +155,15 @@ function proximaSeq() {
 }
 
 export async function enfileirar(op: SemMeta<OperacaoFila>): Promise<string> {
+  const usuario_id = contaOffline();
+  if (!usuario_id) throw new Error("Conecte-se e entre na sua conta antes de usar a chamada offline.");
   const id = op.id ?? crypto.randomUUID();
   // O instante nunca volta atrás, mesmo se o relógio do aparelho for ajustado durante o uso.
   const agora = Math.max(Date.now(), ultimoInstante);
   ultimoInstante = agora;
   const registro = {
     ...op,
+    usuario_id,
     id,
     criado_em: agora,
     criado_em_utc: new Date(agora).toISOString(),
@@ -174,6 +189,7 @@ async function marcarErro(op: OperacaoFila, erro: string) {
 
 /** Remove da fila uma ação que não pode ser enviada (decisão do usuário), liberando as seguintes. */
 export async function descartarDaFila(id: string) {
+  if (!(await listarFila()).some((op) => op.id === id)) return;
   await remover(id);
 }
 
@@ -283,11 +299,14 @@ export async function sincronizar(): Promise<ResultadoSync> {
   let falhas = 0;
   let bloqueada: ResultadoSync["bloqueada"];
   try {
+    const { data: autenticacao, error } = await supabase.auth.getUser();
+    if (error || !autenticacao.user || autenticacao.user.id !== contaOffline()) return { enviados: 0, falhas: 0 };
     // Envia uma ação por vez, na ordem em que foram feitas. Se uma falhar, as
     // seguintes esperam: assim uma presença nunca chega antes da matrícula do aluno.
     const fila = await listarFila();
     for (const op of fila) {
       if (!estaOnline()) break;
+      if (!pertenceConta(op, autenticacao.user.id) || contaOffline() !== autenticacao.user.id) break;
       try {
         await executar(op);
         await remover(op.id);
@@ -303,5 +322,6 @@ export async function sincronizar(): Promise<ResultadoSync> {
   } finally {
     sincronizando = false;
   }
+  if (enviados && typeof window !== "undefined") window.dispatchEvent(new Event("arena:sincronizado"));
   return { enviados, falhas, bloqueada };
 }

@@ -39,6 +39,13 @@ export function TransicaoVideo() {
 
   // Pré-carrega as duas imagens antes de iniciar a animação.
   useEffect(() => {
+    // Offline opening should show the saved screen immediately, without remote artwork.
+    if (!navigator.onLine) {
+      abriu.current = true;
+      animacaoIniciada.current = true;
+      setVisivel(false);
+      return;
+    }
     let ativo = true;
     const carregar = (url: string, aoConcluir: (ok: boolean) => void) => {
       const img = new Image();

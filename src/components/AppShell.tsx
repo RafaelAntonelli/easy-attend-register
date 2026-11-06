@@ -25,6 +25,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { StatusOffline } from "@/components/StatusOffline";
+import { useOffline } from "@/hooks/useOffline";
+import { definirContaOffline, listarFila } from "@/lib/offline";
+import { prepararDadosOffline } from "@/lib/preparar-dados-offline";
 import { obterMeuPerfil } from "@/lib/meu-perfil.functions";
 import fundoEsporte360 from "@/assets/programa-esporte-360.png.asset.json";
 import fundoSeculje from "@/assets/barra-seculje.jpg.asset.json";
@@ -50,7 +53,8 @@ const BOTAO_MENU_ATIVO =
   "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_var(--sidebar-primary)]";
 
 export function AppShell({ children, title, subtitle }: { children: ReactNode; title: string; subtitle?: string }) {
-  const { session, loading, isStaff, isAdmin, isStudent } = useAuth();
+  const { session, loading, isStaff, isAdmin, isStudent, acessoOffline } = useAuth();
+  const { online } = useOffline();
   const queryClient = useQueryClient();
   const { mapa: permissoes } = usePermissoesProfessor();
   const navigate = useNavigate();
@@ -60,24 +64,29 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   const { data: perfil } = useQuery({
     queryKey: ["meu-perfil"],
     queryFn: () => obterMeuPerfil(),
-    enabled: !!session && isStaff,
+    enabled: !!session && isStaff && online,
     staleTime: 5 * 60_000,
   });
+  useEffect(() => {
+    if (session?.user.id && isStaff && online) void prepararDadosOffline(session.user.id).catch(() => undefined);
+  }, [session?.user.id, isStaff, online]);
 
   useEffect(() => {
-    if (!loading && !session) navigate({ to: "/auth", replace: true });
+    if (!loading && !session && !acessoOffline) navigate({ to: "/auth", replace: true });
     else if (!loading && isStudent && !isStaff) navigate({ to: "/area-aluno", replace: true });
-  }, [loading, session, navigate, isStudent, isStaff]);
+  }, [loading, session, navigate, isStudent, isStaff, acessoOffline]);
 
   async function sair() {
+    if ((await listarFila()).length && !confirm("Há alterações salvas neste aparelho aguardando envio. Elas só serão enviadas ao entrar novamente nesta mesma conta. Deseja sair?")) return;
     setMaisAberto(false);
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
+    definirContaOffline(null);
     navigate({ to: "/auth", replace: true });
   }
 
-  if (loading || !session || (isStudent && !isStaff)) {
+  if (loading || (!session && !acessoOffline) || (isStudent && !isStaff)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Waves className="size-8 animate-pulse text-primary" />
@@ -85,7 +94,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     );
   }
 
-  if (!isStaff) {
+  if (!isStaff && !acessoOffline) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
         <Waves className="size-8 text-primary" />
@@ -103,14 +112,15 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
     );
   }
 
-  const nomeUsuario = perfil?.nome?.trim() || session.user.email || "Equipe";
-  const papel = isAdmin ? "Administrador" : "Professor";
+  const nomeUsuario = perfil?.nome?.trim() || session?.user.email || "Equipe";
+  const papel = !online ? "Acesso offline" : isAdmin ? "Administrador" : "Professor";
   const nav = isAdmin
     ? [...baseNav, ...adminNav]
     : baseNav.filter((n) => n.to !== "/relatorios" || permissaoAtiva(permissoes, "relatorios_ver"));
   const navCelular = nav.filter((n) => PRINCIPAIS_CELULAR.includes(n.to));
   const navMais = nav.filter((n) => !PRINCIPAIS_CELULAR.includes(n.to));
   const maisAtivo = navMais.some((n) => n.to === pathname) || pathname === "/meu-perfil";
+  const telaOffline = ["/", "/alunos", "/presenca"].includes(pathname);
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pl-64">
@@ -186,7 +196,18 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
         {subtitle ? <p className="relative mt-1 text-sm text-sidebar-foreground/70 md:text-muted-foreground">{subtitle}</p> : null}
       </header>
 
-      <main className="px-4 py-6 sm:px-5 md:px-10">{children}</main>
+      <main className="px-4 py-6 sm:px-5 md:px-10">
+        {!online && (pathname === "/" || !telaOffline) ? (
+          <div className="space-y-4">
+            <h2 className="font-display text-xl font-semibold">{pathname === "/" ? "Dados salvos neste aparelho" : "Esta tela precisa de internet"}</h2>
+            <p className="text-muted-foreground">Consulte os alunos salvos ou faça a chamada. As outras consultas ficam disponíveis quando a conexão voltar.</p>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild><Link to="/presenca">Fazer chamada</Link></Button>
+              <Button asChild variant="outline"><Link to="/alunos">Consultar alunos</Link></Button>
+            </div>
+          </div>
+        ) : children}
+      </main>
 
       <nav
         aria-label="Menu do celular"

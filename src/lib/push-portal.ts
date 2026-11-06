@@ -23,8 +23,8 @@ export async function ativarPushPortal() {
  const {getMessaging,getToken,isSupported,onMessage}=await import('firebase/messaging');if(!('Notification' in window)||!await isSupported())throw new Error('Este navegador não oferece notificações.');
  const permission=Notification.permission==='granted'?'granted':await Notification.requestPermission();if(permission!=='granted')throw new Error('Permita notificações nas configurações deste site para receber avisos.');
  const {initializeApp,getApps}=await import('firebase/app');const app=getApps().find(a=>a.name==='portal-aluno')??initializeApp(config,'portal-aluno');
- const registration=await navigator.serviceWorker.register(`/firebase-messaging-sw.js?${new URLSearchParams(config).toString()}`);
- await navigator.serviceWorker.ready;
+ const registration=await navigator.serviceWorker.register(`/firebase-messaging-sw.js?${new URLSearchParams(config).toString()}`, {scope:'/firebase-cloud-messaging-push-scope/'});
+ if(!registration.active)await new Promise<void>((resolve,reject)=>{const worker=registration.installing??registration.waiting;if(!worker){reject(new Error('Não foi possível ativar notificações.'));return;}const verificar=()=>{if(worker.state==='activated')resolve();else if(worker.state==='redundant')reject(new Error('Não foi possível ativar notificações.'));};worker.addEventListener('statechange',verificar);verificar();});
  const messaging=getMessaging(app);const token=await getToken(messaging,{vapidKey,serviceWorkerRegistration:registration});if(!token)throw new Error('Não foi possível registrar o aparelho.');
  if(!ouvindo){ouvindo=true;onMessage(messaging,payload=>{const titulo=payload.notification?.title??'Arena Aquática LF';void registration.showNotification(titulo,{body:payload.notification?.body??'Você recebeu um aviso.',icon:'/icons/icon-192x192.png',badge:'/icons/icon-192x192.png',data:{url:'/area-aluno'}});ouvinte?.(titulo);});}
  return token;

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { assinarFila, descartarDaFila, estaOnline, listarFila, sincronizar, type OperacaoFila } from "@/lib/offline";
 
 export function useOffline() {
-  const [online, setOnline] = useState(() => estaOnline());
+  const [online, setOnline] = useState(true);
   const [pendentes, setPendentes] = useState(0);
   const [sincronizando, setSincronizando] = useState(false);
   const [bloqueada, setBloqueada] = useState<OperacaoFila | null>(null);
@@ -27,6 +27,7 @@ export function useOffline() {
   }, [atualizar]);
 
   useEffect(() => {
+    setOnline(estaOnline());
     void atualizar();
     const desassinar = assinarFila(() => void atualizar());
     const aoConectar = () => {

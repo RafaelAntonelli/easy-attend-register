@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useOffline } from "@/hooks/useOffline";
 import type { OperacaoFila } from "@/lib/offline";
+import { lerCache } from "@/lib/offline";
+import { useState } from "react";
 
 const DESCRICAO: Record<OperacaoFila["tipo"], string> = {
   aluno_novo: "Novo cadastro de aluno",
@@ -16,6 +18,13 @@ const DESCRICAO: Record<OperacaoFila["tipo"], string> = {
 export function StatusOffline() {
   const { online, pendentes, sincronizando, sincronizarAgora, bloqueada, descartar } = useOffline();
   const jaSincronizou = useRef(false);
+  const [salvoEm, setSalvoEm] = useState<string | null>(null);
+  useEffect(() => {
+    const atualizar = () => { void lerCache<string>("preparado-em").then(setSalvoEm); };
+    atualizar();
+    window.addEventListener("arena:preparado-offline", atualizar);
+    return () => window.removeEventListener("arena:preparado-offline", atualizar);
+  }, []);
 
   useEffect(() => {
     if (online && pendentes > 0 && !jaSincronizou.current) {
@@ -37,7 +46,7 @@ export function StatusOffline() {
         <span className="text-muted-foreground">
           {online
             ? `${pendentes} registro(s) aguardando envio, na ordem em que foram feitos.`
-            : `Modo offline ativo${pendentes ? ` — ${pendentes} registro(s) salvos no aparelho` : ""}. Tudo será enviado na mesma ordem quando a internet voltar.`}
+            : `Sem internet${pendentes ? ` — ${pendentes} registro(s) aguardando envio` : ""}. Alunos e chamada usam a última lista salva. As alterações serão enviadas quando a conexão voltar, com esta mesma conta.`}
         </span>
         {online && pendentes > 0 ? (
           <Button
@@ -55,6 +64,7 @@ export function StatusOffline() {
           </Button>
         ) : null}
       </div>
+      {!online && <p className="text-xs text-muted-foreground">{salvoEm ? `Lista salva em ${new Date(salvoEm).toLocaleString("pt-BR")}. ` : "Abra o app com internet uma vez para salvar as listas. "}Fotos, documentos, perfis completos, relatórios, avisos, configurações e novos acessos precisam de conexão. Alterações feitas por outras pessoas só aparecem após atualizar.</p>}
       {online && bloqueada ? (
         <div role="alert" className="flex flex-wrap items-center gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-2">
           <AlertTriangle className="size-4 shrink-0 text-destructive" />

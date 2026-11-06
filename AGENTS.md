@@ -41,3 +41,5 @@
 - Empty lists use EstadoVazio (message + next action) and loading lists use Carregando.tsx skeletons, so screens share one pattern.
 - Registration review uses revisao-cadastros.ts and the shared duplicate/document definitions; findings never mutate records automatically.
 - Monthly attendance totals use relatorio-mensal.ts for both screen and PDF, counting each attendance record and unique students separately; reads are paginated over explicit month boundaries.
+- Offline delivery uses generateSW and the single guarded pwa.ts registrar; cache only audited effect-loaded public staff shells, never personalized SSR/API responses, and keep Firebase on its separate messaging scope.
+- Offline snapshots and queued actions are account-scoped; offline access permits local consultation/chamada only, never restores admin privileges, and server authorization revalidates every replay.

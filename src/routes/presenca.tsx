@@ -47,6 +47,11 @@ import { FAIXAS_ETARIAS, faixaEtariaECA, TURNOS, turnoDoHorario, type FaixaEtari
 import { enfileirar, estaOnline, lerCache, salvarCache } from "@/lib/offline";
 import { correspondeBusca, relevanciaBusca } from "@/lib/formatacao";
 import { useGruposDias } from "@/lib/dias";
+import { assinarFila, listarFila } from "@/lib/offline";
+import { aplicarChamadaPendente, type MarcacaoSalva } from "@/lib/offline-policy";
+import { useOffline } from "@/hooks/useOffline";
+import { usePermissoesProfessor, permissaoAtiva } from "@/lib/permissoes";
+import { consultarPaginas } from "@/lib/paginas-offline";
 
 
 
@@ -140,7 +145,11 @@ function lerFiltrosPresenca(): Partial<FiltrosPresencaSalvos> | null {
 function PresencaPage() {
   const { lista: listaGrupos } = useGruposDias();
   const [turmas, setTurmas] = useState<Turma[]>([]);
-  const { user: usuarioAtual, isAdmin } = useAuth();
+  const { user: usuarioAtual, usuarioLocalId, isAdmin, isStaff, loading: authLoading, chamadaOffline } = useAuth();
+  const idConta = usuarioAtual?.id ?? usuarioLocalId;
+  const { online } = useOffline();
+  const { mapa: permissoes, carregando: permissoesCarregando } = usePermissoesProfessor();
+  const podeChamar = !authLoading && (online ? isAdmin || (isStaff && !permissoesCarregando && permissaoAtiva(permissoes, "presenca_registrar")) : chamadaOffline);
   const minhasTurmas = useMinhasTurmas(usuarioAtual?.id);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [carregandoAlunos, setCarregandoAlunos] = useState(true);
@@ -209,28 +218,31 @@ function PresencaPage() {
   }, [filtroDias, filtroModalidade, filtrosFaixaEtaria, filtroTurno, hoje, turmaIds]);
 
   useEffect(() => {
+    if (!idConta) return;
+    let ativo = true;
+    const carregarLista = async () => {
+      const c = await lerCache<{ turmas: Turma[]; alunos: Aluno[]; matriculas: { aluno_id: string; turma_id: string }[]; licencas?: Licenca[] }>("presenca");
+      if (c && ativo) { setTurmas(c.turmas ?? []); setAlunos(c.alunos ?? []); setMatriculas(c.matriculas ?? []); setLicencas(c.licencas ?? []); setCarregandoAlunos(false); }
     void (async () => {
       if (!estaOnline()) {
-        const c = await lerCache<{ turmas: Turma[]; alunos: Aluno[]; matriculas: { aluno_id: string; turma_id: string }[] }>("presenca");
-        if (c) {
-          setTurmas(c.turmas ?? []);
-          setAlunos(c.alunos ?? []);
-          setMatriculas(c.matriculas ?? []);
-        }
         setCarregandoAlunos(false);
         return;
       }
-      const [t, a, m] = await Promise.all([
+      const [t, a, m, l] = await Promise.all([
         supabase.from("turmas").select("id,nome,horario,modalidade,dias_semana").order("nome"),
-        supabase.from("alunos").select("id,nome,codigo,foto_path,data_nascimento,idade").eq("ativo", true).order("nome"),
-        supabase.from("matriculas").select("aluno_id,turma_id").eq("status", "ativa"),
+        consultarPaginas((inicio, fim) => supabase.from("alunos").select("id,nome,codigo,foto_path,data_nascimento,idade").eq("ativo", true).order("id").range(inicio, fim)),
+        consultarPaginas((inicio, fim) => supabase.from("matriculas").select("aluno_id,turma_id").eq("status", "ativa").order("id").range(inicio, fim)),
+        supabase.from("licencas_medicas").select("id,aluno_id,data_inicio,data_retorno,motivo,encerrada_em").is("encerrada_em", null),
       ]);
+      if (!ativo) return;
+      if (t.error || a.error || m.error || l.error) { setCarregandoAlunos(false); return; }
       if (t.data) setTurmas(t.data as Turma[]);
       const listaAlunos = (a.data ?? []) as Aluno[];
       if (a.data) setAlunos(listaAlunos);
       if (m.data) setMatriculas(m.data as { aluno_id: string; turma_id: string }[]);
       setCarregandoAlunos(false);
-      void salvarCache("presenca", { turmas: t.data ?? [], alunos: a.data ?? [], matriculas: m.data ?? [] });
+      setLicencas((l.data ?? []) as Licenca[]);
+      void salvarCache("presenca", { turmas: t.data ?? [], alunos: a.data ?? [], matriculas: m.data ?? [], licencas: l.data ?? [] });
       const comFoto = listaAlunos.filter((x) => x.foto_path);
       if (comFoto.length) {
         const { data: signed } = await supabase.storage
@@ -244,17 +256,28 @@ function PresencaPage() {
         setFotos(mapa);
       }
     })();
-  }, []);
+    };
+    void carregarLista();
+    window.addEventListener("online", carregarLista);
+    window.addEventListener("arena:preparado-offline", carregarLista);
+    return () => { ativo = false; window.removeEventListener("online", carregarLista); window.removeEventListener("arena:preparado-offline", carregarLista); };
+  }, [idConta]);
 
 
   async function carregarPresencasDoDia() {
-    if (!estaOnline()) return;
-    const { data } = await supabase
+    let base = await lerCache<MarcacaoSalva[]>(`chamada:${hoje}`) ?? [];
+    if (estaOnline()) {
+    const { data, error } = await consultarPaginas((inicio, fim) => supabase
       .from("presencas")
       .select("aluno_id,horario,status,observacoes,alunos(nome)")
       .eq("data", hoje)
-      .order("horario", { ascending: false });
-    if (!data) return;
+      .order("id").range(inicio, fim));
+    if (data && !error) {
+      base = data.map((r) => ({ aluno_id: r.aluno_id, horario: r.horario, status: r.status, observacoes: r.observacoes, nome: (r.alunos as { nome: string } | null)?.nome ?? "Aluno" }));
+      await salvarCache(`chamada:${hoje}`, base);
+    }
+    }
+    const data = aplicarChamadaPendente(base, await listarFila(), hoje, Object.fromEntries(alunos.map((a) => [a.id, a.nome])));
     const mapa: Record<string, StatusPresenca> = {};
     data.forEach((r) => {
       mapa[r.aluno_id as string] = (r.status as StatusPresenca) ?? "presente";
@@ -262,7 +285,7 @@ function PresencaPage() {
     setStatusPorAluno(mapa);
     setRegistros(
       data.map((r) => ({
-        nome: (r.alunos as { nome: string } | null)?.nome ?? "Aluno",
+        nome: r.nome,
         hora: new Date(r.horario as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
         status: (r.status as StatusPresenca) ?? "presente",
         obs: (r.observacoes as string | null) ?? null,
@@ -271,18 +294,17 @@ function PresencaPage() {
   }
 
   useEffect(() => {
+    if (!idConta) return;
     void carregarPresencasDoDia();
+    const atualizar = () => void carregarPresencasDoDia();
+    const desassinar = assinarFila(atualizar);
+    window.addEventListener("arena:sincronizado", atualizar);
+    window.addEventListener("online", atualizar);
+    return () => { desassinar(); window.removeEventListener("arena:sincronizado", atualizar); window.removeEventListener("online", atualizar); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hoje]);
+  }, [hoje, idConta, alunos]);
 
   const [licencas, setLicencas] = useState<Licenca[]>([]);
-  useEffect(() => {
-    void supabase
-      .from("licencas_medicas")
-      .select("id,aluno_id,data_inicio,data_retorno,motivo,encerrada_em")
-      .is("encerrada_em", null)
-      .then(({ data }) => setLicencas((data ?? []) as Licenca[]));
-  }, []);
 
   async function registrar(
     aluno: Aluno,
@@ -290,6 +312,7 @@ function PresencaPage() {
     status: StatusPresenca = "presente",
     opcoes: { emLote?: boolean } = {},
   ): Promise<boolean> {
+    if (!podeChamar) { toast.error("Sua conta não tem autorização para registrar chamada."); return false; }
     const licenca = licencas.find((l) => l.aluno_id === aluno.id && licencaEmVigor(l, hoje));
     if (licenca && status === "falta") status = "falta_justificada";
     const obs = !opcoes.emLote && observacao.trim()
@@ -382,6 +405,7 @@ function PresencaPage() {
 
 
   async function desfazerRegistro(aluno: Aluno) {
+    if (!podeChamar) { toast.error("Sua conta não tem autorização para alterar chamada."); return; }
     if (!estaOnline()) {
       await enfileirar({ tipo: "presenca_remover", aluno_id: aluno.id, data: hoje });
       setStatusPorAluno((s) => {
@@ -814,6 +838,7 @@ function PresencaPage() {
                               type="button"
                               variant="link"
                               className="h-auto max-w-full justify-start whitespace-normal p-0 text-left text-base font-medium sm:text-sm"
+                              disabled={!online}
                               onClick={() => setPerfilAlunoId(a.id)}
                               title={`Ver perfil de ${a.nome}`}
                             >
@@ -829,6 +854,7 @@ function PresencaPage() {
                           </div>
                         </div>
                         <BotoesChamada
+                          disabled={!podeChamar}
                           nome={a.nome}
                           atual={atual}
                           onEscolher={(st) => void (atual === st ? desfazerRegistro(a) : registrar(a, "manual", st))}
@@ -866,7 +892,7 @@ function PresencaPage() {
         </Tabs>
 
         <div className="space-y-6">
-        <FaltaAutomatica podeAlterar={isAdmin} />
+        {online && <FaltaAutomatica podeAlterar={isAdmin} />}
         <Card className="border-border/70">
           <CardHeader><CardTitle className="font-display text-lg">Registros do dia ({registros.length})</CardTitle></CardHeader>
           <CardContent>

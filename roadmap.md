@@ -1,5 +1,10 @@
 # Roadmap
 
+- [x] Gerar prompt das últimas alterações de abertura offline para o App Esporte 360.
+
+- [x] Implementar abertura offline, listas por conta, chamadas persistentes e envio ao reconectar — 28 testes passaram; avisos de conexão conferidos no computador/celular; nenhum cadastro real alterado.
+- [ ] Confirmar reabertura offline e chamada com envio no app publicado — depende de publicação e sessão da equipe; a prévia não registra o recurso offline por segurança. Verificar também notificações no Android após a separação dos serviços.
+
 - [x] Adicionar revisão de cadastros em Alunos — critérios testados, busca e abertura da edição conferidas com administrador; nenhum cadastro alterado.
 - [x] Adicionar relatório mensal em PDF em Relatórios — totais testados, dois meses consultados com dados reais e PDF baixado.
 - [x] Remover fila de espera das telas, preservando registros existentes — Painel conferido e opção oculta na Equipe.

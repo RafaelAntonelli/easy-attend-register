@@ -192,7 +192,18 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
         {subtitle ? <p className="relative mt-1 text-sm text-sidebar-foreground/70 md:text-muted-foreground">{subtitle}</p> : null}
       </header>
 
-      <main className="px-4 py-6 sm:px-5 md:px-10">{children}</main>
+      <main className="px-4 py-6 sm:px-5 md:px-10">
+        {!online && (pathname === "/" || !telaOffline) ? (
+          <div className="space-y-4">
+            <h2 className="font-display text-xl font-semibold">{pathname === "/" ? "Dados salvos neste aparelho" : "Esta tela precisa de internet"}</h2>
+            <p className="text-muted-foreground">Consulte os alunos salvos ou faça a chamada. As outras consultas ficam disponíveis quando a conexão voltar.</p>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild><Link to="/presenca">Fazer chamada</Link></Button>
+              <Button asChild variant="outline"><Link to="/alunos">Consultar alunos</Link></Button>
+            </div>
+          </div>
+        ) : children}
+      </main>
 
       <nav
         aria-label="Menu do celular"

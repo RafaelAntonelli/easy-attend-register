@@ -325,8 +325,13 @@ function AlunosPage() {
   }
 
   useEffect(() => {
+    if (!user?.id) return;
     void carregar();
-  }, []);
+    const atualizar = () => void carregar();
+    window.addEventListener("online", atualizar);
+    window.addEventListener("arena:sincronizado", atualizar);
+    return () => { window.removeEventListener("online", atualizar); window.removeEventListener("arena:sincronizado", atualizar); };
+  }, [user?.id]);
 
 
   function limparDocs() {

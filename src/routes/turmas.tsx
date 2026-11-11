@@ -816,16 +816,6 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
                     atual={statusPresenca[a.id]}
                     onEscolher={(st) => void registrarPresenca(a.id, st)}
                   />
-                  {statusPresenca[a.id] === "falta_justificada" ? (
-                    <Textarea
-                      key={`${a.id}-${observacoesPresenca[a.id] ?? ""}`}
-                      rows={2}
-                      aria-label={`Justificativa da falta de ${a.nome}`}
-                      placeholder="Justificativa da falta (ex.: apresentou atestado médico)"
-                      defaultValue={observacoesPresenca[a.id] ?? ""}
-                      onBlur={(e) => void salvarObservacao({ alunoId: a.id, texto: e.target.value.trim() })}
-                    />
-                  ) : null}
                 </div>
               ))
 

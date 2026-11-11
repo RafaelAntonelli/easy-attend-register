@@ -752,20 +752,6 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
                 marcados={alunosTurma.filter((a) => statusPresenca[a.id]).length}
                 total={alunosTurma.length}
               />
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11 w-full border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
-                disabled={marcandoTodos || !alunosTurma.some((a) => a.status === "ativa" && !statusPresenca[a.id])}
-                onClick={() => setConfirmarTodos(true)}
-              >
-                <Users className="size-4" />
-                {marcandoTodos
-                  ? "Marcando..."
-                  : alunosTurma.some((a) => a.status === "ativa" && !statusPresenca[a.id])
-                    ? "Marcar todos como presentes"
-                    : "Todos já foram marcados"}
-              </Button>
             </div>
           ) : null}
           {buscaAluno && alunosTurma ? (
@@ -835,28 +821,6 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
           </div>
         </DialogContent>
       </Dialog>
-      <AlertDialog open={confirmarTodos} onOpenChange={setConfirmarTodos}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Marcar todos como presentes?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Todos os alunos de {turmaAberta?.nome} que ainda não foram marcados hoje ficarão como presentes. Quem está
-              de licença médica ou já foi marcado não muda. Depois, é só tocar em Falta para quem não veio.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setConfirmarTodos(false);
-                void marcarTodosPresentes();
-              }}
-            >
-              Marcar presentes
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
       <Dialog open={!!editandoObservacao} onOpenChange={(o) => !o && setEditandoObservacao(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

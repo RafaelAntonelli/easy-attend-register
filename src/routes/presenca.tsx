@@ -796,22 +796,6 @@ function PresencaPage() {
                   />
                   <p className="text-xs text-muted-foreground">O texto é salvo no histórico do aluno junto com o registro.</p>
                 </div>
-                <div className="rounded-xl border border-border/70 bg-muted/30 p-3">
-                  {turmaIdsValidos.length > 0 ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-11 w-full border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
-                      disabled={marcandoTodos || !semRegistro.length}
-                      onClick={() => setConfirmarTodos(true)}
-                    >
-                      <Users className="size-4" />
-                      {marcandoTodos ? "Marcando..." : semRegistro.length ? `Marcar todos como presentes (${semRegistro.length})` : "Todos já foram marcados"}
-                    </Button>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Escolha a turma da aula para marcar todos como presentes de uma vez.</p>
-                  )}
-                </div>
                 <div className="max-h-[75vh] overflow-y-auto overscroll-contain pr-1 sm:max-h-[36rem]">
                   {/* Contador fixo no topo enquanto a lista rola. */}
                   <div className="sticky top-0 z-10 mb-3 rounded-xl border border-border/70 bg-card/95 px-3 py-2.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
@@ -915,31 +899,6 @@ function PresencaPage() {
 
       <PerfilAluno alunoId={perfilAlunoId} onFechar={() => setPerfilAlunoId(null)} />
 
-      <AlertDialog open={confirmarTodos} onOpenChange={setConfirmarTodos}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Marcar todos como presentes?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {semRegistro.length} aluno{semRegistro.length === 1 ? "" : "s"} sem registro em{" "}
-              {format(data, "dd/MM/yyyy", { locale: ptBR })} será{semRegistro.length === 1 ? "" : "ão"} marcado
-              {semRegistro.length === 1 ? "" : "s"} como presente{semRegistro.length === 1 ? "" : "s"}. Quem está de licença
-              médica ou já foi marcado não muda. Depois, é só tocar em Falta para quem não veio.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                const alvos = semRegistro;
-                setConfirmarTodos(false);
-                void marcarTodosPresentes(alvos);
-              }}
-            >
-              Marcar presentes
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog open={Boolean(confirmacao)} onOpenChange={(aberto) => !aberto && setConfirmacao(null)}>
         <AlertDialogContent>

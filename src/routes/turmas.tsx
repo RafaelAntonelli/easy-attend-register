@@ -376,9 +376,11 @@ function TurmasPage() {
     return;
   }
 
-  async function salvarObservacao() {
-    if (!editandoObservacao) return;
-    const { alunoId, texto } = editandoObservacao;
+  async function salvarObservacao(direto?: { alunoId: string; texto: string }) {
+    const alvo = direto ?? editandoObservacao;
+    if (!alvo) return;
+    const { alunoId, texto } = alvo;
+    if (direto && (observacoesPresenca[alunoId] ?? "") === texto) return;
     const hoje = new Date().toISOString().slice(0, 10);
     const existente = await supabase
       .from("presencas")
@@ -814,6 +816,16 @@ td:nth-child(n+4){width:48px}@media print{button{display:none}}</style></head><b
                     atual={statusPresenca[a.id]}
                     onEscolher={(st) => void registrarPresenca(a.id, st)}
                   />
+                  {statusPresenca[a.id] === "falta_justificada" ? (
+                    <Textarea
+                      key={`${a.id}-${observacoesPresenca[a.id] ?? ""}`}
+                      rows={2}
+                      aria-label={`Justificativa da falta de ${a.nome}`}
+                      placeholder="Justificativa da falta (ex.: apresentou atestado médico)"
+                      defaultValue={observacoesPresenca[a.id] ?? ""}
+                      onBlur={(e) => void salvarObservacao({ alunoId: a.id, texto: e.target.value.trim() })}
+                    />
+                  ) : null}
                 </div>
               ))
 

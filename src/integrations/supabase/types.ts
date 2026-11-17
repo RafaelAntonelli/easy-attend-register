@@ -1004,6 +1004,33 @@ export type Database = {
           },
         ]
       }
+      registro_acoes: {
+        Row: {
+          acao: string
+          autor_id: string | null
+          autor_nome: string | null
+          created_at: string
+          detalhe: string | null
+          id: string
+        }
+        Insert: {
+          acao: string
+          autor_id?: string | null
+          autor_nome?: string | null
+          created_at?: string
+          detalhe?: string | null
+          id?: string
+        }
+        Update: {
+          acao?: string
+          autor_id?: string | null
+          autor_nome?: string | null
+          created_at?: string
+          detalhe?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       turmas: {
         Row: {
           ativa: boolean
@@ -1101,6 +1128,7 @@ export type Database = {
         Returns: undefined
       }
       disparar_aviso_agendado: { Args: { _envio: string }; Returns: undefined }
+      disparar_avisos_atestado: { Args: never; Returns: undefined }
       disparar_backup_semanal: { Args: never; Returns: undefined }
       disparar_lembretes_aulas: { Args: never; Returns: undefined }
       envios_avisos: {

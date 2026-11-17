@@ -12,6 +12,7 @@ import { fotosEquipe } from "@/lib/meu-perfil.functions";
 import { descreverUltimoAcesso } from "@/lib/ultimo-acesso";
 import { AppShell } from "@/components/AppShell";
 import { AcessosAlunos } from "@/components/AcessosAlunos";
+import { RegistroAcoes } from "@/components/RegistroAcoes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -305,6 +306,7 @@ function EquipePage() {
             <TabsTrigger value="equipe">Equipe</TabsTrigger>
             <TabsTrigger value="alunos">Acessos dos alunos</TabsTrigger>
             <TabsTrigger value="permissoes"><LockKeyhole className="mr-1 size-4" />Permissões dos professores</TabsTrigger>
+            <TabsTrigger value="registro">Registro de ações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="equipe" className="mt-4 space-y-6">
@@ -327,6 +329,7 @@ function EquipePage() {
           </TabsContent>
 
           <TabsContent value="alunos" className="mt-4"><AcessosAlunos /></TabsContent>
+          <TabsContent value="registro" className="mt-4">{aba === "registro" ? <RegistroAcoes /> : null}</TabsContent>
           {confirmacao ? <TabsContent value="permissoes" className="mt-4">
             <Card>
               <CardHeader>

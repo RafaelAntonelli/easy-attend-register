@@ -7,6 +7,7 @@ import { portalAlunoConsulta as consulta } from "@/lib/portal-aluno-consulta";
 import { tokenAparelhoLocal } from "@/lib/aparelho-local";
 import { supabase } from "@/integrations/supabase/client";
 import { vencimentoAtestado, atestadoVencido, atestadoVencendo, diasParaVencer } from "@/lib/atestado";
+import { proximaAula, descreverDia } from "@/lib/proxima-aula";
 import { FrequenciaPortal } from "@/components/FrequenciaPortal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +76,7 @@ function AreaAluno() {
         </TabsList>
         <TabsContent value="inicio">
           <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-10">
-            <section className="min-w-0"><div className="mb-5 flex items-center justify-between"><h2 className="font-display text-xl font-semibold">Minhas turmas</h2><span className="text-sm text-muted-foreground">{aluno.turmas.length} {aluno.turmas.length===1?'turma':'turmas'}</span></div>
+            <section className="min-w-0"><ProximaAulaCard turmas={aluno.turmas}/><div className="mb-5 flex items-center justify-between"><h2 className="font-display text-xl font-semibold">Minhas turmas</h2><span className="text-sm text-muted-foreground">{aluno.turmas.length} {aluno.turmas.length===1?'turma':'turmas'}</span></div>
               {aluno.turmas.length?<div className="grid gap-4">{aluno.turmas.map(t=><article key={t.id} className="overflow-hidden rounded-lg border border-border bg-card"><div className="flex items-start gap-4 border-b border-border p-5"><div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground"><Waves className="size-6"/></div><div className="min-w-0"><p className="mb-1 text-xs font-semibold uppercase text-primary">{t.modalidade}</p><h3 className="break-words text-base font-semibold">{t.nome}</h3></div></div><dl className="grid gap-5 p-5 sm:grid-cols-2"><div><dt className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="size-4"/>Horário da aula</dt><dd className="text-xl font-semibold">{t.horario||'Não informado'}</dd></div><div><dt className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><CalendarDays className="size-4"/>Dias da semana</dt><dd className="text-sm font-semibold">{t.dias_semana.join(' e ')||'Não informado'}</dd></div>{t.professor&&<div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">Professor</dt><dd className="mt-1 text-sm font-medium">{t.professor}</dd></div>}</dl></article>)}</div>:<div className="border-y border-border py-10 text-sm text-muted-foreground">Nenhuma turma ativa vinculada.</div>}
             </section>
             <aside className="space-y-7 lg:border-l lg:border-border lg:pl-7"><FrequenciaPortal/><section className="border-t border-border pt-6"><div className="mb-4 flex items-center gap-2"><FileCheck className="size-5 text-primary"/><h2 className="font-display text-base font-semibold">Atestado médico</h2></div><Badge variant={situacao==='Vencido'?'destructive':'secondary'} className="rounded-md">{situacao}</Badge>{aluno.atestado_entregue&&validade&&<p className="mt-3 text-sm text-muted-foreground">Validade: <span className="font-medium text-foreground">{validade.toLocaleDateString('pt-BR')}</span></p>}{vencendo&&<p className="mt-2 text-sm font-medium text-warning-strong">{faltam===0?'Vence hoje':faltam===1?'Vence amanhã':`Vence em ${faltam} dias`}</p>}</section><div className="border-t border-border pt-6"><ShieldCheck className="mb-3 size-6 text-primary"/><p className="text-sm font-semibold">Seus dados</p><p className="mt-2 text-sm leading-relaxed text-muted-foreground">Veja seu cadastro completo no seu perfil.</p><Button asChild variant="link" className="mt-2 h-auto px-0"><Link to="/perfil-aluno">Acessar meu perfil<ArrowUpRight className="ml-2 size-4"/></Link></Button></div></aside>
@@ -86,5 +87,17 @@ function AreaAluno() {
       </Tabs>
       <footer className="mt-12 flex flex-wrap items-center justify-between gap-2 border-t border-border py-5 text-xs text-muted-foreground"><span>Arena Aquática LF</span><span>Programa Esporte 360</span></footer>
     </main>
+  </div>;
+}
+function ProximaAulaCard({ turmas }: { turmas: Parameters<typeof proximaAula>[0] }) {
+  const [agora, setAgora] = useState<Date | null>(null);
+  useEffect(() => { setAgora(new Date()); const t = window.setInterval(() => setAgora(new Date()), 60_000); return () => window.clearInterval(t); }, []);
+  const p = agora ? proximaAula(turmas, agora) : null;
+  if (!p) return null;
+  return <div className="mb-7 flex items-center gap-4 rounded-lg border border-primary/30 bg-primary/10 p-5">
+    <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground"><Clock3 className="size-6"/></div>
+    <div className="min-w-0"><p className="text-xs font-semibold uppercase text-primary">Próxima aula</p>
+      <p className="font-display text-2xl font-semibold">{descreverDia(p.diasAte, p.data)}, {p.inicio}{p.fim ? ` às ${p.fim}` : ''}</p>
+      <p className="break-words text-sm text-muted-foreground">{p.turma.nome}{p.diasAte > 1 ? ` · ${p.data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' })}` : ''}</p></div>
   </div>;
 }

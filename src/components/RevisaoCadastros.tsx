@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { ClipboardCheck, Pencil, Search, UserRound } from "lucide-react";
 import { MOTIVOS_REVISAO, revisarCadastros } from "@/lib/revisao-cadastros";
 import type { AlunoPlanilha } from "@/lib/planilha-alunos";
@@ -12,9 +12,10 @@ import { EstadoVazio } from "@/components/EstadoVazio";
 export function RevisaoCadastros<T extends AlunoPlanilha>({ alunos, podeEditar, onEditar, onPerfil }: { alunos: T[]; podeEditar: boolean; onEditar: (aluno: T) => void; onPerfil: (id: string) => void }) {
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
+  const buscaFiltro = useDeferredValue(busca);
   const [motivo, setMotivo] = useState("todos");
   const revisao = useMemo(() => revisarCadastros(alunos), [alunos]);
-  const lista = revisao.filter((item) => (motivo === "todos" || item.motivos.some((m) => m === motivo)) && `${item.aluno.nome} ${item.aluno.codigo ?? ""}`.toLocaleLowerCase("pt-BR").includes(busca.toLocaleLowerCase("pt-BR")));
+  const lista = revisao.filter((item) => (motivo === "todos" || item.motivos.some((m) => m === motivo)) && `${item.aluno.nome} ${item.aluno.codigo ?? ""}`.toLocaleLowerCase("pt-BR").includes(buscaFiltro.toLocaleLowerCase("pt-BR")));
   return <>
     <Button variant="outline" onClick={() => setAberto(true)}><ClipboardCheck className="size-4" /> Revisão de cadastros <Badge variant="secondary">{revisao.length}</Badge></Button>
     <Dialog open={aberto} onOpenChange={setAberto}>

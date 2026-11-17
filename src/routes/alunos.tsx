@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { useEffect, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { Plus, Search, SearchX, Users, Pencil, Image as ImageIcon, AlertTriangle, Bell, Trash2, UserX, UserCheck, Download, Camera, Upload, IdCard, FileDown, FileSpreadsheet, ChevronDown, ChevronUp, X, MoreHorizontal, SlidersHorizontal } from "lucide-react";
 import { EstadoVazio } from "@/components/EstadoVazio";
 import { RevisaoCadastros } from "@/components/RevisaoCadastros";
@@ -188,6 +188,7 @@ function AlunosPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
+  const buscaFiltro = useDeferredValue(busca);
   const [filtroPcd, setFiltroPcd] = useState("todos");
   const [filtroSexo, setFiltroSexo] = useState("todos");
   const [filtroModalidade, setFiltroModalidade] = useState("todas");
@@ -986,7 +987,7 @@ function AlunosPage() {
 
   const filtrados = alunos
     .filter((a) => {
-      if (!correspondeBusca(a, busca)) return false;
+      if (!correspondeBusca(a, buscaFiltro)) return false;
       if (filtroNotificacao === "ativos" && !a.ativo) return false;
       if (filtroNotificacao === "inativos" && a.ativo) return false;
       if (filtroNotificacao === "em_licenca" && (!a.ativo || !emLicenca.has(a.id))) return false;
@@ -1018,7 +1019,7 @@ function AlunosPage() {
       const selB = selecionados.includes(b.id) ? 1 : 0;
       if (selA !== selB) return selB - selA;
       if (a.ativo !== b.ativo) return a.ativo ? -1 : 1;
-      return relevanciaBusca(a.nome, busca) - relevanciaBusca(b.nome, busca) || a.nome.localeCompare(b.nome);
+      return relevanciaBusca(a.nome, buscaFiltro) - relevanciaBusca(b.nome, buscaFiltro) || a.nome.localeCompare(b.nome);
     });
 
 

@@ -1,7 +1,7 @@
 import { useAuth } from "@/lib/auth";
 import { useMinhasTurmas, usePermissoesProfessor, permissaoAtiva } from "@/lib/permissoes";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { Plus, Users, Trash2, Pencil, Check, X, FileCheck, Clock, CalendarDays, Search, SearchX, Printer, Armchair } from "lucide-react";
 import { EstadoVazio } from "@/components/EstadoVazio";
 import { CarregandoCartoes, CarregandoLinhas } from "@/components/Carregando";
@@ -135,6 +135,7 @@ function TurmasPage() {
   const [alunosTurma, setAlunosTurma] = useState<AlunoTurma[] | null>(null);
   const [confirmarExclusao, setConfirmarExclusao] = useState<Turma | null>(null);
   const [buscaAluno, setBuscaAluno] = useState("");
+  const buscaAlunoFiltro = useDeferredValue(buscaAluno);
 
   const [carregado, setCarregado] = useState(false);
 
@@ -437,7 +438,7 @@ function TurmasPage() {
   const nomeAutomatico = [modalidade, grupo, horario].filter(Boolean).join(" · ");
 
   const normalizar = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  const termo = normalizar(buscaAluno);
+  const termo = normalizar(buscaAlunoFiltro);
   const alunosFiltrados = (alunosTurma ?? []).filter(
     (a) => !termo || normalizar(a.nome).includes(termo) || normalizar(a.codigo ?? "").includes(termo),
   );

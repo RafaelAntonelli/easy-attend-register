@@ -2,7 +2,7 @@ import { useAuth } from "@/lib/auth";
 import { useMinhasTurmas } from "@/lib/permissoes";
 import { FotoAmpliavel } from "@/components/FotoAmpliavel";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, Search, SearchX, X, CalendarIcon, ChevronDown, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -162,6 +162,7 @@ function PresencaPage() {
   const [filtrosFaixaEtaria, setFiltrosFaixaEtaria] = useState<FaixaEtaria[]>([]);
   const [scanning, setScanning] = useState(false);
   const [busca, setBusca] = useState("");
+  const buscaFiltro = useDeferredValue(busca);
   const [statusPorAluno, setStatusPorAluno] = useState<Record<string, StatusPresenca>>({});
   const [observacao, setObservacao] = useState("");
   const [registros, setRegistros] = useState<{ nome: string; hora: string; status: StatusPresenca; obs: string | null }[]>([]);
@@ -526,7 +527,7 @@ function PresencaPage() {
 
   const filtrados = alunos
     .filter((a) => {
-      if (!correspondeBusca(a, busca)) return false;
+      if (!correspondeBusca(a, buscaFiltro)) return false;
       const turmasAluno = turmasDoAluno(a.id);
       const turmasSelecionadas = turmaIdsValidos.length > 0
         ? turmasAluno.filter((turma) => turmaIdsValidos.includes(turma.id))
@@ -548,7 +549,7 @@ function PresencaPage() {
       }
       return true;
     })
-    .sort((a, b) => relevanciaBusca(a.nome, busca) - relevanciaBusca(b.nome, busca) || a.nome.localeCompare(b.nome));
+    .sort((a, b) => relevanciaBusca(a.nome, buscaFiltro) - relevanciaBusca(b.nome, buscaFiltro) || a.nome.localeCompare(b.nome));
   const semRegistro = filtrados.filter(
     (a) => !statusPorAluno[a.id] && !licencas.some((l) => l.aluno_id === a.id && licencaEmVigor(l, hoje)),
   );

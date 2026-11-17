@@ -163,6 +163,9 @@ function PresencaPage() {
   const [scanning, setScanning] = useState(false);
   const [busca, setBusca] = useState("");
   const buscaFiltro = useDeferredValue(busca);
+  // A chamada mostra os alunos aos poucos; mais aparecem quando o fim da lista fica visível.
+  const [limiteLista, setLimiteLista] = useState(40);
+  const sentinelaLista = useRef<HTMLDivElement>(null);
   const [statusPorAluno, setStatusPorAluno] = useState<Record<string, StatusPresenca>>({});
   const [observacao, setObservacao] = useState("");
   const [registros, setRegistros] = useState<{ nome: string; hora: string; status: StatusPresenca; obs: string | null }[]>([]);
@@ -554,6 +557,16 @@ function PresencaPage() {
     (a) => !statusPorAluno[a.id] && !licencas.some((l) => l.aluno_id === a.id && licencaEmVigor(l, hoje)),
   );
 
+  const chaveFiltrosLista = [buscaFiltro, turmaIdsValidos.join(), filtroModalidade, filtroTurno, filtrosFaixaEtaria.join(), filtroDias].join("|");
+  useEffect(() => { setLimiteLista(40); }, [chaveFiltrosLista]);
+  useEffect(() => {
+    const alvo = sentinelaLista.current;
+    if (!alvo || typeof IntersectionObserver === "undefined") return;
+    const obs = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) setLimiteLista((n) => n + 40); }, { rootMargin: "300px" });
+    obs.observe(alvo);
+    return () => obs.disconnect();
+  }, [limiteLista, filtrados.length > limiteLista]);
+
   function limparFiltros() {
     setFiltroTurno("todos");
     setFiltroModalidade("todas");
@@ -813,7 +826,7 @@ function PresencaPage() {
                     <CarregandoLinhas linhas={4} comBotoes fotoGrande />
                   ) : (
                   <div className="space-y-3">
-                  {filtrados.map((a) => {
+                  {filtrados.slice(0, limiteLista).map((a) => {
                     const atual = statusPorAluno[a.id];
                     return (
                       <div key={a.id} className="flex min-h-20 flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-4 py-3">
@@ -854,6 +867,11 @@ function PresencaPage() {
                       </div>
                     );
                   })}
+                  {filtrados.length > limiteLista ? (
+                    <div ref={sentinelaLista} className="py-2 text-center">
+                      <Button variant="ghost" size="sm" onClick={() => setLimiteLista((n) => n + 40)}>Mostrar mais ({filtrados.length - limiteLista} restantes)</Button>
+                    </div>
+                  ) : null}
                   {!filtrados.length ? (
                     !alunos.length ? (
                       <EstadoVazio

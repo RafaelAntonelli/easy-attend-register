@@ -85,3 +85,24 @@ export function ProgressoChamada({ marcados, total }: { marcados: number; total:
     </div>
   );
 }
+
+/** Resumo do dia: quantos vieram, faltaram, justificaram, estão de licença e ainda sem marcação. */
+export function ResumoChamada({ presentes, faltas, justificadas, licenca, semMarcacao }: { presentes: number; faltas: number; justificadas: number; licenca: number; semMarcacao: number }) {
+  const itens: [string, number, string][] = [
+    ["Presentes", presentes, "text-success"],
+    ["Faltas", faltas, "text-destructive"],
+    ["Justificadas", justificadas, "text-warning-strong"],
+    ["Licença", licenca, "text-primary"],
+    ["Sem marcação", semMarcacao, "text-muted-foreground"],
+  ];
+  return (
+    <dl className="mt-2 grid grid-cols-5 gap-1 text-center" aria-label="Resumo do dia">
+      {itens.map(([rotulo, valor, cor]) => (
+        <div key={rotulo} className="min-w-0 rounded-md bg-muted/50 px-1 py-1">
+          <dd className={`text-base font-semibold leading-tight ${cor}`}>{valor}</dd>
+          <dt className="truncate text-[0.65rem] text-muted-foreground">{rotulo}</dt>
+        </div>
+      ))}
+    </dl>
+  );
+}

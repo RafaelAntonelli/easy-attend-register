@@ -7,7 +7,7 @@ import { Camera, CameraOff, Search, SearchX, X, CalendarIcon, ChevronDown, Users
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { BotoesChamada, ProgressoChamada } from "@/components/BotoesChamada";
+import { BotoesChamada, ProgressoChamada, ResumoChamada } from "@/components/BotoesChamada";
 import { PerfilAluno } from "@/components/PerfilAluno";
 import { FaltaAutomatica } from "@/components/FaltaAutomatica";
 import { EstadoVazio } from "@/components/EstadoVazio";
@@ -801,6 +801,13 @@ function PresencaPage() {
                   {/* Contador fixo no topo enquanto a lista rola. */}
                   <div className="sticky top-0 z-10 mb-3 rounded-xl border border-border/70 bg-card/95 px-3 py-2.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
                     <ProgressoChamada marcados={filtrados.filter((a) => statusPorAluno[a.id]).length} total={filtrados.length} />
+                    <ResumoChamada
+                      presentes={filtrados.filter((a) => statusPorAluno[a.id] === "presente").length}
+                      faltas={filtrados.filter((a) => statusPorAluno[a.id] === "falta").length}
+                      justificadas={filtrados.filter((a) => statusPorAluno[a.id] === "falta_justificada").length}
+                      licenca={filtrados.filter((a) => licencas.some((l) => l.aluno_id === a.id && licencaEmVigor(l, hoje))).length}
+                      semMarcacao={semRegistro.length}
+                    />
                   </div>
                   {carregandoAlunos ? (
                     <CarregandoLinhas linhas={4} comBotoes fotoGrande />

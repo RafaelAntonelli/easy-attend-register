@@ -95,6 +95,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
   const [licInicio, setLicInicio] = useState("");
   const [licRetorno, setLicRetorno] = useState("");
   const [licFoto, setLicFoto] = useState<File | null>(null);
+  const [salvandoLic, setSalvandoLic] = useState(false);
   const [licFotoUrl, setLicFotoUrl] = useState<string | null>(null);
   const [licMotivo, setLicMotivo] = useState("");
   const [licFormAberto, setLicFormAberto] = useState(false);
@@ -182,52 +183,68 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
     }
   }
 
-  async function registrarLicenca() {
-    if (!aluno) return;
-    if (licRetorno <= licInicio) return toast.error("O retorno deve ser depois do início.");
+  function aplicarLicenca(l: Licenca | null) {
+    setLicencaAberta(l);
+    setLicInicio(hojeISO());
+    setLicRetorno(l?.data_retorno ?? "");
+    setLicMotivo("");
+    setLicFoto(null);
+  }
+
+  async function registrarLicenca(): Promise<boolean> {
+    if (!aluno || salvandoLic) return false;
+    if (licRetorno <= licInicio) { toast.error("O retorno deve ser depois do início."); return false; }
     const nome = (user?.user_metadata as { nome?: string } | undefined)?.nome || user?.email || null;
-    let atestado_path: string | null = null;
-    if (licFoto) {
-      try {
-        atestado_path = await enviarFotoLicenca(aluno.id, licFoto);
-      } catch (e) {
-        return toast.error(e instanceof Error ? e.message : "Falha ao enviar a foto");
-      }
+    setSalvandoLic(true);
+    try {
+      let atestado_path: string | null = null;
+      if (licFoto) atestado_path = await enviarFotoLicenca(aluno.id, licFoto);
+      const { data, error } = await supabase.from("licencas_medicas").insert({
+        aluno_id: aluno.id,
+        data_inicio: licInicio,
+        data_retorno: licRetorno,
+        motivo: licMotivo.trim() || null,
+        registrado_por: user?.id ?? null,
+        registrado_por_nome: nome,
+        atestado_path,
+      }).select("id,aluno_id,data_inicio,data_retorno,motivo,encerrada_em,atestado_path").single();
+      if (error) throw error;
+      toast.success("Licença médica registrada.");
+      aplicarLicenca(data as Licenca);
+      if (atestado_path) void carregarLicenca(aluno.id);
+      return true;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao registrar a licença");
+      return false;
+    } finally {
+      setSalvandoLic(false);
     }
-    const { error } = await supabase.from("licencas_medicas").insert({
-      aluno_id: aluno.id,
-      data_inicio: licInicio,
-      data_retorno: licRetorno,
-      motivo: licMotivo.trim() || null,
-      registrado_por: user?.id ?? null,
-      registrado_por_nome: nome,
-      atestado_path,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Licença médica registrada.");
-    await carregarLicenca(aluno.id);
-    return;
   }
 
   async function prorrogarLicenca() {
-    if (!aluno || !licencaAberta) return;
+    if (!aluno || !licencaAberta || salvandoLic) return;
     if (licRetorno <= licencaAberta.data_inicio) return toast.error("Data de retorno inválida.");
+    setSalvandoLic(true);
     const { error } = await supabase.from("licencas_medicas").update({ data_retorno: licRetorno }).eq("id", licencaAberta.id);
+    setSalvandoLic(false);
     if (error) return toast.error(error.message);
     toast.success("Licença prorrogada.");
-    await carregarLicenca(aluno.id);
+    setLicencaAberta({ ...licencaAberta, data_retorno: licRetorno });
     return;
   }
 
   async function encerrarLicenca() {
-    if (!aluno || !licencaAberta) return;
+    if (!aluno || !licencaAberta || salvandoLic) return;
+    setSalvandoLic(true);
     const { error } = await supabase
       .from("licencas_medicas")
       .update({ encerrada_em: new Date().toISOString() })
       .eq("id", licencaAberta.id);
+    setSalvandoLic(false);
     if (error) return toast.error(error.message);
     toast.success("Retorno confirmado.");
-    await carregarLicenca(aluno.id);
+    aplicarLicenca(null);
+    setLicFotoUrl(null);
     return;
   }
 
@@ -399,10 +416,10 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                       <Label className="text-xs">Prorrogar até</Label>
                       <Input type="date" value={licRetorno} onChange={(e) => setLicRetorno(e.target.value)} className="h-8 w-40" />
                     </div>
-                    <Button size="sm" variant="outline" disabled={!licRetorno} onClick={() => void prorrogarLicenca()}>
+                    <Button size="sm" variant="outline" disabled={!licRetorno || salvandoLic} onClick={() => void prorrogarLicenca()}>
                       Prorrogar
                     </Button>
-                    <Button size="sm" onClick={() => void encerrarLicenca()}>
+                    <Button size="sm" disabled={salvandoLic} onClick={() => void encerrarLicenca()}>
                       Confirmar retorno
                     </Button>
                   </div>
@@ -455,8 +472,8 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                     <Input type="file" accept="image/*,application/pdf" className="h-9" onChange={(e) => setLicFoto(e.target.files?.[0] ?? null)} />
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" disabled={!licInicio || !licRetorno} onClick={() => void registrarLicenca().then(() => setLicFormAberto(false))}>
-                      Confirmar
+                    <Button size="sm" disabled={!licInicio || !licRetorno || salvandoLic} onClick={() => void registrarLicenca().then((ok) => { if (ok) setLicFormAberto(false); })}>
+                      {salvandoLic ? "Registrando..." : "Confirmar"}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => { setLicFormAberto(false); setLicFoto(null); }}>
                       Cancelar

@@ -946,12 +946,15 @@ function PresencaPage() {
           <div className="max-h-[60dvh] overflow-y-auto overscroll-contain">
             {alunosDoContador.length ? (
               <ul className="divide-y divide-border">
-                {alunosDoContador.map((aluno) => (
+                {alunosDoContador.map((aluno) => {
+                  const status = statusPorAluno[aluno.id];
+                  return (
                   <li key={aluno.id} className="py-3">
                     <p className="break-words font-medium">{aluno.nome}</p>
-                    <p className="text-xs text-muted-foreground">Matrícula: {aluno.codigo}{statusPorAluno[aluno.id] ? ` · ${rotuloStatus[statusPorAluno[aluno.id]]}` : ""}</p>
+                    <p className="text-xs text-muted-foreground">Matrícula: {aluno.codigo}{status ? ` · ${rotuloStatus[status]}` : ""}</p>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             ) : (
               <EstadoVazio icone={Users} titulo="Nenhum aluno nesta situação" descricao="Não há alunos nesta situação para a data e os filtros selecionados.">

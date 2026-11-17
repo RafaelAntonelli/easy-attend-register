@@ -15,9 +15,10 @@ export function proximaAula<T extends TurmaAula>(turmas: T[], agora = new Date()
   let melhor: (ProximaAula<T> & { chave: number }) | null = null;
   for (const turma of turmas) {
     const m = /(\d{1,2}):(\d{2})(?:\s*(?:às|-|a)\s*(\d{1,2}):(\d{2}))?/.exec(turma.horario ?? "");
-    if (!m) continue;
-    const inicioMin = Number(m[1]) * 60 + Number(m[2]);
-    const fimMin = m[3] ? Number(m[3]) * 60 + Number(m[4]) : inicioMin + 50;
+    if (!m || !m[1] || !m[2]) continue;
+    const [h1, m1, h2, m2] = [m[1], m[2], m[3], m[4]];
+    const inicioMin = Number(h1) * 60 + Number(m1);
+    const fimMin = h2 ? Number(h2) * 60 + Number(m2) : inicioMin + 50;
     for (const dia of turma.dias_semana) {
       const idx = DIAS.indexOf(semAcento(dia));
       if (idx < 0) continue;
@@ -26,7 +27,7 @@ export function proximaAula<T extends TurmaAula>(turmas: T[], agora = new Date()
       const chave = diasAte * 1440 + inicioMin;
       if (!melhor || chave < melhor.chave) {
         const data = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + diasAte, 12));
-        melhor = { turma, data, diasAte, inicio: `${m[1].padStart(2, "0")}:${m[2]}`, fim: m[3] ? `${m[3].padStart(2, "0")}:${m[4]}` : null, chave };
+        melhor = { turma, data, diasAte, inicio: `${h1.padStart(2, "0")}:${m1}`, fim: h2 ? `${h2.padStart(2, "0")}:${m2}` : null, chave };
       }
     }
   }

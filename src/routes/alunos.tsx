@@ -240,6 +240,7 @@ function AlunosPage() {
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Aluno | null>(null);
   const [form, setForm] = useState(vazio);
+  const listaCongelada = useRef<React.ReactNode>(null);
   const [turmaId, setTurmaId] = useState<string>("");
   const [qrAluno, setQrAluno] = useState<Aluno | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -1057,6 +1058,102 @@ function AlunosPage() {
   ].filter(Boolean).length;
 
   const selecionadosAlunos = alunos.filter((a) => selecionados.includes(a.id));
+  // Enquanto a ficha está aberta a lista fica atrás dela; reaproveitar as linhas evita refazê-las a cada letra digitada.
+  if (!aberto || !listaCongelada.current) {
+    listaCongelada.current = (
+      <>
+        {filtrados.map((aluno) => {
+          const turmasDoAluno = matriculas
+            .filter((m) => m.aluno_id === aluno.id)
+            .map((m) => turmas.find((t) => t.id === m.turma_id)?.nome)
+            .filter(Boolean);
+          const sit = situacao(aluno);
+          const idade = aluno.idade ?? (idadePorNascimento(aluno.data_nascimento) || null);
+          const textoTurmas = turmasDoAluno.length ? turmasDoAluno.join(", ") : "Sem turma";
+          return (
+            <li
+              key={aluno.id}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 md:grid md:grid-cols-[1.25rem_2.75rem_minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,2fr)_10rem_auto] md:gap-4",
+                selecionados.includes(aluno.id) && "bg-secondary/60",
+              )}
+            >
+              <Checkbox
+                checked={selecionados.includes(aluno.id)}
+                onCheckedChange={(v) =>
+                  setSelecionados((s) => (v ? [...s, aluno.id] : s.filter((x) => x !== aluno.id)))
+                }
+                aria-label={`Selecionar ${aluno.nome}`}
+              />
+              {fotos[aluno.id] ? (
+                <FotoAmpliavel src={fotos[aluno.id]!} nome={aluno.nome} className="size-12 shrink-0 rounded-full object-cover ring-2 ring-border md:size-11" />
+              ) : (
+                <div className="grid size-12 shrink-0 place-items-center rounded-full bg-pool font-display text-sm font-semibold text-primary-foreground md:size-11">
+                  {aluno.nome.slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <button type="button" onClick={() => void abrirDetalhe(aluno)} className="block max-w-full truncate text-left font-semibold text-foreground hover:text-primary hover:underline">
+                  {aluno.nome}
+                </button>
+                <p className="truncate text-xs text-muted-foreground">
+                  {[idade ? `${idade} anos` : null, aluno.telefone].filter(Boolean).join(" · ") || "\u00a0"}
+                </p>
+                <p className="truncate text-xs text-muted-foreground md:hidden">{textoTurmas}</p>
+                <p className="text-xs font-medium text-foreground md:hidden">Matrícula {aluno.codigo}</p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5 md:hidden">
+                  <SituacaoAluno tom={sit.tom} rotulo={sit.rotulo} />
+                  {aluno.pcd ? <Badge variant="outline">PCD</Badge> : null}
+                </div>
+              </div>
+              <span className="hidden font-mono text-sm text-foreground md:block">{aluno.codigo}</span>
+              <span className="hidden min-w-0 text-sm text-primary md:block">
+                <span className="line-clamp-2">{textoTurmas}</span>
+              </span>
+              <div className="hidden flex-wrap gap-1.5 md:flex">
+                <SituacaoAluno tom={sit.tom} rotulo={sit.rotulo} />
+                {aluno.pcd ? <Badge variant="outline">PCD</Badge> : null}
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button variant="ghost" size="icon" className="hidden md:inline-flex" aria-label="Editar aluno" title="Editar" disabled={!permitido("alunos_editar")} onClick={() => abrirEdicao(aluno)}><Pencil className="size-4" /></Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-10" aria-label={`Mais ações para ${aluno.nome}`}>
+                      <MoreHorizontal className="size-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem onClick={() => void abrirDetalhe(aluno)}>Ver ficha do aluno</DropdownMenuItem>
+                    <DropdownMenuItem disabled={!permitido("alunos_editar")} onClick={() => abrirEdicao(aluno)}>
+                      <Pencil className="size-4" /> Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void abrirPreviewCracha(aluno)}>
+                      <IdCard className="size-4" /> Visualizar crachá
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={!permitido(aluno.ativo ? "alunos_inativar" : "alunos_reativar")}
+                      onClick={() => void alternarAtivo([aluno], !aluno.ativo)}
+                    >
+                      {aluno.ativo ? <UserX className="size-4" /> : <UserCheck className="size-4" />}
+                      {aluno.ativo ? "Inativar" : "Reativar"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      disabled={!permitido("alunos_excluir")}
+                      onClick={() => { if (permitido("alunos_excluir")) setConfirmarExclusao([aluno]); }}
+                    >
+                      <Trash2 className="size-4" /> Excluir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </li>
+          );
+        })}
+      </>
+    );
+  }
   const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
   const alternarListaNotificacao = (lista: string) => {
     setListasNotificacoes((atual) => ({ ...atual, [lista]: !atual[lista] }));
@@ -1806,95 +1903,7 @@ function AlunosPage() {
           </div>
         ) : null}
         <ul className="max-h-[70vh] divide-y divide-border/70 overflow-y-auto overscroll-contain" aria-label="Lista de alunos">
-        {filtrados.map((aluno) => {
-          const turmasDoAluno = matriculas
-            .filter((m) => m.aluno_id === aluno.id)
-            .map((m) => turmas.find((t) => t.id === m.turma_id)?.nome)
-            .filter(Boolean);
-          const sit = situacao(aluno);
-          const idade = aluno.idade ?? (idadePorNascimento(aluno.data_nascimento) || null);
-          const textoTurmas = turmasDoAluno.length ? turmasDoAluno.join(", ") : "Sem turma";
-          return (
-            <li
-              key={aluno.id}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 md:grid md:grid-cols-[1.25rem_2.75rem_minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,2fr)_10rem_auto] md:gap-4",
-                selecionados.includes(aluno.id) && "bg-secondary/60",
-              )}
-            >
-              <Checkbox
-                checked={selecionados.includes(aluno.id)}
-                onCheckedChange={(v) =>
-                  setSelecionados((s) => (v ? [...s, aluno.id] : s.filter((x) => x !== aluno.id)))
-                }
-                aria-label={`Selecionar ${aluno.nome}`}
-              />
-              {fotos[aluno.id] ? (
-                <FotoAmpliavel src={fotos[aluno.id]!} nome={aluno.nome} className="size-12 shrink-0 rounded-full object-cover ring-2 ring-border md:size-11" />
-              ) : (
-                <div className="grid size-12 shrink-0 place-items-center rounded-full bg-pool font-display text-sm font-semibold text-primary-foreground md:size-11">
-                  {aluno.nome.slice(0, 2).toUpperCase()}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <button type="button" onClick={() => void abrirDetalhe(aluno)} className="block max-w-full truncate text-left font-semibold text-foreground hover:text-primary hover:underline">
-                  {aluno.nome}
-                </button>
-                <p className="truncate text-xs text-muted-foreground">
-                  {[idade ? `${idade} anos` : null, aluno.telefone].filter(Boolean).join(" · ") || "\u00a0"}
-                </p>
-                <p className="truncate text-xs text-muted-foreground md:hidden">{textoTurmas}</p>
-                <p className="text-xs font-medium text-foreground md:hidden">Matrícula {aluno.codigo}</p>
-                <div className="mt-1.5 flex flex-wrap gap-1.5 md:hidden">
-                  <SituacaoAluno tom={sit.tom} rotulo={sit.rotulo} />
-                  {aluno.pcd ? <Badge variant="outline">PCD</Badge> : null}
-                </div>
-              </div>
-              <span className="hidden font-mono text-sm text-foreground md:block">{aluno.codigo}</span>
-              <span className="hidden min-w-0 text-sm text-primary md:block">
-                <span className="line-clamp-2">{textoTurmas}</span>
-              </span>
-              <div className="hidden flex-wrap gap-1.5 md:flex">
-                <SituacaoAluno tom={sit.tom} rotulo={sit.rotulo} />
-                {aluno.pcd ? <Badge variant="outline">PCD</Badge> : null}
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <Button variant="ghost" size="icon" className="hidden md:inline-flex" aria-label="Editar aluno" title="Editar" disabled={!permitido("alunos_editar")} onClick={() => abrirEdicao(aluno)}><Pencil className="size-4" /></Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-10" aria-label={`Mais ações para ${aluno.nome}`}>
-                      <MoreHorizontal className="size-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52">
-                    <DropdownMenuItem onClick={() => void abrirDetalhe(aluno)}>Ver ficha do aluno</DropdownMenuItem>
-                    <DropdownMenuItem disabled={!permitido("alunos_editar")} onClick={() => abrirEdicao(aluno)}>
-                      <Pencil className="size-4" /> Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => void abrirPreviewCracha(aluno)}>
-                      <IdCard className="size-4" /> Visualizar crachá
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      disabled={!permitido(aluno.ativo ? "alunos_inativar" : "alunos_reativar")}
-                      onClick={() => void alternarAtivo([aluno], !aluno.ativo)}
-                    >
-                      {aluno.ativo ? <UserX className="size-4" /> : <UserCheck className="size-4" />}
-                      {aluno.ativo ? "Inativar" : "Reativar"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      disabled={!permitido("alunos_excluir")}
-                      onClick={() => { if (permitido("alunos_excluir")) setConfirmarExclusao([aluno]); }}
-                    >
-                      <Trash2 className="size-4" /> Excluir
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </li>
-          );
-        })}
+        {listaCongelada.current}
         </ul>
         {!filtrados.length && carregando && !alunos.length ? (
           <CarregandoLinhas linhas={6} className="p-3" />

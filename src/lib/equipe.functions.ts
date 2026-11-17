@@ -43,6 +43,8 @@ export const alterarPermissaoProfessor = createServerFn({ method: "POST" })
     if (readError || !confirmacaoValida(registro, await hashConfirmacao(data.token))) throw new Error("Confirme novamente a senha do administrador.");
     const { error } = await supabaseAdmin.from("permissoes_professor").upsert({ chave: data.chave, ativo: data.ativo, updated_at: new Date().toISOString() });
     if (error) throw new Error("Não foi possível atualizar a permissão.");
+    const rotulo = PERMISSOES_PROFESSOR.find((p) => p.chave === data.chave)?.rotulo ?? data.chave;
+    await registrarAcao(supabaseAdmin, context.userId, "Permissão alterada", `Professores: ${rotulo} ${data.ativo ? "liberado" : "bloqueado"}`);
     return { ok: true };
   });
 
@@ -65,7 +67,16 @@ export const removerContaPendente = createServerFn({ method: "POST" })
       .select("id", { count: "exact", head: true })
       .eq("user_id", data.userId);
     if (count) throw new Error("Só é possível remover contas que ainda aguardam liberação.");
+    const { data: alvo } = await supabaseAdmin.from("profiles").select("nome,email").eq("id", data.userId).maybeSingle();
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
+    await registrarAcao(supabaseAdmin, context.userId, "Conta removida", alvo?.nome || alvo?.email || "Conta aguardando liberação");
     return { ok: true };
   });
+
+/** Grava no registro de ações quem fez a alteração. Falhas aqui nunca desfazem a ação principal. */
+async function registrarAcao(admin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"], autorId: string, acao: string, detalhe: string) {
+  const { data: perfil } = await admin.from("profiles").select("nome,email").eq("id", autorId).maybeSingle();
+  const { error } = await admin.from("registro_acoes").insert({ autor_id: autorId, autor_nome: perfil?.nome || perfil?.email || null, acao, detalhe });
+  if (error) console.error("[registro_acoes]", error.message);
+}

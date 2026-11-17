@@ -7,7 +7,7 @@ import { Camera, CameraOff, Search, SearchX, X, CalendarIcon, ChevronDown, Users
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { BotoesChamada, ProgressoChamada, ResumoChamada } from "@/components/BotoesChamada";
+import { BotoesChamada, ProgressoChamada, ResumoChamada, type CategoriaResumoChamada } from "@/components/BotoesChamada";
 import { PerfilAluno } from "@/components/PerfilAluno";
 import { FaltaAutomatica } from "@/components/FaltaAutomatica";
 import { EstadoVazio } from "@/components/EstadoVazio";
@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -165,6 +166,7 @@ function PresencaPage() {
   const buscaFiltro = useDeferredValue(busca);
   // A chamada mostra os alunos aos poucos; mais aparecem quando o fim da lista fica visível.
   const [limiteLista, setLimiteLista] = useState(40);
+  const [contadorAberto, setContadorAberto] = useState<CategoriaResumoChamada | "Marcados" | null>(null);
   const sentinelaLista = useRef<HTMLDivElement>(null);
   const [statusPorAluno, setStatusPorAluno] = useState<Record<string, StatusPresenca>>({});
   const [observacao, setObservacao] = useState("");
@@ -556,6 +558,15 @@ function PresencaPage() {
   const semRegistro = filtrados.filter(
     (a) => !statusPorAluno[a.id] && !licencas.some((l) => l.aluno_id === a.id && licencaEmVigor(l, hoje)),
   );
+  const alunosPorContador = {
+    Presentes: filtrados.filter((a) => statusPorAluno[a.id] === "presente"),
+    Faltas: filtrados.filter((a) => statusPorAluno[a.id] === "falta"),
+    Justificadas: filtrados.filter((a) => statusPorAluno[a.id] === "falta_justificada"),
+    Licença: filtrados.filter((a) => licencas.some((l) => l.aluno_id === a.id && licencaEmVigor(l, hoje))),
+    "Sem marcação": semRegistro,
+    Marcados: filtrados.filter((a) => statusPorAluno[a.id]),
+  };
+  const alunosDoContador = contadorAberto ? alunosPorContador[contadorAberto] : [];
 
   const chaveFiltrosLista = [buscaFiltro, turmaIdsValidos.join(), filtroModalidade, filtroTurno, filtrosFaixaEtaria.join(), filtroDias].join("|");
   useEffect(() => { setLimiteLista(40); }, [chaveFiltrosLista]);
@@ -813,13 +824,14 @@ function PresencaPage() {
                 <div className="max-h-[75vh] overflow-y-auto overscroll-contain pr-1 sm:max-h-[36rem]">
                   {/* Contador fixo no topo enquanto a lista rola. */}
                   <div className="sticky top-0 z-10 mb-3 rounded-xl border border-border/70 bg-card/95 px-3 py-2.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
-                    <ProgressoChamada marcados={filtrados.filter((a) => statusPorAluno[a.id]).length} total={filtrados.length} />
+                    <ProgressoChamada marcados={alunosPorContador.Marcados.length} total={filtrados.length} onVerAlunos={() => setContadorAberto("Marcados")} />
                     <ResumoChamada
-                      presentes={filtrados.filter((a) => statusPorAluno[a.id] === "presente").length}
-                      faltas={filtrados.filter((a) => statusPorAluno[a.id] === "falta").length}
-                      justificadas={filtrados.filter((a) => statusPorAluno[a.id] === "falta_justificada").length}
-                      licenca={filtrados.filter((a) => licencas.some((l) => l.aluno_id === a.id && licencaEmVigor(l, hoje))).length}
+                      presentes={alunosPorContador.Presentes.length}
+                      faltas={alunosPorContador.Faltas.length}
+                      justificadas={alunosPorContador.Justificadas.length}
+                      licenca={alunosPorContador.Licença.length}
                       semMarcacao={semRegistro.length}
+                      onVerAlunos={setContadorAberto}
                     />
                   </div>
                   {carregandoAlunos ? (
@@ -924,6 +936,34 @@ function PresencaPage() {
       </div>
 
       <PerfilAluno alunoId={perfilAlunoId} onFechar={() => setPerfilAlunoId(null)} />
+
+      <Dialog open={contadorAberto !== null} onOpenChange={(aberto) => { if (!aberto) setContadorAberto(null); }}>
+        <DialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-lg">
+          <DialogHeader className="pr-6">
+            <DialogTitle>{contadorAberto} ({alunosDoContador.length})</DialogTitle>
+            <DialogDescription>{format(data, "dd/MM/yyyy")} · {rotuloTurmas}</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60dvh] overflow-y-auto overscroll-contain">
+            {alunosDoContador.length ? (
+              <ul className="divide-y divide-border">
+                {alunosDoContador.map((aluno) => {
+                  const status = statusPorAluno[aluno.id];
+                  return (
+                  <li key={aluno.id} className="py-3">
+                    <p className="break-words font-medium">{aluno.nome}</p>
+                    <p className="text-xs text-muted-foreground">Matrícula: {aluno.codigo}{status ? ` · ${rotuloStatus[status]}` : ""}</p>
+                  </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <EstadoVazio icone={Users} titulo="Nenhum aluno nesta situação" descricao="Não há alunos nesta situação para a data e os filtros selecionados.">
+                <Button variant="outline" onClick={() => setContadorAberto(null)}>Voltar à chamada</Button>
+              </EstadoVazio>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
 
       <AlertDialog open={Boolean(confirmacao)} onOpenChange={(aberto) => !aberto && setConfirmacao(null)}>

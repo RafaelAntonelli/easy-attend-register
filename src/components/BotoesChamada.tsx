@@ -71,15 +71,19 @@ export function BotoesChamada({
 }
 
 /** "12 de 18 marcados" com barra de progresso. */
-export function ProgressoChamada({ marcados, total }: { marcados: number; total: number }) {
+export function ProgressoChamada({ marcados, total, onVerAlunos }: { marcados: number; total: number; onVerAlunos?: () => void }) {
   const pct = total > 0 ? Math.round((marcados / total) * 100) : 0;
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium text-foreground">Chamada</span>
-        <span className="text-muted-foreground">
-          {marcados} de {total} marcado{total === 1 ? "" : "s"}
-        </span>
+        {onVerAlunos ? (
+          <Button type="button" variant="link" className="h-auto whitespace-normal p-0 text-right text-sm" onClick={onVerAlunos} aria-label={`Ver alunos marcados: ${marcados} de ${total}`}>
+            {marcados} de {total} marcado{total === 1 ? "" : "s"}
+          </Button>
+        ) : (
+          <span className="text-muted-foreground">{marcados} de {total} marcado{total === 1 ? "" : "s"}</span>
+        )}
       </div>
       <Progress value={pct} className="h-2" aria-label={`${marcados} de ${total} alunos marcados`} />
     </div>
@@ -87,8 +91,10 @@ export function ProgressoChamada({ marcados, total }: { marcados: number; total:
 }
 
 /** Resumo do dia: quantos vieram, faltaram, justificaram, estão de licença e ainda sem marcação. */
-export function ResumoChamada({ presentes, faltas, justificadas, licenca, semMarcacao }: { presentes: number; faltas: number; justificadas: number; licenca: number; semMarcacao: number }) {
-  const itens: [string, number, string][] = [
+export type CategoriaResumoChamada = "Presentes" | "Faltas" | "Justificadas" | "Licença" | "Sem marcação";
+
+export function ResumoChamada({ presentes, faltas, justificadas, licenca, semMarcacao, onVerAlunos }: { presentes: number; faltas: number; justificadas: number; licenca: number; semMarcacao: number; onVerAlunos?: (categoria: CategoriaResumoChamada) => void }) {
+  const itens: [CategoriaResumoChamada, number, string][] = [
     ["Presentes", presentes, "text-success"],
     ["Faltas", faltas, "text-destructive"],
     ["Justificadas", justificadas, "text-warning-strong"],
@@ -99,8 +105,17 @@ export function ResumoChamada({ presentes, faltas, justificadas, licenca, semMar
     <dl className="mt-2 grid grid-cols-5 gap-1 text-center" aria-label="Resumo do dia">
       {itens.map(([rotulo, valor, cor]) => (
         <div key={rotulo} className="min-w-0 rounded-md bg-muted/50 px-1 py-1">
-          <dd className={`text-base font-semibold leading-tight ${cor}`}>{valor}</dd>
-          <dt className="truncate text-[0.65rem] text-muted-foreground">{rotulo}</dt>
+          <dt className="sr-only">{rotulo}</dt>
+          <dd>
+            {onVerAlunos ? (
+              <Button type="button" variant="ghost" className="h-auto min-h-11 w-full flex-col gap-0 whitespace-normal px-0 py-1" onClick={() => onVerAlunos(rotulo)} aria-label={`Ver alunos: ${rotulo} (${valor})`}>
+                <span className={`text-base font-semibold leading-tight ${cor}`}>{valor}</span>
+                <span className="w-full text-[0.65rem] leading-tight text-muted-foreground">{rotulo}</span>
+              </Button>
+            ) : (
+              <><span className={`block text-base font-semibold leading-tight ${cor}`}>{valor}</span><span className="block truncate text-[0.65rem] text-muted-foreground">{rotulo}</span></>
+            )}
+          </dd>
         </div>
       ))}
     </dl>

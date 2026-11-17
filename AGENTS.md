@@ -43,5 +43,5 @@
 - Monthly attendance totals use relatorio-mensal.ts for both screen and PDF, counting each attendance record and unique students separately; reads are paginated over explicit month boundaries.
 - Offline delivery uses generateSW and the single guarded pwa.ts registrar; cache only audited effect-loaded public staff shells, never personalized SSR/API responses, and keep Firebase on its separate messaging scope.
 - Offline snapshots and queued actions are account-scoped; offline access permits local consultation/chamada only, never restores admin privileges, and server authorization revalidates every replay.
-- Admin audit trail lives in registro_acoes: DB triggers log student deletions and role changes; service-role server functions insert their own rows explicitly (auth.uid() is null there).
-- Certificate-expiry notices to students come from the daily SQL job disparar_avisos_atestado, deduplicated by avisos_alunos.chave and pushed through the existing lembretes-aulas route.
+- Audit: registro_acoes via triggers; service-role fns insert rows themselves (no auth.uid()).
+- Certificate notices: daily SQL disparar_avisos_atestado, deduped by chave, pushed via lembretes-aulas.

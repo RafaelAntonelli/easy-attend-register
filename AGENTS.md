@@ -43,3 +43,5 @@
 - Monthly attendance totals use relatorio-mensal.ts for both screen and PDF, counting each attendance record and unique students separately; reads are paginated over explicit month boundaries.
 - Offline delivery uses generateSW and the single guarded pwa.ts registrar; cache only audited effect-loaded public staff shells, never personalized SSR/API responses, and keep Firebase on its separate messaging scope.
 - Offline snapshots and queued actions are account-scoped; offline access permits local consultation/chamada only, never restores admin privileges, and server authorization revalidates every replay.
+- Audit: registro_acoes via triggers; service-role fns insert rows themselves (no auth.uid()).
+- Certificate notices: daily SQL disparar_avisos_atestado, deduped by chave, pushed via lembretes-aulas.

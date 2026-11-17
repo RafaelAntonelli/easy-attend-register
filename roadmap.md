@@ -122,3 +122,10 @@
 - [x] Carregamento com blocos cinza (Alunos, Turmas, Presença).
 - [x] Telas vazias com frase e botão do que fazer (Alunos, Turmas, Presença).
 - [x] Chamada no celular: foto maior e contador fixo no topo da lista.
+
+- [x] Alunos: lista aparece aos poucos ao rolar.
+- [x] Presença: resumo do dia (presentes, faltas, justificadas, licença, sem marcação).
+- [x] Aviso ao aluno de atestado vencendo (7 dias e 1 dia antes, 9h).
+- [x] Área do aluno: próxima aula em destaque.
+- [x] Equipe: registro de ações (exclusões, papéis, permissões).
+- [x] Backup automático semanal — já existia (sexta 19h).

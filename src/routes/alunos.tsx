@@ -179,6 +179,8 @@ const vazio = {
 };
 
 
+const LOTE_LISTA = 60;
+
 function AlunosPage() {
   const { lista: listaHorarios } = useHorarios();
   const { lista: listaGrupos } = useGruposDias();
@@ -241,6 +243,9 @@ function AlunosPage() {
   const [editando, setEditando] = useState<Aluno | null>(null);
   const [form, setForm] = useState(vazio);
   const listaCongelada = useRef<React.ReactNode>(null);
+  // A lista mostra os alunos aos poucos: mais um lote aparece quando o fim da lista fica visível.
+  const [limiteLista, setLimiteLista] = useState(LOTE_LISTA);
+  const sentinelaLista = useRef<HTMLLIElement>(null);
   const [turmaId, setTurmaId] = useState<string>("");
   const [qrAluno, setQrAluno] = useState<Aluno | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -1062,7 +1067,7 @@ function AlunosPage() {
   if (!aberto || !listaCongelada.current) {
     listaCongelada.current = (
       <>
-        {filtrados.map((aluno) => {
+        {filtrados.slice(0, limiteLista).map((aluno) => {
           const turmasDoAluno = matriculas
             .filter((m) => m.aluno_id === aluno.id)
             .map((m) => turmas.find((t) => t.id === m.turma_id)?.nome)
@@ -1154,6 +1159,15 @@ function AlunosPage() {
       </>
     );
   }
+  const chaveFiltros = [buscaFiltro, filtroNotificacao, filtroSexo, idadeMin, idadeMax, filtroModalidade, filtrosHorario.join(), filtroDias, filtroTurno, filtroPcd].join("|");
+  useEffect(() => { setLimiteLista(LOTE_LISTA); }, [chaveFiltros]);
+  useEffect(() => {
+    const alvo = sentinelaLista.current;
+    if (!alvo || typeof IntersectionObserver === "undefined") return;
+    const obs = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) setLimiteLista((n) => n + LOTE_LISTA); }, { rootMargin: "400px" });
+    obs.observe(alvo);
+    return () => obs.disconnect();
+  }, [limiteLista, filtrados.length > limiteLista]);
   const todosSelecionados = filtrados.length > 0 && filtrados.every((a) => selecionados.includes(a.id));
   const alternarListaNotificacao = (lista: string) => {
     setListasNotificacoes((atual) => ({ ...atual, [lista]: !atual[lista] }));
@@ -1904,6 +1918,13 @@ function AlunosPage() {
         ) : null}
         <ul className="max-h-[70vh] divide-y divide-border/70 overflow-y-auto overscroll-contain" aria-label="Lista de alunos">
         {listaCongelada.current}
+        {filtrados.length > limiteLista ? (
+          <li ref={sentinelaLista} className="p-3 text-center">
+            <Button variant="ghost" size="sm" onClick={() => setLimiteLista((n) => n + LOTE_LISTA)}>
+              Mostrar mais ({filtrados.length - limiteLista} restantes)
+            </Button>
+          </li>
+        ) : null}
         </ul>
         {!filtrados.length && carregando && !alunos.length ? (
           <CarregandoLinhas linhas={6} className="p-3" />

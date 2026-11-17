@@ -162,6 +162,13 @@
       "when": 1793787056792,
       "tag": "0022_perfil_aluno_somente_leitura",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794908225053,
+      "tag": "0023_registro_acoes_e_aviso_atestado",
+      "breakpoints": true
     }
   ]
 }

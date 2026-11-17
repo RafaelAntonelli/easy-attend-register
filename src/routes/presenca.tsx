@@ -950,7 +950,19 @@ function PresencaPage() {
                   const status = statusPorAluno[aluno.id];
                   return (
                   <li key={aluno.id} className="py-3">
-                    <p className="break-words font-medium">{aluno.nome}</p>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto max-w-full justify-start whitespace-normal break-words p-0 text-left font-medium"
+                      disabled={!online}
+                      title={`Ver perfil de ${aluno.nome}`}
+                      onClick={() => {
+                        setContadorAberto(null);
+                        setPerfilAlunoId(aluno.id);
+                      }}
+                    >
+                      {aluno.nome}
+                    </Button>
                     <p className="text-xs text-muted-foreground">Matrícula: {aluno.codigo}{status ? ` · ${rotuloStatus[status]}` : ""}</p>
                   </li>
                   );

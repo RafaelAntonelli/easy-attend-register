@@ -359,6 +359,19 @@ function TurmasPage() {
       .eq("aluno_id", alunoId)
       .eq("data", hoje)
       .maybeSingle();
+    if (statusPresenca[alunoId] === status) {
+      if (existente.data) {
+        const { error: erroDel } = await supabase.from("presencas").delete().eq("id", existente.data.id);
+        if (erroDel) return toast.error(erroDel.message);
+      }
+      setStatusPresenca((s) => {
+        const n = { ...s };
+        delete n[alunoId];
+        return n;
+      });
+      toast.success("Marcação desfeita");
+      return;
+    }
     const { error } = existente.data
       ? await supabase
           .from("presencas")

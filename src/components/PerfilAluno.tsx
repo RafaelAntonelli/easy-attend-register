@@ -375,10 +375,7 @@ export function PerfilAluno({ alunoId, onFechar, onEditar, onCracha, onBaixar }:
                 <div className="min-w-0 flex-1 space-y-2 pr-4 sm:pr-0">
                   <DialogTitle className="break-words font-display text-2xl leading-tight sm:text-3xl">{aluno.nome}</DialogTitle>
                   <SituacaoAluno tom={!aluno.ativo ? "inativo" : licencaAberta ? "licenca" : "ativo"} rotulo={!aluno.ativo ? "Inativo" : licencaAberta ? "Licença médica" : "Ativo"} />
-                  <div className="flex flex-col gap-x-4 gap-y-1 text-sm text-muted-foreground sm:flex-row sm:items-baseline">
-                    <p className="shrink-0">Matrícula: <span className="font-medium">{aluno.codigo}</span></p>
-                    <p className="min-w-0 flex-1 break-words">Turma atual: <span className="font-medium text-foreground">{turmaAtiva?.nome ?? "Sem turma ativa"}{turmaAtiva?.horario && !turmaAtiva.nome.includes(turmaAtiva.horario) ? ` · ${turmaAtiva.horario}` : ""}</span></p>
-                  </div>
+                  <p className="text-sm text-muted-foreground">Matrícula: <span className="font-medium">{aluno.codigo}</span></p>
                 </div>
                 <div className="hidden items-center gap-2 sm:flex">
                   {onEditar ? <Button variant="ghost" size="icon" title="Editar cadastro" aria-label="Editar cadastro" onClick={onEditar}><Pencil /></Button> : null}
@@ -394,6 +391,19 @@ export function PerfilAluno({ alunoId, onFechar, onEditar, onCracha, onBaixar }:
                 {onBaixar ? <Button variant="outline" size="icon" title="Baixar crachá" aria-label="Baixar crachá" onClick={onBaixar}><Download /></Button> : null}
               </div>
             </DialogHeader>
+            <div className="grid gap-4 rounded-lg bg-secondary/60 px-4 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] sm:gap-5">
+              <div className="flex min-w-0 items-center gap-3 sm:border-r sm:border-border sm:pr-5">
+                <FileCheck2 className="size-5 shrink-0 text-primary" />
+                <p className="break-words font-medium">{!aluno.atestado_entregue ? "Atestado não entregue" : atestadoVencido(aluno.atestado_data) ? "Atestado vencido" : vencimentoAtestado(aluno.atestado_data) ? `Atestado válido até ${vencimentoAtestado(aluno.atestado_data)?.toLocaleDateString("pt-BR")}` : "Atestado entregue · sem data"}</p>
+              </div>
+              <div className="flex min-w-0 items-center gap-3 border-t border-border pt-3 sm:border-t-0 sm:pt-0">
+                <GraduationCap className="size-5 shrink-0 text-primary" />
+                <div className="min-w-0 space-y-1">
+                  <p className="text-xs text-muted-foreground">Turma atual</p>
+                  <p className="break-words font-medium">{turmaAtiva?.nome ?? "Sem turma ativa"}{turmaAtiva?.horario && !turmaAtiva.nome.includes(turmaAtiva.horario) ? ` · ${turmaAtiva.horario}` : ""}</p>
+                </div>
+              </div>
+            </div>
             <Tabs defaultValue="cadastro" className="min-w-0">
               <TabsList className="grid h-auto w-full grid-cols-2 gap-0 rounded-none border-b bg-transparent p-0 sm:grid-cols-4">
                 {[["cadastro", "Dados cadastrais"], ["matriculas", "Matrículas"], ["documentos", "Documentos"], ["historico", "Histórico"]].map(([valor, rotulo]) => (
@@ -427,10 +437,6 @@ export function PerfilAluno({ alunoId, onFechar, onEditar, onCracha, onBaixar }:
                       </dl>
                     </section>
                   </div>
-                </div>
-                <div className="flex flex-col gap-4 rounded-lg bg-secondary/60 p-4 text-sm sm:flex-row sm:items-center">
-                  <div className="flex items-center gap-2 sm:border-r sm:pr-5"><FileCheck2 className="size-5 shrink-0 text-primary" /><span className="font-medium">{!aluno.atestado_entregue ? "Atestado não entregue" : atestadoVencido(aluno.atestado_data) ? "Atestado vencido" : vencimentoAtestado(aluno.atestado_data) ? `Atestado válido até ${vencimentoAtestado(aluno.atestado_data)?.toLocaleDateString("pt-BR")}` : "Atestado entregue · sem data"}</span></div>
-                  <div className="flex items-center gap-2"><GraduationCap className="size-5 shrink-0 text-primary" /><div><p className="text-xs text-muted-foreground">Turma atual</p><p className="font-medium">{turmaAtiva?.nome ?? "Sem turma ativa"}{turmaAtiva?.horario && !turmaAtiva.nome.includes(turmaAtiva.horario) ? ` · ${turmaAtiva.horario}` : ""}</p></div></div>
                 </div>
                 <MensagemWhatsAppIA telefone={aluno.telefone} />
             <div className="space-y-2 rounded-lg border border-border/70 p-3 text-sm">

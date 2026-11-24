@@ -1075,11 +1075,12 @@ function AlunosPage() {
           const sit = situacao(aluno);
           const idade = aluno.idade ?? (idadePorNascimento(aluno.data_nascimento) || null);
           const textoTurmas = turmasDoAluno.length ? turmasDoAluno.join(", ") : "Sem turma";
+          const fotoAluno = fotos[aluno.id];
           return (
             <li
               key={aluno.id}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 md:grid md:grid-cols-[1.25rem_2.75rem_minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,2fr)_10rem_auto] md:gap-4",
+                "flex items-start gap-3 px-2 py-5 transition-colors hover:bg-muted/40 sm:px-4 lg:grid lg:grid-cols-[1.25rem_4.5rem_minmax(0,1.8fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.2fr)_2.5rem] lg:items-center lg:gap-4",
                 selecionados.includes(aluno.id) && "bg-secondary/60",
               )}
             >
@@ -1090,37 +1091,42 @@ function AlunosPage() {
                 }
                 aria-label={`Selecionar ${aluno.nome}`}
               />
-              {fotos[aluno.id] ? (
-                <FotoAmpliavel src={fotos[aluno.id]!} nome={aluno.nome} className="size-12 shrink-0 rounded-full object-cover ring-2 ring-border md:size-11" />
+              {fotoAluno ? (
+                <FotoAmpliavel src={fotoAluno} nome={aluno.nome} className="size-16 shrink-0 rounded-md object-cover ring-1 ring-border lg:size-18" />
               ) : (
-                <div className="grid size-12 shrink-0 place-items-center rounded-full bg-pool font-display text-sm font-semibold text-primary-foreground md:size-11">
+                <div className="grid size-16 shrink-0 place-items-center rounded-md bg-secondary font-display text-xl font-semibold text-secondary-foreground lg:size-18">
                   {aluno.nome.slice(0, 2).toUpperCase()}
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <button type="button" onClick={() => void abrirDetalhe(aluno)} className="block max-w-full truncate text-left font-semibold text-foreground hover:text-primary hover:underline">
+                <Button type="button" variant="link" onClick={() => void abrirDetalhe(aluno)} className="h-auto max-w-full justify-start whitespace-normal p-0 text-left text-base font-semibold leading-snug text-foreground hover:text-primary lg:text-lg">
                   {aluno.nome}
-                </button>
+                </Button>
+                <p className="mt-1 text-xs text-muted-foreground">{aluno.codigo}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {[idade ? `${idade} anos` : null, aluno.telefone].filter(Boolean).join(" · ") || "\u00a0"}
+                  {idade ? `${idade} anos` : "\u00a0"}
                 </p>
-                <p className="truncate text-xs text-muted-foreground md:hidden">{textoTurmas}</p>
-                <p className="text-xs font-medium text-foreground md:hidden">Matrícula {aluno.codigo}</p>
-                <div className="mt-1.5 flex flex-wrap gap-1.5 md:hidden">
+                <p className="mt-1 text-xs text-muted-foreground lg:hidden">{textoTurmas}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5 lg:hidden">
                   <SituacaoAluno tom={sit.tom} rotulo={sit.rotulo} />
                   {aluno.pcd ? <Badge variant="outline">PCD</Badge> : null}
                 </div>
               </div>
-              <span className="hidden font-mono text-sm text-foreground md:block">{aluno.codigo}</span>
-              <span className="hidden min-w-0 text-sm text-primary md:block">
+              <span className="hidden min-w-0 text-sm text-foreground lg:block">
                 <span className="line-clamp-2">{textoTurmas}</span>
               </span>
-              <div className="hidden flex-wrap gap-1.5 md:flex">
+              <div className="hidden flex-wrap gap-1.5 lg:flex">
                 <SituacaoAluno tom={sit.tom} rotulo={sit.rotulo} />
                 {aluno.pcd ? <Badge variant="outline">PCD</Badge> : null}
               </div>
+              <div className="hidden min-w-0 items-center gap-1 lg:flex">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs text-foreground" title={aluno.telefone ?? undefined}>{aluno.telefone || "Sem telefone"}</p>
+                  {aluno.email ? <p className="mt-1 truncate text-xs text-muted-foreground" title={aluno.email}>{aluno.email}</p> : null}
+                </div>
+                <ConversarWhatsApp telefone={aluno.telefone} compacto />
+              </div>
               <div className="flex shrink-0 items-center gap-1">
-                <Button variant="ghost" size="icon" className="hidden md:inline-flex" aria-label="Editar aluno" title="Editar" disabled={!permitido("alunos_editar")} onClick={() => abrirEdicao(aluno)}><Pencil className="size-4" /></Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="size-10" aria-label={`Mais ações para ${aluno.nome}`}>
@@ -1226,7 +1232,7 @@ function AlunosPage() {
       <Button
         type="button"
         variant="outline"
-        className="mb-3 min-h-11 w-full justify-between md:hidden"
+        className="mb-3 min-h-11 w-full justify-between md:w-auto md:gap-6"
         aria-expanded={filtrosCelular}
         onClick={() => setFiltrosCelular((v) => !v)}
       >
@@ -1239,7 +1245,7 @@ function AlunosPage() {
         </span>
         {filtrosCelular ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
       </Button>
-      <div className={cn("mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4", !filtrosCelular && "hidden md:grid")}>
+      <div className={cn("mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4", !filtrosCelular && "hidden")}>
         <Select value={filtroNotificacao} onValueChange={(v) => setFiltroNotificacao(v as typeof filtroNotificacao)}>
           <SelectTrigger><SelectValue placeholder="Situação" /></SelectTrigger>
           <SelectContent>
@@ -1338,13 +1344,13 @@ function AlunosPage() {
           </SelectContent>
         </Select>
       </div>
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className={cn("flex items-center gap-2", !filtrosCelular && "hidden md:flex")}>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className={cn("flex items-center gap-2", !filtrosCelular && "hidden")}>
           <Input className="w-24" type="number" min={0} placeholder="Idade mín." value={idadeMin} onChange={(e) => setIdadeMin(e.target.value)} />
           <span className="text-sm text-muted-foreground">a</span>
           <Input className="w-24" type="number" min={0} placeholder="Idade máx." value={idadeMax} onChange={(e) => setIdadeMax(e.target.value)} />
         </div>
-        <div className="relative flex-1">
+        <div className="relative min-w-0 basis-full xl:flex-1 xl:basis-0">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Buscar por nome, responsável, CPF, RG ou telefone..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
@@ -1904,16 +1910,16 @@ function AlunosPage() {
         </Card>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+      <div className="overflow-hidden border-y border-border/70 bg-background">
         {filtrados.length ? (
-          <div className="hidden grid-cols-[1.25rem_2.75rem_minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,2fr)_10rem_auto] items-center gap-4 border-b border-border/70 bg-muted/40 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid">
+          <div className="hidden grid-cols-[1.25rem_4.5rem_minmax(0,1.8fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.2fr)_2.5rem] items-center gap-4 border-b border-border/70 px-4 py-3 text-xs font-medium text-muted-foreground lg:grid">
             <span />
             <span />
-            <span>Nome</span>
-            <span>Matrícula</span>
+            <span>Aluno</span>
             <span>Turma</span>
             <span>Situação</span>
-            <span className="w-[4.5rem]" />
+            <span>Contato</span>
+            <span />
           </div>
         ) : null}
         <ul className="max-h-[70vh] divide-y divide-border/70 overflow-y-auto overscroll-contain" aria-label="Lista de alunos">

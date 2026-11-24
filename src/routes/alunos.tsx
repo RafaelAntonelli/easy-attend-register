@@ -255,9 +255,7 @@ function AlunosPage() {
   const [salvando, setSalvando] = useState(false);
   const [detalhe, setDetalhe] = useState<Aluno | null>(null);
   const [perfilLicencaId, setPerfilLicencaId] = useState<string | null>(null);
-  const [docsUrls, setDocsUrls] = useState<Record<string, string>>({});
 
-  const [historico, setHistorico] = useState<Presenca[] | null>(null);
   const [mostrarNotificacoes, setMostrarNotificacoes] = useState(false);
   const [faltasPorAluno, setFaltasPorAluno] = useState<Record<string, number>>({});
   const [selecionados, setSelecionados] = useState<string[]>([]);
@@ -613,51 +611,9 @@ function AlunosPage() {
     return;
   }
 
-  async function abrirDetalhe(aluno: Aluno) {
+  function abrirDetalhe(aluno: Aluno) {
     setDetalhe(aluno);
-    setHistorico(null);
-    setDocsUrls({});
-    const caminhos = DOCUMENTOS
-      .map((d) => ({ campo: d.campo as string, path: aluno[d.campo] }))
-      .filter((d) => d.path) as { campo: string; path: string }[];
-
-    if (caminhos.length) {
-      const { data: signed } = await supabase.storage
-        .from("fotos-alunos")
-        .createSignedUrls(caminhos.map((c) => c.path), 3600);
-      const mapa: Record<string, string> = {};
-      signed?.forEach((s, i) => {
-        const c = caminhos[i];
-        if (s.signedUrl && c) mapa[c.campo] = s.signedUrl;
-      });
-      setDocsUrls(mapa);
-    }
-    const { data, error } = await supabase
-      .from("presencas")
-      .select("id,data,status,turma_id,observacoes")
-      .eq("aluno_id", aluno.id)
-      .order("data", { ascending: false });
-    if (error) {
-      toast.error(error.message);
-      setHistorico([]);
-      return;
-    }
-    setHistorico((data ?? []) as Presenca[]);
   }
-
-  async function baixarDoc(campo: string, rotulo: string, path: string, nomeAluno: string) {
-    const { data, error } = await supabase.storage.from("fotos-alunos").download(path);
-    if (error || !data) return toast.error(error?.message ?? "Falha ao baixar documento");
-    const ext = path.split(".").pop() ?? "jpg";
-    const url = URL.createObjectURL(data);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${nomeAluno} - ${rotulo}.${ext}`.replace(/\//g, "-");
-    link.click();
-    URL.revokeObjectURL(url);
-    return;
-  }
-
 
   function vagasUsadas(id: string) {
     return matriculas.filter((m) => m.turma_id === id && m.status === "ativa").length;
@@ -1958,193 +1914,15 @@ function AlunosPage() {
         ) : null}
       </div>
 
-      <Dialog open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display">{detalhe?.nome}</DialogTitle>
-          </DialogHeader>
-          {detalhe ? (
-            <div className="space-y-5">
-              <div className="flex items-center gap-4">
-                {fotos[detalhe.id] ? (
-                  <FotoAmpliavel src={fotos[detalhe.id]!} nome={detalhe.nome} className="size-16 rounded-full object-cover" />
-                ) : (
-                  <div className="grid size-16 place-items-center rounded-full bg-pool font-display text-primary-foreground">
-                    {detalhe.nome.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
-                <div className="text-sm text-muted-foreground">
-                  <p>
-                    Matrícula: <span className="font-medium text-foreground">{detalhe.codigo}</span>
-                  </p>
-                  <p>{detalhe.telefone ?? "Sem telefone"}</p>
-                  <p>{detalhe.email ?? "Sem e-mail"}</p>
-                  <p>{detalhe.responsavel ? `Responsável: ${detalhe.responsavel}` : "Sem responsável"}</p>
-                  <p>
-                    Idade: {detalhe.idade ?? (idadePorNascimento(detalhe.data_nascimento) || "-")}
-                    {turmaDoAluno(detalhe.id)?.horario
-                      ? ` · Turno: ${turnoDoHorario(turmaDoAluno(detalhe.id)?.horario)}`
-                      : ""}
-                  </p>
-                </div>
-              </div>
-
-              <Button
-                variant="outline"
-                disabled={gerandoCrachas}
-                onClick={() => void exportarCrachas([detalhe], "cartao")}
-              >
-                <IdCard className="size-4" /> {gerandoCrachas ? "Gerando..." : "Gerar crachá CR-80 (PDF)"}
-              </Button>
-
-              <ConversarWhatsApp telefone={detalhe.telefone} />
-              <MensagemWhatsAppIA telefone={detalhe.telefone} />
-
-              <div className="space-y-2 rounded-lg border border-border/70 p-3 text-sm">
-                <p className="font-medium">Licença médica</p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const id = detalhe.id;
-                    setDetalhe(null);
-                    setPerfilLicencaId(id);
-                  }}
-                >
-                  Registrar Licença Médica
-                </Button>
-              </div>
-
-              {detalhe.observacoes ? (
-                <div className="rounded-lg border border-border/70 p-3 text-sm">
-                  <p className="mb-1 font-medium">Observações</p>
-                  <p className="whitespace-pre-wrap text-muted-foreground">{detalhe.observacoes}</p>
-                </div>
-              ) : null}
-
-
-
-              <div className="rounded-lg border border-border/70 p-3 text-sm">
-                <p className="mb-1 font-medium">Documentos</p>
-                <p className="mb-3 text-muted-foreground">
-                  RG: {detalhe.rg ?? "-"} · CPF: {detalhe.cpf ?? "-"}
-                </p>
-                <div className="mb-3 space-y-2">
-                  {DOCUMENTOS.map((d) => {
-                    const path = detalhe[d.campo];
-                    const url = docsUrls[d.campo];
-                    return (
-                      <div key={d.campo} className="flex items-center gap-3 rounded-lg bg-secondary/50 p-2">
-                        {url ? (
-                          <a href={url} target="_blank" rel="noreferrer">
-                            <img src={url} alt={d.rotulo} className="size-12 rounded object-cover" />
-                          </a>
-                        ) : (
-                          <div className="grid size-12 place-items-center rounded bg-muted text-xs text-muted-foreground">—</div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm">{d.rotulo}</p>
-                          <p className="text-xs text-muted-foreground">{path ? "Enviado" : "Não enviado"}</p>
-                        </div>
-                        {path ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => void baixarDoc(d.campo, d.rotulo, path, detalhe.nome)}
-                          >
-                            Baixar
-                          </Button>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <p className="mb-1 font-medium">PCD</p>
-                <p className="text-muted-foreground">
-                  {detalhe.pcd ? detalhe.pcd_descricao || "Sim" : "Não"}
-                </p>
-                {detalhe.pcd && (detalhe.pcd_condicoes ?? []).length ? (
-                  <ul className="mt-2 list-disc space-y-0.5 pl-5 text-muted-foreground">
-                    {(detalhe.pcd_condicoes ?? []).map((c) => <li key={c}>{c}</li>)}
-                  </ul>
-                ) : null}
-              </div>
-
-              {!detalhe.ativo ? (
-                <div className="space-y-1 text-sm">
-                  <p className="text-sm font-medium">Inativação</p>
-                  <p className="text-muted-foreground">
-                    {detalhe.motivo_inativacao ?? "Motivo não informado"}
-                  </p>
-                  {detalhe.inativado_em ? (
-                    <p className="text-xs text-muted-foreground">
-                      Inativado em {new Date(detalhe.inativado_em).toLocaleDateString("pt-BR")} às {new Date(detalhe.inativado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      {detalhe.inativado_por || detalhe.inativado_por_nome ? ` por ${detalhe.inativado_por_nome ?? nomesUsuarios[detalhe.inativado_por ?? ""] ?? "usuário"}` : ""}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Matrículas</p>
-                {matriculas.filter((m) => m.aluno_id === detalhe.id).length ? (
-                  matriculas
-                    .filter((m) => m.aluno_id === detalhe.id)
-                    .map((m) => (
-                      <div key={m.id} className="rounded-lg bg-secondary/60 px-3 py-2 text-sm">
-                        <p className="font-medium">{turmas.find((t) => t.id === m.turma_id)?.nome ?? "Turma"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {m.modalidade} · {m.status}
-                          {m.data_inicio ? ` · início ${new Date(`${m.data_inicio}T00:00:00`).toLocaleDateString("pt-BR")}` : ""}
-                        </p>
-                        {m.created_at ? (
-                          <p className="text-xs text-muted-foreground">
-                            Matriculado em {new Date(m.created_at).toLocaleDateString("pt-BR")} às {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                            {m.registrado_por || m.registrado_por_nome ? ` por ${m.registrado_por_nome ?? nomesUsuarios[m.registrado_por ?? ""] ?? "usuário"}` : ""}
-                          </p>
-                        ) : null}
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">Sem matrícula ativa.</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Histórico de frequência</p>
-                {historico === null ? (
-                  <p className="text-sm text-muted-foreground">Carregando...</p>
-                ) : historico.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum registro de frequência.</p>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      {(["presente", "falta", "falta_justificada"] as const).map((st) => (
-                        <div key={st} className="rounded-lg border border-border/70 py-2">
-                          <p className="font-display text-lg">{historico.filter((h) => h.status === st).length}</p>
-                          <p className="text-xs text-muted-foreground">{ROTULO_STATUS[st]}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="max-h-56 space-y-1 overflow-y-auto">
-                      {historico.map((h) => (
-                        <div key={h.id} className="rounded-lg bg-secondary/50 px-3 py-1.5 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span>{new Date(`${h.data}T00:00:00`).toLocaleDateString("pt-BR")}</span>
-                            <span className="text-muted-foreground">{ROTULO_STATUS[h.status as keyof typeof ROTULO_STATUS] ?? h.status}</span>
-                          </div>
-                          {h.observacoes ? <p className="mt-0.5 text-xs text-muted-foreground">Obs.: {h.observacoes}</p> : null}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <PerfilAluno
+        alunoId={detalhe?.id ?? null}
+        onFechar={() => setDetalhe(null)}
+        {...(detalhe && permitido("alunos_editar") ? { onEditar: () => { const selecionado = detalhe; setDetalhe(null); abrirEdicao(selecionado); } } : {})}
+        {...(detalhe ? {
+          onCracha: () => { const selecionado = detalhe; setDetalhe(null); void abrirPreviewCracha(selecionado); },
+          onBaixar: () => { void exportarCrachas([detalhe], "cartao"); },
+        } : {})}
+      />
 
       <Dialog
         open={!!qrAluno}

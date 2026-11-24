@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { UserRound, Phone, GraduationCap, Pencil, IdCard, Download, FileCheck2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SituacaoAluno } from "@/components/SituacaoAluno";
+import { atestadoVencido, vencimentoAtestado } from "@/lib/atestado";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -28,6 +32,12 @@ type Anotacao = {
 type AlunoPerfil = {
   id: string;
   codigo: string;
+  sexo: string | null;
+  telefone2: string | null;
+  escola: string | null;
+  rede_ensino: string | null;
+  atestado_data: string | null;
+  atestado_entregue: boolean;
   nome: string;
   data_nascimento: string | null;
   telefone: string | null;
@@ -79,7 +89,13 @@ const ROTULO_STATUS: Record<string, string> = {
   falta_justificada: "Falta justificada",
 };
 
-export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onFechar: () => void }) {
+export function PerfilAluno({ alunoId, onFechar, onEditar, onCracha, onBaixar }: {
+  alunoId: string | null;
+  onFechar: () => void;
+  onEditar?: () => void;
+  onCracha?: () => void;
+  onBaixar?: () => void;
+}) {
   const [aluno, setAluno] = useState<AlunoPerfil | null>(null);
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [docsUrls, setDocsUrls] = useState<Record<string, string>>({});
@@ -341,39 +357,79 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
 
   return (
     <Dialog open={!!alunoId} onOpenChange={(o) => !o && onFechar()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="font-display">{aluno?.nome ?? "Perfil do aluno"}</DialogTitle>
-        </DialogHeader>
+      <DialogContent aria-describedby={undefined} className="max-h-[90dvh] w-[calc(100%-1.5rem)] overflow-y-auto p-5 sm:max-w-4xl sm:p-7 [scrollbar-gutter:stable]">
+        {!aluno ? <DialogTitle>Perfil do aluno</DialogTitle> : null}
         {!aluno ? (
           <p className="py-6 text-center text-sm text-muted-foreground">Carregando perfil...</p>
         ) : (
           <div className="space-y-5">
-            <div className="flex items-center gap-4">
-              {fotoUrl ? (
-                <img src={fotoUrl} alt={`Foto de ${aluno.nome}`} className="size-16 rounded-full object-cover" />
-              ) : (
-                <div className="grid size-16 place-items-center rounded-full bg-pool font-display text-primary-foreground">
-                  {aluno.nome.slice(0, 2).toUpperCase()}
+            <DialogHeader className="text-left">
+              <div className="flex items-start gap-4 sm:items-center sm:gap-5">
+                {fotoUrl ? (
+                  <img src={fotoUrl} alt={`Foto de ${aluno.nome}`} className="size-20 shrink-0 rounded-lg object-cover sm:size-28" />
+                ) : (
+                  <div className="grid size-20 shrink-0 place-items-center rounded-lg bg-secondary font-display text-2xl text-secondary-foreground sm:size-28">
+                    {aluno.nome.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1 space-y-2 pr-4 sm:pr-0">
+                  <DialogTitle className="break-words font-display text-2xl leading-tight sm:text-3xl">{aluno.nome}</DialogTitle>
+                  <SituacaoAluno tom={!aluno.ativo ? "inativo" : licencaAberta ? "licenca" : "ativo"} rotulo={!aluno.ativo ? "Inativo" : licencaAberta ? "Licença médica" : "Ativo"} />
+                  <p className="text-sm text-muted-foreground">Matrícula: <span className="font-medium">{aluno.codigo}</span></p>
                 </div>
-              )}
-              <div className="text-sm text-muted-foreground">
-                <p>
-                  Matrícula: <span className="font-medium text-foreground">{aluno.codigo}</span>
-                </p>
-                <p>{aluno.telefone ?? "Sem telefone"}</p>
-                <p>{aluno.email ?? "Sem e-mail"}</p>
-                <p>{aluno.responsavel ? `Responsável: ${aluno.responsavel}` : "Sem responsável"}</p>
-                <p>
-                  Idade: {aluno.idade ?? (idadePorNascimento(aluno.data_nascimento) || "-")}
-                  {turmaAtiva?.horario ? ` · Turno: ${turnoDoHorario(turmaAtiva.horario)}` : ""}
-                </p>
+                <div className="hidden items-center gap-2 sm:flex">
+                  {onEditar ? <Button variant="ghost" size="icon" title="Editar cadastro" aria-label="Editar cadastro" onClick={onEditar}><Pencil /></Button> : null}
+                  <ConversarWhatsApp telefone={aluno.telefone} compacto />
+                  {onCracha ? <Button variant="ghost" size="icon" title="Visualizar crachá" aria-label="Visualizar crachá" onClick={onCracha}><IdCard /></Button> : null}
+                  {onBaixar ? <Button variant="ghost" size="icon" title="Baixar crachá" aria-label="Baixar crachá" onClick={onBaixar}><Download /></Button> : null}
+                </div>
               </div>
-            </div>
-
-            <ConversarWhatsApp telefone={aluno.telefone} />
-            <MensagemWhatsAppIA telefone={aluno.telefone} />
-
+              <div className="flex items-center gap-2 pt-2 sm:hidden">
+                {onEditar ? <Button variant="outline" size="icon" title="Editar cadastro" aria-label="Editar cadastro" onClick={onEditar}><Pencil /></Button> : null}
+                <ConversarWhatsApp telefone={aluno.telefone} compacto />
+                {onCracha ? <Button variant="outline" size="icon" title="Visualizar crachá" aria-label="Visualizar crachá" onClick={onCracha}><IdCard /></Button> : null}
+                {onBaixar ? <Button variant="outline" size="icon" title="Baixar crachá" aria-label="Baixar crachá" onClick={onBaixar}><Download /></Button> : null}
+              </div>
+            </DialogHeader>
+            <Tabs defaultValue="cadastro" className="min-w-0">
+              <TabsList className="grid h-auto w-full grid-cols-2 gap-0 rounded-none border-b bg-transparent p-0 sm:grid-cols-4">
+                {[["cadastro", "Dados cadastrais"], ["matriculas", "Matrículas"], ["documentos", "Documentos"], ["historico", "Histórico"]].map(([valor, rotulo]) => (
+                  <TabsTrigger key={valor} value={valor ?? ""} className="min-h-12 flex-1 rounded-none border-b-2 border-transparent px-3 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none sm:text-sm">{rotulo}</TabsTrigger>
+                ))}
+              </TabsList>
+              <TabsContent value="cadastro" className="space-y-6 pt-5">
+                <div className="grid gap-7 sm:grid-cols-2">
+                  <section className="min-w-0 space-y-4">
+                    <h3 className="flex items-center gap-2 border-b pb-2 text-sm font-semibold"><UserRound className="size-4 text-primary" />Dados pessoais</h3>
+                    <dl className="space-y-3 text-sm">
+                      {[["Nome completo", aluno.nome], ["Nascimento", aluno.data_nascimento ? dataBR(aluno.data_nascimento) : null], ["Idade", aluno.idade ?? (idadePorNascimento(aluno.data_nascimento) || null)], ["Sexo", aluno.sexo], ["RG", aluno.rg], ["CPF", aluno.cpf]].map(([rotulo, valor]) => (
+                        <div key={rotulo} className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3"><dt className="text-muted-foreground">{rotulo}</dt><dd className="break-words font-medium">{valor ?? "Não informado"}</dd></div>
+                      ))}
+                    </dl>
+                  </section>
+                  <div className="min-w-0 space-y-7">
+                    <section className="space-y-4">
+                      <h3 className="flex items-center gap-2 border-b pb-2 text-sm font-semibold"><Phone className="size-4 text-primary" />Contato</h3>
+                      <dl className="space-y-3 text-sm">
+                        {[["Telefone", aluno.telefone], ["Outro telefone", aluno.telefone2], ["E-mail", aluno.email], ["Responsável", aluno.responsavel]].map(([rotulo, valor]) => (
+                          <div key={rotulo} className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3"><dt className="text-muted-foreground">{rotulo}</dt><dd className="break-words font-medium">{valor || "Não informado"}</dd></div>
+                        ))}
+                      </dl>
+                    </section>
+                    <section className="space-y-4">
+                      <h3 className="flex items-center gap-2 border-b pb-2 text-sm font-semibold"><GraduationCap className="size-4 text-primary" />Escola</h3>
+                      <dl className="space-y-3 text-sm">
+                        <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3"><dt className="text-muted-foreground">Escola</dt><dd className="break-words font-medium">{aluno.escola || "Não informada"}</dd></div>
+                        <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3"><dt className="text-muted-foreground">Rede de ensino</dt><dd className="break-words font-medium">{aluno.rede_ensino || "Não informada"}</dd></div>
+                      </dl>
+                    </section>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-4 rounded-lg bg-secondary/60 p-4 text-sm sm:flex-row sm:items-center">
+                  <div className="flex items-center gap-2 sm:border-r sm:pr-5"><FileCheck2 className="size-5 shrink-0 text-primary" /><span className="font-medium">{!aluno.atestado_entregue ? "Atestado não entregue" : atestadoVencido(aluno.atestado_data) ? "Atestado vencido" : vencimentoAtestado(aluno.atestado_data) ? `Atestado válido até ${vencimentoAtestado(aluno.atestado_data)?.toLocaleDateString("pt-BR")}` : "Atestado entregue · sem data"}</span></div>
+                  <div className="flex items-center gap-2"><GraduationCap className="size-5 shrink-0 text-primary" /><div><p className="text-xs text-muted-foreground">Turma atual</p><p className="font-medium">{turmaAtiva?.nome ?? "Sem turma ativa"}{turmaAtiva?.horario && !turmaAtiva.nome.includes(turmaAtiva.horario) ? ` · ${turmaAtiva.horario}` : ""}</p></div></div>
+                </div>
+                <MensagemWhatsAppIA telefone={aluno.telefone} />
             <div className="space-y-2 rounded-lg border border-border/70 p-3 text-sm">
               <p className="font-medium">Licença médica</p>
               {licencaAberta ? (
@@ -490,38 +546,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
               </div>
             ) : null}
 
-            <div className="rounded-lg border border-border/70 p-3 text-sm">
-              <p className="mb-1 font-medium">Documentos</p>
-              <p className="mb-3 text-muted-foreground">
-                RG: {aluno.rg ?? "-"} · CPF: {aluno.cpf ?? "-"}
-              </p>
-              <div className="mb-3 space-y-2">
-                {DOCUMENTOS.map((d) => {
-                  const path = aluno[d.campo];
-                  const url = docsUrls[d.campo];
-                  return (
-                    <div key={d.campo} className="flex items-center gap-3 rounded-lg bg-secondary/50 p-2">
-                      {url ? (
-                        <a href={url} target="_blank" rel="noreferrer">
-                          <img src={url} alt={d.rotulo} className="size-12 rounded object-cover" />
-                        </a>
-                      ) : (
-                        <div className="grid size-12 place-items-center rounded bg-muted text-xs text-muted-foreground">—</div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm">{d.rotulo}</p>
-                        <p className="text-xs text-muted-foreground">{path ? "Enviado" : "Não enviado"}</p>
-                      </div>
-                      {path ? (
-                        <Button size="sm" variant="outline" onClick={() => void baixarDoc(d.rotulo, path, aluno.nome)}>
-                          Baixar
-                        </Button>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-
+            <section className="border-t pt-4 text-sm">
               <p className="mb-1 font-medium">PCD</p>
               <p className="text-muted-foreground">{aluno.pcd ? aluno.pcd_descricao || "Sim" : "Não"}</p>
               {aluno.pcd && (aluno.pcd_condicoes ?? []).length ? (
@@ -531,7 +556,7 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                   ))}
                 </ul>
               ) : null}
-            </div>
+            </section>
 
             {!aluno.ativo ? (
               <div className="space-y-1 text-sm">
@@ -546,30 +571,6 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                 ) : null}
               </div>
             ) : null}
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Matrículas</p>
-              {matriculas.length ? (
-                matriculas.map((m) => (
-                  <div key={m.id} className="rounded-lg bg-secondary/60 px-3 py-2 text-sm">
-                    <p className="font-medium">{turmas.find((t) => t.id === m.turma_id)?.nome ?? "Turma"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {m.modalidade} · {m.status}
-                      {m.data_inicio ? ` · início ${new Date(`${m.data_inicio}T00:00:00`).toLocaleDateString("pt-BR")}` : ""}
-                    </p>
-                    {m.created_at ? (
-                      <p className="text-xs text-muted-foreground">
-                        Matriculado em {new Date(m.created_at).toLocaleDateString("pt-BR")} às{" "}
-                        {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                        {m.registrado_por || m.registrado_por_nome ? ` por ${m.registrado_por_nome ?? nomesUsuarios[m.registrado_por ?? ""] ?? "usuário"}` : ""}
-                      </p>
-                    ) : null}
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">Sem matrícula ativa.</p>
-              )}
-            </div>
 
             <div className="space-y-2">
               <p className="text-sm font-medium">Anotações</p>
@@ -616,6 +617,69 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
               )}
             </div>
 
+              </TabsContent>
+              <TabsContent value="matriculas" className="space-y-5 pt-5">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Matrículas</p>
+              {matriculas.length ? (
+                matriculas.map((m) => (
+                  <div key={m.id} className="rounded-lg bg-secondary/60 px-3 py-2 text-sm">
+                    <p className="font-medium">{turmas.find((t) => t.id === m.turma_id)?.nome ?? "Turma"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {m.modalidade} · {m.status}
+                      {m.data_inicio ? ` · início ${new Date(`${m.data_inicio}T00:00:00`).toLocaleDateString("pt-BR")}` : ""}
+                    </p>
+                    {m.created_at ? (
+                      <p className="text-xs text-muted-foreground">
+                        Matriculado em {new Date(m.created_at).toLocaleDateString("pt-BR")} às{" "}
+                        {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        {m.registrado_por || m.registrado_por_nome ? ` por ${m.registrado_por_nome ?? nomesUsuarios[m.registrado_por ?? ""] ?? "usuário"}` : ""}
+                      </p>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Sem matrícula ativa.</p>
+              )}
+            </div>
+
+              </TabsContent>
+              <TabsContent value="documentos" className="space-y-5 pt-5">
+            <div className="rounded-lg border border-border/70 p-3 text-sm">
+              <p className="mb-1 font-medium">Documentos</p>
+              <p className="mb-3 text-muted-foreground">
+                RG: {aluno.rg ?? "-"} · CPF: {aluno.cpf ?? "-"}
+              </p>
+              <div className="mb-3 space-y-2">
+                {DOCUMENTOS.map((d) => {
+                  const path = aluno[d.campo];
+                  const url = docsUrls[d.campo];
+                  return (
+                    <div key={d.campo} className="flex items-center gap-3 rounded-lg bg-secondary/50 p-2">
+                      {url ? (
+                        <a href={url} target="_blank" rel="noreferrer">
+                          <img src={url} alt={d.rotulo} className="size-12 rounded object-cover" />
+                        </a>
+                      ) : (
+                        <div className="grid size-12 place-items-center rounded bg-muted text-xs text-muted-foreground">—</div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm">{d.rotulo}</p>
+                        <p className="text-xs text-muted-foreground">{path ? "Enviado" : "Não enviado"}</p>
+                      </div>
+                      {path ? (
+                        <Button size="sm" variant="outline" onClick={() => void baixarDoc(d.rotulo, path, aluno.nome)}>
+                          Baixar
+                        </Button>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+
+            </div>
+              </TabsContent>
+              <TabsContent value="historico" className="space-y-5 pt-5">
             <HistoricoAluno alunoId={aluno.id} />
 
             <div className="space-y-2">
@@ -648,6 +712,8 @@ export function PerfilAluno({ alunoId, onFechar }: { alunoId: string | null; onF
                 </>
               )}
             </div>
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </DialogContent>

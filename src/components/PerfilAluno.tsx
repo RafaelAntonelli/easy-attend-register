@@ -375,7 +375,10 @@ export function PerfilAluno({ alunoId, onFechar, onEditar, onCracha, onBaixar }:
                 <div className="min-w-0 flex-1 space-y-2 pr-4 sm:pr-0">
                   <DialogTitle className="break-words font-display text-2xl leading-tight sm:text-3xl">{aluno.nome}</DialogTitle>
                   <SituacaoAluno tom={!aluno.ativo ? "inativo" : licencaAberta ? "licenca" : "ativo"} rotulo={!aluno.ativo ? "Inativo" : licencaAberta ? "Licença médica" : "Ativo"} />
-                  <p className="text-sm text-muted-foreground">Matrícula: <span className="font-medium">{aluno.codigo}</span></p>
+                  <div className="flex flex-col gap-x-4 gap-y-1 text-sm text-muted-foreground sm:flex-row sm:items-baseline">
+                    <p className="shrink-0">Matrícula: <span className="font-medium">{aluno.codigo}</span></p>
+                    <p className="min-w-0 flex-1 break-words">Turma atual: <span className="font-medium text-foreground">{turmaAtiva?.nome ?? "Sem turma ativa"}{turmaAtiva?.horario && !turmaAtiva.nome.includes(turmaAtiva.horario) ? ` · ${turmaAtiva.horario}` : ""}</span></p>
+                  </div>
                 </div>
                 <div className="hidden items-center gap-2 sm:flex">
                   {onEditar ? <Button variant="ghost" size="icon" title="Editar cadastro" aria-label="Editar cadastro" onClick={onEditar}><Pencil /></Button> : null}
